@@ -154,7 +154,7 @@ MINIMUM JOURNEY のルールを、ルールブックを開かずに参照でき�
 
 擬似コード（検証用）:
 
-```
+```text
 order = sort(players, key = (
     faceUpCount(p),                    // お守りは含めない。横向きは含む [Q-12]
     exploreOutput(p),                  // 半減・お守り加算後の値 [Q-9][Q-10]
