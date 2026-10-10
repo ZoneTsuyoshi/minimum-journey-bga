@@ -1,0 +1,29 @@
+# 作業用ワークツリー（タスクごとに .worktrees/<ブランチ名> を作成する）
+.worktrees/
+
+# OS / エディタ
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+
+# 依存パッケージ・ビルド生成物
+node_modules/
+vendor/
+dist/
+*.log
+
+# 認証情報（BGA Studio の SFTP 情報などは絶対にコミットしない）
+.env
+.env.*
+!.env.example
+sftp.json
+.vscode/sftp.json
+*.pem
+id_rsa*
+id_ed25519*
+
+# Claude Code のローカル設定
+.claude/settings.local.json
