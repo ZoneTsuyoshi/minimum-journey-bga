@@ -20,9 +20,9 @@ MINIMUM JOURNEY を BGA Studio のプロジェクト `minimumjourney` として�
 
 - **【確認】** は公式ドキュメント（`https://en.doc.boardgamearena.com/` 配下）で確認した事実。URL を添える。
 - **【提案】** は本仕様書の提案・推測。公式ドキュメントでは確認していない。
-- **【未確認】** は確認を試みたが公式ドキュメントから判断できなかった事項。未確定事項（10.1・10.2）にまとめる。
+- **【未確認】** は確認を試みたが公式ドキュメントから判断できなかった事項。「未確定事項」の A・Bにまとめる。
 - 調査日は 2026-10-10。ページは WebFetch（本文を要約して返すツール）で取得したため、**要約を介した確認**である。コード例の細部や属性名など、実装段階で最終確認が必要なものは各 URL を再読すること。
-- BGA ドキュメント内に新旧の記述が混在している箇所がある（例: `gameoptions.json` と `gameoptions.jsonc` の表記ゆれ）。その場合は両方を併記し、未確定事項（10.1・10.2）に挙げた。
+- BGA ドキュメント内に新旧の記述が混在している箇所がある（例: `gameoptions.json` と `gameoptions.jsonc` の表記ゆれ）。その場合は両方を併記し、「未確定事項」の A・Bに挙げた。
 
 主な参照 URL（以降は略称で記す）:
 
@@ -71,12 +71,12 @@ MINIMUM JOURNEY を BGA Studio のプロジェクト `minimumjourney` として�
 - **【確認】** Walkthrough は「現行フレームワーク（2024 年以降）は PHP の状態クラス、TypeScript/JavaScript（任意）、JSON 設定、`#[PossibleAction]` による属性ベースのアクション宣言を使い、`states.inc.php`・`material.inc.php`・重い Dojo 依存は旧式」と述べる。https://en.doc.boardgamearena.com/Create_a_game_in_BGA_Studio:_Complete_Walkthrough
 - **【確認】** 一方、FirstSteps の初期ファイル一覧には `states.inc.php`・`material.inc.php`・`action.php`・`view.php`・`.tpl` がまだ載っている（旧構成を前提にした記述が残っている）。https://en.doc.boardgamearena.com/First_steps_with_BGA_Studio
 
-**新規プロジェクトの採用方針【提案】**: **現行構成のみを採る**。理由は (a) FileRef が現行標準と非推奨を明示している、(b) 新規プロジェクトは JSON 設定の使用が必須とされている、(c) 非推奨ファイルに依存すると将来の削除・移行コストが発生する、(d) 本ゲームは同時手番・割り込み選択が多く、状態クラス（`getArgs` / `zombie` を状態ごとに同居させられる）の方が保守しやすい。Studio が初期生成する非推奨ファイル（`states.inc.php` 等）は、動作確認後に削除または空のスタブにする（削除可否は未確定事項 10.2 の No.3）。
+**新規プロジェクトの採用方針【提案】**: **現行構成のみを採る**。理由は (a) FileRef が現行標準と非推奨を明示している、(b) 新規プロジェクトは JSON 設定の使用が必須とされている、(c) 非推奨ファイルに依存すると将来の削除・移行コストが発生する、(d) 本ゲームは同時手番・割り込み選択が多く、状態クラス（`getArgs` / `zombie` を状態ごとに同居させられる）の方が保守しやすい。Studio が初期生成する非推奨ファイル（`states.inc.php` 等）は、動作確認後に削除または空のスタブにする（削除可否は未確定事項 B の No.3）。
 
 #### 1.2 `minimumjourney` の具体的なファイル・クラス構成【提案】
 
 名前空間とクラス名は Migration の例（`namespace Bga\Games\YourGameName;`、`class Game extends \Bga\GameFramework\Table`、`declare(strict_types=1);`）に基づく。https://en.doc.boardgamearena.com/BGA_Studio_Migration_Guide
-名前空間の大文字小文字（`minimumjourney` か `MinimumJourney` か）は **【未確認】**。Studio が初期生成するファイルの名前空間に必ず合わせる（未確定事項 10.2 の No.4）。以下は暫定的に `Bga\Games\minimumjourney` と書く。
+名前空間の大文字小文字（`minimumjourney` か `MinimumJourney` か）は **【未確認】**。Studio が初期生成するファイルの名前空間に必ず合わせる（未確定事項 B の No.4）。以下は暫定的に `Bga\Games\minimumjourney` と書く。
 
 | BGA 側パス | 役割 | 根拠 |
 | --- | --- | --- |
@@ -87,7 +87,7 @@ MINIMUM JOURNEY を BGA Studio のプロジェクト `minimumjourney` として�
 | `minimumjourney.css` | スタイル（ルート直下） | FileRef（`<gamename>.css` は必須） |
 | `dbmodel.sql` | DB スキーマ（ItemManager を使う場合、カード表は `initDb()` が生成するので重複定義しない） | FileRef、ItemManager |
 | `gameinfos.jsonc` | ゲームのメタ情報 | FileRef |
-| `gameoptions.jsonc`（`.json` 表記もあり） | ゲームオプション | 未確定事項 10.2 の No.5 |
+| `gameoptions.jsonc`（`.json` 表記もあり） | ゲームオプション | 未確定事項 B の No.5 |
 | `gamepreferences.jsonc`（`.json` 表記もあり） | ユーザー設定（任意） | 同上 |
 | `stats.jsonc`（`.json` 表記もあり） | 統計定義 | 同上 |
 | `img/` | 画像（必須ディレクトリ。ゲーム箱・アイコン等の画像もここ） | FileRef、Img |
@@ -175,16 +175,16 @@ src/
 | --- | --- | --- |
 | 同時選択フェイズ（ドロー／ストップを全員が同時に秘密裏に選ぶ） | `StateType::MULTIPLE_ACTIVE_PLAYER`。複数人が同時にアクティブ。アクティブにするのは状態の「途中」（`onEnteringState` 等）で行い、`setAllPlayersMultiactive()`、`setPlayerNonMultiactive($playerId, $nextState)` などを使う。全員が非アクティブになると遷移する（StatesInc、GamePhp、StateDir） | 準備フェイズの各ステップ（ドロー／ストップ選択）を 1 つの MULTIPLE_ACTIVE_PLAYER 状態にする。選択済みのプレイヤーは `setPlayerNonMultiactive`。詳細は T-006 |
 | 非公開情報: 山札の順序 | ItemManager の ORDER フィールド（0 が底、最大が最上）と `shuffle`、`pickItem`。山札の中身は `getAllDatas` で送らず、枚数のみ送る。`bga_rand` / `random_int` 等で乱数。DB 側の `RAND()` は非推奨（GamePhp、ItemManager） | 各プレイヤーの山札は location 値で表す（例: `deck`＋`locationArg`＝プレイヤー ID）。クライアントには枚数だけ送る |
-| 非公開情報: ストップ時の裏向きカード、本人にだけ見える情報 | `notify->player()` による個別通知、公開通知内の `_private`（プレイヤー ID ごとの引数・メッセージ）、`getArgs()` / `getAllDatas()` 内の `_private`。ItemManager の `changeIds()`（「以前見えていたアイテムが隠れるとき」に ID を付け替えて追跡を防ぐ）（GamePhp、StateDir、ItemManager、Hearts） | 裏向きカードの券面を誰に見せるかはルール（001）次第。見せない場合は裏向きカードを ID のみで送り、公開時に通知で券面を送る。ID 付け替えの要否は T-007 で判断（未確定事項 10.2 の No.7） |
+| 非公開情報: ストップ時の裏向きカード、本人にだけ見える情報 | `notify->player()` による個別通知、公開通知内の `_private`（プレイヤー ID ごとの引数・メッセージ）、`getArgs()` / `getAllDatas()` 内の `_private`。ItemManager の `changeIds()`（「以前見えていたアイテムが隠れるとき」に ID を付け替えて追跡を防ぐ）（GamePhp、StateDir、ItemManager、Hearts） | 裏向きカードの券面を誰に見せるかはルール（001）次第。見せない場合は裏向きカードを ID のみで送り、公開時に通知で券面を送る。ID 付け替えの要否は T-007 で判断（未確定事項 B の No.7） |
 | カード管理（山札・準備場・探査場・獲得カード） | **Deck は非推奨、ItemManager を推奨**。Card クラスに `#[Item]`・`#[ItemField]` を付け、`createItemManager` で生成。`initDb()` が表を作る。`shuffle`、`pickItem(s)`、`moveItem(s)`、`ItemLocation::getDefaults()`（deck/discard/table/hand）または独自 location（ItemManager、Hearts） | `ItemManager` を採用。Deck は新規採用しない（Deck の `autoreshuffle` 相当は、帰還フェイズで全カードをシャッフルする本ゲームでは不要な可能性が高い。詳細 T-007） |
-| カード表示（JS） | **Stock は非推奨、BgaCards（bga-cards）を推奨**。`importEsmLib('bga-cards', '1.x')` と `importEsmLib('bga-animations', '1.x')`。`LineStock`、`HandStock`、`Deck`、`VoidStock`、`SlotStock`、`AllVisibleDeck`。表裏は `setupFrontDiv` / `setupBackDiv` と `isCardVisible`。PHP から送ると数値が文字列になる場合があるため整数化が必要（BgaCards） | 準備場・探査場は LineStock／SlotStock、山札は Deck、横向きカードは bga-cards の回転機能を使う（回転 API の詳細は未確認、未確定事項 10.2 の No.8） |
+| カード表示（JS） | **Stock は非推奨、BgaCards（bga-cards）を推奨**。`importEsmLib('bga-cards', '1.x')` と `importEsmLib('bga-animations', '1.x')`。`LineStock`、`HandStock`、`Deck`、`VoidStock`、`SlotStock`、`AllVisibleDeck`。表裏は `setupFrontDiv` / `setupBackDiv` と `isCardVisible`。PHP から送ると数値が文字列になる場合があるため整数化が必要（BgaCards） | 準備場・探査場は LineStock／SlotStock、山札は Deck、横向きカードは bga-cards の回転機能を使う（回転 API の詳細は未確認、未確定事項 B の No.8） |
 | 通知とアニメーション | `$this->bga->notify->all(type, message, args)`（`${player_name}` と `player_id`）。通知はアクション終了時にまとめて送られる。JS は `setupPromiseNotifications()` と `async notif_*`。アニメーションは bga-animations（Promise ベース）（GamePhp、GameJs、BgaAnimations） | 通知を Promise で順次処理し、リプレイ・観戦でも崩れないよう、画面更新は通知経由だけにする（Game_replay: https://en.doc.boardgamearena.com/Game_replay ） |
 | 効果解決のための追加状態（割り込み的な選択） | 状態クラスで GAME / ACTIVE_PLAYER / MULTIPLE_ACTIVE_PLAYER / PRIVATE を定義。`onEnteringState` の戻り値で別の状態へ。private parallel states: `initialPrivate`、`initializePrivateStateForAllActivePlayers()`、`nextPrivateState()`、`unsetPrivateState()`。クライアント側のみの client states もある（StatesInc、GamePhp、StateDir、Cookbook） | 効果ごとの選択状態を状態クラスにする。全員が各自の効果を並行して解決できる局面は private parallel states 候補。設計は T-006 |
 | undo | 既定では無し。`gameinfos.jsonc` の `db_undo_support: true` と `undoSavepoint()` で有効化。Guidelines は「undo は 1 手番に複数アクションがある場合のみ」「不可逆な操作には確認ボタン」（GamePhp、Guidelines） | **使わない**（`db_undo_support` は false）。同時選択・乱数・非公開情報が絡み、巻き戻しが情報漏えい・不整合になりうる。確認ボタンの要否は UI 設計（T-009）で判断 |
-| zombie（離脱プレイヤー） | 状態クラスの `zombie(int $playerId)` で自動行動を定義。`getCurrentPlayerId()` は使えない。リリース前チェックで必須（StateDir、GamePhp、Checklist） | ドロー／ストップ状態の既定はストップ（失敗リスクを取らない）【提案、未確定事項 10.2 の No.9】。効果の選択状態は無難な選択（スキップ、可能なら最小）を各状態クラスで定義 |
+| zombie（離脱プレイヤー） | 状態クラスの `zombie(int $playerId)` で自動行動を定義。`getCurrentPlayerId()` は使えない。リリース前チェックで必須（StateDir、GamePhp、Checklist） | ドロー／ストップ状態の既定はストップ（失敗リスクを取らない）【提案、未確定事項 B の No.9】。効果の選択状態は無難な選択（スキップ、可能なら最小）を各状態クラスで定義 |
 | ゲーム進行度 | `getGameProgression()` が 0〜100 を返す。状態クラスに `updateGameProgression: true`。リリース前チェックで必須（GamePhp、StateDir、Checklist） | 終了条件（未確認帯域の獲得、ラニアケア超銀河団の探査山札の枯渇）に近づく度合いから算出。式は T-001 の確定後に T-006/T-007 で決める |
 | 統計 | `stats.jsonc` に定義（型は int / float / bool、ID は 10 以上、削除後の ID 再利用は禁止）。`playerStats->init/set/inc`、`tableStats->init/set/inc`。リリース前チェックで「意味のある統計」が必須（Game_statistics、GamePhp、Checklist） | 例: 総ラウンド数、ドロー回数、ストップ回数、失敗（横向き）回数、獲得カード数。確定は T-007 |
-| ゲームオプション（お守りの面選択など） | `gameoptions.jsonc` に ID・`name`・`values`（キーは文字列）・`default`・`level`（`base`/`major`/`additional`）・`displaycondition`・`startcondition`。PHP では `$this->bga->tableOptions->get(int $optionId): ?int` で読む。ゲーム開始後は変更不可（Options 参照ページ） | お守り（カード 57・58）の面選択を `values` の選択肢にするか、ゲーム中の選択にするかはルール次第（未確定事項 10.2 の No.10） |
+| ゲームオプション（お守りの面選択など） | `gameoptions.jsonc` に ID・`name`・`values`（キーは文字列）・`default`・`level`（`base`/`major`/`additional`）・`displaycondition`・`startcondition`。PHP では `$this->bga->tableOptions->get(int $optionId): ?int` で読む。ゲーム開始後は変更不可（Options 参照ページ） | お守り（カード 57・58）の面選択を `values` の選択肢にするか、ゲーム中の選択にするかはルール次第（未確定事項 B の No.10） |
 | 同点処理・勝敗 | `playerScore` で名声（勝利点）を更新、`playerScoreAux` で同点処理。終了時に `GameResult` を返す形もある（GamePhp） | 名声＝スコア。同点処理はルールブックに従う（T-001） |
 | 乱数 | `bga_rand(min, max)`、配列は `random_int()`＋ `array_slice`。`shuffle()` / `array_rand()` は非推奨（GamePhp） | 山札のシャッフルは ItemManager の `shuffle` を使い、自前で乱数を扱う場合は上記に従う |
 
@@ -215,7 +215,7 @@ src/
 1. `data/cards/` は原本として触らず、**`src/img/` に生成物を置く**（CLAUDE.md の規則 6）。
 2. 原本をそのまま `img/` に置かない。縮小（表示サイズの 2 倍程度、例: 幅 358 px 前後）してスプライトシートを作り、WebP で書き出す。縮小時は rev.png を含め全カードを同一寸法に揃える。
 3. シートは 4096×4096 px 以内、1 枚 2 MB 以内、総量 15 MB 以内を満たす。縮小幅 358×500 なら 4096 px 以内で 11 列×8 行＝ 88 枚（全 72 枚）が 1 枚に収まる計算だが、**2 MB 制限を満たすかと Android での大きなテクスチャの扱いに懸念があるため、複数シート（表面を 2 枚程度＋裏面など）に分ける案も T-009 で比較する**。
-4. スプライト生成は再現可能な Node スクリプト（リポジトリ直下 `scripts/` 等）で行い、生成物は `src/img/` にコミットする（CD で毎回生成すると同期が重くなるため）【提案、未確定事項 10.2 の No.11】。
+4. スプライト生成は再現可能な Node スクリプト（リポジトリ直下 `scripts/` 等）で行い、生成物は `src/img/` にコミットする（CD で毎回生成すると同期が重くなるため）【提案、未確定事項 B の No.11】。
 5. 画像ファイル名は英数字とアンダースコアのみ。
 6. カード券面のテキスト（効果文）は画像に含まれるため、日本語表示は画像のまま。UI 文言のみ翻訳機構を使う（第 5.4）。
 
@@ -251,7 +251,7 @@ src/
 **CI（GitHub Actions）から接続する際の注意点**
 
 - 【提案】ポートは 2022。SFTP クライアント（`lftp`、`rsync -e "ssh -p 2022"` など）の設定でポートを必ず指定する。
-- 【提案】CI 用には **SSH 鍵認証**を推奨する（パスワードを Secrets に置くより、鍵のローテーションと失効が容易）。ただし鍵を登録するとパスワード認証が無効になるため、手元の SFTP クライアントも鍵に切り替える必要がある（未確定事項 10.2 の No.12）。
+- 【提案】CI 用には **SSH 鍵認証**を推奨する（パスワードを Secrets に置くより、鍵のローテーションと失効が容易）。ただし鍵を登録するとパスワード認証が無効になるため、手元の SFTP クライアントも鍵に切り替える必要がある（未確定事項 B の No.12）。
 - 【提案】接続先のホスト鍵は初回接続で固定（`known_hosts` に事前登録）し、`StrictHostKeyChecking=no` に頼らない。ホスト鍵のフィンガープリントは公式ドキュメントに記載がなく、**【未確認】**。
 - 【提案】Secrets 名の案: `BGA_SFTP_HOST`、`BGA_SFTP_PORT`、`BGA_SFTP_USER`、`BGA_SFTP_KEY`（または `BGA_SFTP_PASSWORD`）。認証情報、ホストのパスワード、鍵はリポジトリ・ログ・仕様書に書かない。
 - 【提案】同期ジョブは同時実行しない（`concurrency` グループ）。Studio への並列アップロード制限は公式ドキュメントに記載がなく **【未確認】**。lftp の `--parallel=10` が例示されているので低並列度での実行は許容と推測できるが保証はない。
@@ -272,7 +272,7 @@ src/
 
 | 対象 | できること | 備考 |
 | --- | --- | --- |
-| PHP | `php -l` と静的解析（PHPStan 等）、PHPUnit の単体テスト | **ローカルに PHP が無い**ため、手元では実行できない。CI（PHP 8.4）で実行する。手元で確認したい場合は Docker（任意、未決: 未確定事項 10.2 の No.13） |
+| PHP | `php -l` と静的解析（PHPStan 等）、PHPUnit の単体テスト | **ローカルに PHP が無い**ため、手元では実行できない。CI（PHP 8.4）で実行する。手元で確認したい場合は Docker（任意、未決: 未確定事項 B の No.13） |
 | PHP 補完 | `_ide_helper.php` を Studio から取得すると IDE 補完が効く（Intelephense 推奨） | VSCode ページ。取得は一度手動（SFTP ダウンロード） |
 | JS | ESLint、`tsc --noEmit --checkJs`（型チェック） | Node のみで可能 |
 | CSS | Stylelint | Node のみで可能 |
@@ -327,14 +327,14 @@ src/
 
 ## エッジケース
 
-- Studio が初期生成する非推奨ファイル（`states.inc.php` など）が残っていると、状態クラスと二重定義になる可能性がある。初回同期の前に、Studio の初期ファイルをいったんダウンロードして `src/` に取り込み、残す／消すを判断する（【提案】、未確定事項 10.2 の No.3）。
+- Studio が初期生成する非推奨ファイル（`states.inc.php` など）が残っていると、状態クラスと二重定義になる可能性がある。初回同期の前に、Studio の初期ファイルをいったんダウンロードして `src/` に取り込み、残す／消すを判断する（【提案】、未確定事項 B の No.3）。
 - 同期で `gameinfos.jsonc` などの JSON 設定が不正だと、Studio 側のリロード操作で初めてエラーに気づく。CI の JSON 検査で先に防ぐ。
 - SSH 鍵を登録した瞬間にパスワードが無効になる。CI の鍵が未設定の状態で手元の SFTP がパスワードのままだと接続できなくなる。登録の順序に注意する。
 - 画像の削除は SFTP で消すだけでは完結せず、コントロールパネルでの追加操作が要る（FileRef）。スプライトを差し替えて旧画像を削除する場合は手動操作が発生する。
 
 ## 未確定事項
 
-### 10.1 公式ドキュメントで確認できなかった事項
+### A. 公式ドキュメントで確認できなかった事項
 
 | No. | 事項 | 状況 |
 | --- | --- | --- |
@@ -349,7 +349,7 @@ src/
 | U9 | フレームワークのスタブ（静的解析用）の公式配布 | `_ide_helper.php` のみ確認 |
 | U10 | PHP_8_upgrade ページの取得結果に「PHP 8.8」という誤記があり、そのページ単独では PHP バージョンを確認できなかった | PHP 8.4 は Studio ページと FAQ で確認 |
 
-### 10.2 作者への質問
+### B. 作者への質問
 
 | No. | 質問 | 暫定案 | 回答 |
 | --- | --- | --- | --- |
@@ -371,10 +371,10 @@ src/
 ## 受け入れ条件
 
 - [ ] 各【確認】の記述に公式ドキュメントの URL が添えられている
-- [ ] 確認できなかった事項が第 10.1 節に列挙されている
+- [ ] 確認できなかった事項が「未確定事項」の Aに列挙されている
 - [ ] `src/` の構成案が BGA 側のパスと 1 対 1 で対応している
 - [ ] 言語・ツール方針ごとに推奨案が 1 つ示され、理由が書かれている
 - [ ] 要件ごとのフレームワーク機能の対応表がある
 - [ ] SFTP のホスト・ポート・認証方式が記載され、認証情報そのものは含まれていない
 - [ ] T-004 / T-005 / T-006 への申し送りがある
-- [ ] 第 10.2 節の質問に作者が回答し、回答に合わせて本仕様書が更新されたうえでステータスが Approved になる
+- [ ] 「未確定事項」の Bの質問に作者が回答し、回答に合わせて本仕様書が更新されたうえでステータスが Approved になる
