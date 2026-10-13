@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="_レイヤー_2" data-name="レイヤー 2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24.65 9.84">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: #0a2634;
+      }
+
+      .cls-2, .cls-3 {
+        fill: #fff;
+      }
+
+      .cls-3 {
+        font-family: HiraginoSans-W8-83pv-RKSJ-H, 'Hiragino Sans';
+        font-size: 4.59px;
+      }
+
+      .cls-4 {
+        fill: #71bad7;
+      }
+    </style>
+  </defs>
+  <g id="_レイヤー_1-2" data-name="レイヤー 1">
+    <g>
+      <g>
+        <polygon class="cls-1" points="1.75 8.99 .85 6.85 .85 2.98 1.75 .85 22.9 .85 23.8 2.98 23.8 6.85 22.9 8.99 1.75 8.99"/>
+        <path class="cls-2" d="M22.33,1.7l.61,1.45v3.53l-.61,1.45H2.31l-.61-1.45v-3.53l.61-1.45h20.02M23.46,0H1.18l-.44,1.04L.13,2.5l-.13.32v4.21l.13.32.61,1.45.44,1.04h22.28l.44-1.04.61-1.45.13-.32V2.81l-.13-.32-.61-1.45-.44-1.04h0Z"/>
+        <path class="cls-4" d="M22.33,1.7l.61,1.45v3.53l-.61,1.45H2.31l-.61-1.45v-3.53l.61-1.45h20.02M22.9.85H1.75l-.22.52-.61,1.45-.07.16v3.87l.07.16.61,1.45.22.52h21.15l.22-.52.61-1.45.07-.16v-3.87l-.07-.16-.61-1.45-.22-.52h0Z"/>
+      </g>
+      <text class="cls-3" transform="translate(3.23 6.61)"><tspan x="0" y="0">EVENT</tspan></text>
+    </g>
+  </g>
+</svg>
