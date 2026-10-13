@@ -247,7 +247,7 @@ src/
 - `Game.js` を変更したとき: 通常のリロードで反映（FileRef）。CSS は強制再読込（FileRef）。
 - ゲーム箱・アイコン画像: 「Reload game box image」（FAQ）。画像の削除はコントロールパネルでの追加操作が必要（FileRef）。
 - 他のブラウザタブは手動でリロードする必要がある（Tools）。
-- 「Control Panel / Manage Games / <game> / Commit my modifications now」で Studio 内蔵 SVN にコミットできる（FirstSteps）。
+- 「Control Panel / Manage Games / `<game>` / Commit my modifications now」で Studio 内蔵 SVN にコミットできる（FirstSteps）。
 
 **CI（GitHub Actions）から接続する際の注意点**
 
