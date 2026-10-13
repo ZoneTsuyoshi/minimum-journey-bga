@@ -284,7 +284,10 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+  workflow_call:
 ```
+
+- `workflow_call` は、BGA Studio への同期ワークフロー（[005-bga-sync.md](005-bga-sync.md)、`bga-sync.yml`）が lint を再利用ワークフローとして呼び出し、`needs` で成功を前提にするために用意する（005 §5.2）。呼び出し側に渡す入力・シークレットは無い。
 
 - `pull_request_target` は使わない（PR の差分を信頼しないコンテキストで実行する用途が無く、権限昇格のリスクだけが増える。【確認】actions/checkout v7 は、`pull_request_target` / `workflow_run` でフォーク PR のコードを既定で取得しない旨を README に記す）。
 - マージキュー（`merge_group`）は、単独開発で PR が同時に複数並ばないため当面使わない。導入する場合は `merge_group` トリガーを足す。
@@ -526,7 +529,7 @@ concurrency:
 | 2 | ローカルの Node を 22.13 以上の LTS（22 または 24）に揃えられるか（現状は 23.11.0 で ESLint 10 の対応範囲外）。CI の Node は 24 でよいか | CI は 24。ローカルも 24 に揃える（`.nvmrc` で `nvm use`） | |
 | 3 | PHP の静的解析で、Studio の `_ide_helper.php` を取得して `tools/phpstan/` に置いてよいか（BGA の著作物の再配布にあたらないか）。許可しない場合は手書きの最小スタブで進める | 当面は手書きスタブ。`_ide_helper.php` はコミットしない | |
 | 4 | `main` の保護で、管理者（作者）のバイパスを許可するか | 許可しない（lint の失敗はマージ不可、緊急時は設定を一時的に外す） | |
-| 5 | リポジトリの所有者は個人アカウントか Organization か。公開か非公開か | 個人アカウントと推測（gitleaks のライセンス不要）。公開範囲は不明 | |
+| 5 | リポジトリの所有者は個人アカウントか Organization か。公開か非公開か | 個人アカウントと推測（gitleaks のライセンス不要）。公開範囲は不明 | 一部確認（2026-10-13）。リポジトリは **非公開**（未認証の API 照会が 404 を返すことで確認）で、個人アカウント `ZoneTsuyoshi` の所有。非公開のまま維持する方針をメインエージェントが推奨。GitHub のプラン（Free / Pro）は未回答。Free の場合、非公開リポジトリでは `main` の保護（必須チェック）を強制できないため、第 7 節の 3 は運用ルール（CLAUDE.md）で代替する |
 | 6 | 外部 URL のリンク切れを、必須ではないスケジュール実行（週 1 回）で検査してよいか | 追加しない（必要になってから） | |
 | 7 | CSS のクラス名に `snake_case` を使いたいか（Stylelint の `selector-class-pattern` を無効にするか） | 標準の kebab-case に統一し、ルールは有効のまま | |
 | 8 | pre-commit フックを導入しない方針でよいか | 導入しない（第 5.3 節） | |
