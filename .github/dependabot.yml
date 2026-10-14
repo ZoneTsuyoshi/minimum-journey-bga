@@ -1,0 +1,17 @@
+# 依存の週次更新。composer は第 2 段階で composer.json を追加するときに足す（仕様書 004 第 6.1 節）
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      github-actions:
+        patterns: ["*"]
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      npm-dev:
+        patterns: ["*"]

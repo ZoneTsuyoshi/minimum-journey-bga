@@ -1,0 +1,17 @@
+{
+  "name": "minimum-journey-bga",
+  "private": true,
+  "description": "MINIMUM JOURNEY の Board Game Arena 実装（開発用ツール。src/ には含めない）",
+  "engines": {
+    "node": "^22.13.0 || >=24"
+  },
+  "scripts": {
+    "lint": "npm run lint:md && npm run lint:repo",
+    "lint:md": "markdownlint-cli2",
+    "lint:repo": "node scripts/lint/check-repo.mjs",
+    "lint:links": "lychee --config lychee.toml \"./**/*.md\""
+  },
+  "devDependencies": {
+    "markdownlint-cli2": "^0.23.3"
+  }
+}

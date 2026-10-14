@@ -1,0 +1,96 @@
+# CI（lint）第 1 段階。仕様書: docs/specs/004-ci-lint.md
+# 必須チェックは gate（表示名 "Lint gate"）のみ。段階が進んだら gate の needs にジョブを足す。
+name: Lint
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+  # bga-sync.yml が lint を再利用ワークフローとして呼ぶ（仕様書 005 §5.2）
+  workflow_call:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lint-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  markdown:
+    name: Markdown
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: markdownlint
+        run: npm run lint:md
+
+      # 内部リンクのみ検査する（offline は lychee.toml で指定）
+      - name: lychee (internal links)
+        uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2.9.0
+        with:
+          lycheeVersion: v0.24.2
+          args: --config lychee.toml './**/*.md'
+          fail: true
+
+  secrets:
+    name: Secrets
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      # gitleaks-action が PR のコミット範囲を API で取得するために読み取りのみ必要（コメントは無効）
+      pull-requests: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: gitleaks
+        uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_CONFIG: .gitleaks.toml
+          GITLEAKS_ENABLE_COMMENTS: false
+
+      - name: Setup Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+
+      # 外部依存なしのスクリプトなので npm ci は不要
+      - name: Forbidden files and src/ hygiene
+        run: npm run lint:repo
+
+  gate:
+    name: Lint gate
+    if: ${{ always() }}
+    # 段階が進むたびに php, node, assets を追加する
+    needs: [markdown, secrets]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Require all lint jobs to succeed
+        env:
+          RESULTS: ${{ toJSON(needs.*.result) }}
+        run: |
+          echo "$RESULTS"
+          echo "$RESULTS" | grep -qE '"(failure|cancelled|skipped)"' && exit 1 || exit 0
