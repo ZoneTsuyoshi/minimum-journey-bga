@@ -1,0 +1,24 @@
+// M1: Markdown の書式（仕様書 004 第 2.1 節）。実行: npm run lint:md
+{
+  "globs": ["**/*.md"],
+  // data/（原本）、.worktrees/、node_modules/、vendor/ は対象外
+  "ignores": ["data/**", ".worktrees/**", "node_modules/**", "vendor/**"],
+  "gitignore": false,
+  "config": {
+    "default": true,
+    // 日本語は文字数ベースの折り返しが不自然で、表も長くなるため無効
+    "MD013": false,
+    // インライン HTML は表のセル内改行用の br のみ許可
+    "MD033": { "allowed_elements": ["br"] },
+    // 根拠 URL を表や文中に裸で貼る運用のため無効
+    "MD034": false,
+    // 太字の行を小見出し的に使う書き方を許容
+    "MD036": false,
+    // 同名見出しは別の親の下なら許容
+    "MD024": { "siblings_only": true },
+    // [探査力][名声] のような角括弧の連なりを参照リンクと誤認するため無効（リンク切れは lychee が見る）
+    "MD052": false,
+    // CJK の全角幅が絡み、表の整列を強制しない
+    "MD060": false
+  }
+}

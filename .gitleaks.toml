@@ -1,0 +1,17 @@
+# S1: 認証情報の混入検査。仕様書 004 第 2.3 節
+title = "minimum-journey-bga gitleaks config"
+
+[extend]
+useDefault = true
+
+# BGA Studio の接続情報（sftp.json 形式）の取りこぼしを防ぐ独自ルール
+[[rules]]
+id = "bga-sftp-json-password"
+description = "sftp.json 形式（\"password\" キーを持つ JSON）の接続情報"
+regex = '''(?i)"password"\s*:\s*"[^"\s]{4,}"'''
+keywords = ["password"]
+
+# 誤検出の許可リスト。広い除外は避け、理由を書く
+[[allowlists]]
+description = "package-lock.json の integrity ハッシュは認証情報ではない"
+paths = ['''^package-lock\.json$''']

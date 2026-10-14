@@ -1,0 +1,10 @@
+# M2: リンク切れ（内部リンクのみ）。仕様書 004 第 2.2 節
+# 実行: lychee --config lychee.toml "./**/*.md"（CI は lychee-action 経由）
+
+# ネットワークに出ない。相対パスのファイル参照と # フラグメントのみ検査する
+offline = true
+include_fragments = true
+no_progress = true
+
+# 検査対象にしない Markdown（正規表現）。data/ 配下へのリンク先の存在確認は引き続き行われる
+exclude_path = ['^\.worktrees/', '^node_modules/', '^data/', '^vendor/']
