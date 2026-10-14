@@ -28,8 +28,11 @@ id_ed25519*
 # Claude Code のローカル設定
 .claude/settings.local.json
 
+# BGA 配布物の開発用スタブ（ライセンスが不明なためコミットしない。ローカルに置く場合のみ）
+/tools/bga/_ide_helper.php
+/tools/bga/bga-framework.d.ts
+
 # スプライト生成物（CI とローカルで scripts/build-sprites.mjs が生成する。仕様書 009 §5.5）
 /src/img/cards_*.webp
 /src/img/icons.webp
-/src/img/zoom/
 /build/

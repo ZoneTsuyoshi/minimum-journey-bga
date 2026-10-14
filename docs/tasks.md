@@ -14,7 +14,7 @@
 | T-002 | カードデータ仕様（全カードの番号・名称・シンボル・探査コスト・探査力・名声・効果・タイミング、英語識別子） | `specs/002-card-data.md` | — | 仕様承認済み |
 | T-003 | BGA プロジェクト構成・技術方針（公式ドキュメントの調査、`src/` のファイル構成、使用するフレームワーク機能） | `specs/003-bga-architecture.md` | — | 仕様承認済み |
 | T-004 | CI（lint）の仕様 → 導入 | `specs/004-ci-lint.md`、`.github/workflows/` | T-003 | 実装中（第 1 段階完了 #10。第 2・3 段階は src/ 雛形とアセット検査の追加時） |
-| T-005 | BGA Studio 自動同期の仕様 → 導入 | `specs/005-bga-sync.md`、`.github/workflows/` | T-003, T-004 | 実装中（第 1 段階: 接続テスト） |
+| T-005 | BGA Studio 自動同期の仕様 → 導入 | `specs/005-bga-sync.md`、`.github/workflows/` | T-003, T-004 | 実装中（CI からの接続・本番転送を確認済み。dry-run と手動操作の運用は残り） |
 | T-010 | ドロー時効果の優先度（同時に解決するドロー時効果の処理順） | `specs/010-draw-effect-priority.md` | T-001, T-002 | 仕様承認済み |
 | T-011 | 探査力変動効果の適用順（探査出力の計算での効果の重なり） | `specs/011-power-mod-priority.md` | T-001, T-002 | 仕様承認済み |
 
@@ -40,6 +40,6 @@
 | SSH 鍵の生成と BGA Studio への登録、GitHub への Secrets / Variables の登録（手順は `specs/005-bga-sync.md` §7） | T-005 の導入時 | 済（2026-10-14） |
 | GitHub リポジトリの設定（`main` の保護、ブランチ自動削除、squash merge。手順は `specs/004-ci-lint.md` §7） | T-004 の導入時 | 未着手 |
 | `gh` CLI の再ログイン（エージェントが PR を作成・マージできるようにする） | 随時 | 済 |
-| BGA Studio 上の初期ファイルのダウンロードとファイル一覧の共有（`specs/005-bga-sync.md` §4） | T-005 の導入時 | エージェントが実施中 |
+| BGA Studio 上の初期ファイルのダウンロードとファイル一覧の共有（`specs/005-bga-sync.md` §4） | T-005 の導入時 | 済（2026-10-14。`src/` に取り込み） |
 | メタ画像: Banner（JPG、1386×400、2MB 以下）の用意（`specs/009-ui-assets.md` §1.2） | ベータまで | 未着手 |
 | メタ画像: Display（JPG、高さ 400〜760px、幅は高さの 1.5 倍まで、最大 10 枚）の用意（同上） | 正式リリースまで | 未着手 |

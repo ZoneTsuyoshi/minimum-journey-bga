@@ -13,7 +13,7 @@ const MAX_FILE_BYTES = 2_000_000; // 1 ファイル 2 MB（A1。004 §2.9）
 const MAX_TOTAL_BYTES = 15_000_000; // 総量 15 MB
 const WARN_TOTAL_BYTES = 6_000_000; // 目標 6 MB
 const MAX_DIM = 4096;
-const MAX_PRELOAD = 12; // src/img 直下の先読み対象
+const WARN_FILE_COUNT = 10; // img/README「fewer than 10 files」。Typically なので警告（009 §4.6）
 const NAME_RE = /^[A-Za-z0-9_]+\.webp$/;
 const IMAGE_EXT_RE = /\.(webp|png|jpe?g|gif|svg)$/i;
 
@@ -53,7 +53,7 @@ export async function checkSprites({ out, manifest }) {
   // ファイルの存在・余計な画像・ファイル名
   const present = await listFiles(out);
   for (const f of expected) if (!present.includes(f)) errors.push(`ファイルがありません: ${f}`);
-  const generatedLike = (f) => /^cards_[^/]*\.webp$/.test(f) || f === ICON_FILE || f.startsWith('zoom/');
+  const generatedLike = (f) => /^cards_[^/]*\.webp$/.test(f) || f === ICON_FILE || /(^|\/)cards_/.test(f);
   for (const f of present) {
     if (expected.includes(f)) continue;
     if (!IMAGE_EXT_RE.test(f)) continue;
@@ -62,8 +62,7 @@ export async function checkSprites({ out, manifest }) {
   }
   for (const f of present) {
     if (!IMAGE_EXT_RE.test(f)) continue;
-    const parts = f.split('/');
-    const ok = (parts.length === 1 || (parts.length === 2 && parts[0] === 'zoom')) && NAME_RE.test(parts.at(-1));
+    const ok = !f.includes('/') && NAME_RE.test(f);
     // 手書き画像は他形式（png 等）もありうるので、生成物の命名規則だけをエラーにする
     if (!ok && generatedLike(f)) errors.push(`ファイル名が規則に合いません: ${f}`);
   }
@@ -89,8 +88,9 @@ export async function checkSprites({ out, manifest }) {
   }
   if (total > MAX_TOTAL_BYTES) errors.push(`総量 ${total} バイトが上限 ${MAX_TOTAL_BYTES} を超えています`);
   else if (total > WARN_TOTAL_BYTES) warnings.push(`総量 ${total} バイトが目標 ${WARN_TOTAL_BYTES} を超えています`);
-  const preload = present.filter((f) => IMAGE_EXT_RE.test(f) && !f.includes('/')).length;
-  if (preload > MAX_PRELOAD) warnings.push(`src/img 直下の画像が ${preload} 個あります（目安 ${MAX_PRELOAD} 個以下）`);
+  // img/README: サブディレクトリ禁止（エラー）、ファイル数はおおむね 10 個未満（警告）
+  for (const f of present) if (f.includes('/')) errors.push(`img/ にサブディレクトリは使えません（BGA の制約）: ${f}`);
+  if (present.length >= WARN_FILE_COUNT) warnings.push(`img/ に ${present.length} 個のファイルがあります（BGA の目安は 10 個未満）`);
 
   // マニフェストの整合
   if (m) {

@@ -132,7 +132,7 @@ CLAUDE.md の絶対ルール 7（認証情報をコミットしない）を機�
 
 #### 2.4 PHP（P1・P2・P3）
 
-- **対象**: `src/**/*.php`（`src/modules/php/` 配下。`_ide_helper.php` は Studio 側のファイルでリポジトリに入れない方針、仕様書 003 第 2 節）。
+- **対象**: `src/**/*.php`（`src/modules/php/` 配下。`_ide_helper.php` は Studio 側のファイルでリポジトリに入れない方針、仕様書 003 第 2 節）。`src/` の雛形は取り込み済み（2026-10-14、`feat/src-skeleton`）で、第 2 段階の前提を満たす。
 - **実行環境**: PHP **8.4**（BGA 本番と同じ。【確認】<https://en.doc.boardgamearena.com/Studio>）。CI では `shivammathur/setup-php` で `php-version: '8.4'`、`coverage: none`、`tools: composer` を指定する。`composer.json` に `config.platform.php = "8.4.0"` を書き、依存解決も 8.4 に固定する。
 - **ツールの導入**: ツールは `composer.json` の `require-dev` で入れ、`composer.lock` をコミットして固定する（`vendor/` は `.gitignore` 済み）。PHAR を `tools:` で直接入れる方式は手軽だが、バージョンがロックされず Dependabot も効かないため採らない【提案】。
 - **PHP の lint は `composer lint` に集約する【提案】**。`composer.json` の `scripts` に以下を定義し、CI も同じコマンドを呼ぶ。
@@ -176,9 +176,9 @@ CLAUDE.md の絶対ルール 7（認証情報をコミットしない）を機�
 | A. 静的解析を導入しない | `php -l` と PHPCS のみ | 最も簡単だが、型の取り違え・未定義変数・到達不能コードを CI で見つけられない。ローカルに PHP が無いため、実行時エラーに Studio で初めて気づくことになる。 |
 | B. エラー ID で無視する | `ignoreErrors` で `class.notFound`、`method.notFound` などを丸ごと除外 | 手間は最小だが、除外が広すぎて検査の意味が薄れる。誤ったメソッド名（タイポ）も見逃す。 |
 | C. 手書きの最小スタブ（**推奨**） | 実際に使うフレームワークのクラス・メソッド・関数だけを宣言したスタブを `tools/phpstan/bga-stubs.php` に置き、`scanFiles` で読み込む | 小さく始められ、使うたびに追記するので、タイポは検出できる。スタブはリポジトリ直下の `tools/` に置き、`src/` には入れない（BGA に同期されない）。 |
-| D. Studio の `_ide_helper.php` を取り込む | Studio 側が配置する補完用ファイルを `tools/phpstan/` にコピーし `scanFiles` に渡す | 網羅的だが、BGA の著作物の再配布にあたらないか、PHPStan が読める形式か、更新への追随が **【未確認】**（仕様書 003 U9）。 |
+| D. Studio の `_ide_helper.php` を取り込む | Studio 側が配置する補完用ファイルを `tools/bga/`（2026-10-14 に `tools/phpstan/` から変更。JS の型定義と同居させる）にコピーし `scanFiles` に渡す | 網羅的だが、BGA の著作物の再配布にあたらないか、PHPStan が読める形式か、更新への追随が **【未確認】**（仕様書 003 U9）。 |
 
-**推奨は C から始める**。D は作者が `_ide_helper.php` の取り込みを許可した場合に検討する（未確定事項 No.3）。BGA 公式のスタブ配布は確認できなかった（**【未確認】**、仕様書 003 U9）。
+**推奨は C から始める**。D は作者が `_ide_helper.php` の取り込みを許可した場合に検討する（未確定事項 No.3）。2026-10-14 に Studio の初期ファイルで `_ide_helper.php`（PHP の補完・静的解析用スタブ）と `bga-framework.d.ts`（JS の型定義）の存在を確認した。付属の `LICENCE_BGA` は開発者のコードの扱いを定めるもので、BGA 配布のスタブの再配布を許諾する文面はないため、リポジトリにはコミットしない（`tools/bga/` は `.gitignore` 済みで、各自がローカルに置く）。CI で使うには、許諾の確認か、CI での Studio からの取得が必要。BGA 公式のスタブ配布は確認できなかった（**【未確認】**、仕様書 003 U9）。
 
 - フレームワークに依存しない純粋なルール計算（探査出力の計算など）は、仕様書 003 第 7.2 節の方針どおり `Game` から独立したクラスに切り出す。この部分はスタブ無しでフルに解析されるため、静的解析の価値が高い。
 - 解析の誤検出を一時的に許容する場合は、`phpstan-baseline.neon` に記録して管理する（無制限な `ignoreErrors` の追加は避ける）。
@@ -214,6 +214,7 @@ CLAUDE.md の絶対ルール 7（認証情報をコミットしない）を機�
 - **ツール**: **TypeScript の `tsc --noEmit`**（確定。ビルドはしない）。
 - **設定ファイル【提案】**: リポジトリ直下 `tsconfig.json`。`compilerOptions`: `allowJs: true`、`checkJs: true`、`noEmit: true`、`target: "ES2022"`、`module: "ES2022"`、`moduleResolution: "Bundler"`、`lib: ["ES2022", "DOM"]`、`strict: true`、`skipLibCheck: true`。`include`: `["src/modules/js/**/*.js", "types/**/*.d.ts"]`。
   - 仕様書 003 第 3.2 節が引く公式の TypeScript 手順は `strict: false` だが、これは TS ソースをバンドルする場合の既定である。本リポジトリは JS を JSDoc で型付けするので、`strict: true` で始め、`@ts-check` の恩恵を最大にする**【提案】**。詳細な厳しさは実装の進捗に応じて作者が調整する。
+- **フレームワーク型の追記（2026-10-14）**: Studio の初期ファイルに `bga-framework.d.ts` が含まれていた。`tools/bga/` にローカルで置けば、`include` に加えて `this.bga` などの型に使える（コミットは第 2.4 節の理由で保留）。下の手書きの `types/` は、このファイルが使えない CI でも通るための代替になる。
 - **BGA のグローバルとフレームワーク型【提案】**: `types/bga-globals.d.ts`（リポジトリ直下 `types/`。`src/` には入れない）に `_`、`$`、`g_gamethemeurl` などを `declare` する。`this.bga` の型は公式の型定義が配布されているか **【未確認】**（bga-cards の `.d.ts` が配布されていることは【確認】、仕様書 003 第 3.2 節。それ以外は未確認）。無い場合は最小の `interface` を手書きし、不足分は `any` で受ける。
 - **TypeScript のバージョン【提案】**: 2026-10-13 時点の最新は 7.0.2（ネイティブ版）。JS のチェックが 6.x より厳格になっている（`@enum` / `@constructor` 非対応、`Object` を `any` として扱わない等。【確認】<https://typescriptdocs.com/release-notes/TypeScript%207.0> の検索要約）。新規コードなので 7.x を採り、BGA 側のライブラリ型で問題が出る場合は 6.x に下げる判断を実装者に委ねる。ロックファイルで固定する。
 - **実行コマンド**: `npx tsc --noEmit -p tsconfig.json`（`lint:types`）。`include` が 1 ファイルにも一致しないと `tsc` は失敗する（TS18003）ため、`Game.js` の雛形が入る段階 2 で有効化する（第 3 節のガード）。
@@ -268,7 +269,7 @@ CLAUDE.md の絶対ルール 7（認証情報をコミットしない）を機�
 - **各段階は別 PR で実装する【提案】**: 第 1 段階は本仕様書の承認後すぐに実装する（検査対象の Markdown が既にあり、実ファイルで動作確認できる）。第 2 段階は `src/` の雛形が `main` に入った後、その雛形に対して設定が通ることを確かめながら実装する（雛形の PR に同梱してもよい）。第 3 段階は T-009 の生成スクリプトが入った後に実装する。実ファイルの無い設定を先に書くと、検証できないまま誤った設定が残るため、この順にする。
 - **`gate` ジョブは第 1 段階で作り、以降は不変にする【提案】**: ブランチ保護の必須チェックは `gate` の 1 つだけにする（第 4.3 節）。段階が進んでジョブが増えても、保護設定を作者が触り直す必要が無い。
 - **段階内のガード【提案】**: 第 2・3 段階のジョブは、対象が揃っていない間もステップを成功扱いでスキップする。具体的には、各検査ステップに `if: ${{ hashFiles('src/**/*.php') != '' }}` のような条件を付ける（PHP は `src/**/*.php`、JS・型は `src/modules/js/**/*.js`、CSS は `src/**/*.css`、アセットは `src/img/**`）。`hashFiles` は対象が無いと空文字列を返し、条件が偽になる。**ジョブ全体を `if` でスキップせず、ステップで制御する**のは、スキップされたジョブが必須チェックの扱いでどう見えるかを避けるためと、`hashFiles` がジョブレベルの `if` では使えない**【未確認】**ためである。ローカルのコマンドは、`--allow-empty-input`（Stylelint）、ESLint が常に設定ファイル自身を対象に持つこと、で失敗しない。`tsc` のみ、`include` 一致が 0 件だと失敗するため、第 2 段階で `Game.js` の雛形が入ってから `lint:types` を追加する。
-- **移行時の見直し**: 第 2 段階の実装時に、`src/` の雛形が Studio の初期生成物（`states.inc.php` など非推奨ファイルを含みうる。仕様書 003 のエッジケース）のままだと、PHPCS・PHPStan が旧式のファイルで大量にエラーを出す可能性がある。その場合は、雛形を整理する PR（非推奨ファイルの削除は仕様書 003 の未確定事項 B No.3）を先に入れる。
+- **移行時の見直し**: `src/` の雛形は Studio の初期生成物として取り込み済み（2026-10-14）。非推奨ファイル（`states.inc.php` など）は含まれていなかったので整理は不要。ただし雛形の `Game.php` 等は Studio のサンプルコードなので、PHPCS・PHPStan が大量にエラーを出す可能性がある。その場合は、規則側を調整するか、雛形を整理する PR を先に入れる。
 
 ### 4. ワークフロー構成
 

@@ -71,28 +71,28 @@ MINIMUM JOURNEY を BGA Studio のプロジェクト `minimumjourney` として�
 - **【確認】** Walkthrough は「現行フレームワーク（2024 年以降）は PHP の状態クラス、TypeScript/JavaScript（任意）、JSON 設定、`#[PossibleAction]` による属性ベースのアクション宣言を使い、`states.inc.php`・`material.inc.php`・重い Dojo 依存は旧式」と述べる。https://en.doc.boardgamearena.com/Create_a_game_in_BGA_Studio:_Complete_Walkthrough
 - **【確認】** 一方、FirstSteps の初期ファイル一覧には `states.inc.php`・`material.inc.php`・`action.php`・`view.php`・`.tpl` がまだ載っている（旧構成を前提にした記述が残っている）。https://en.doc.boardgamearena.com/First_steps_with_BGA_Studio
 
-**新規プロジェクトの採用方針【提案】**: **現行構成のみを採る**。理由は (a) FileRef が現行標準と非推奨を明示している、(b) 新規プロジェクトは JSON 設定の使用が必須とされている、(c) 非推奨ファイルに依存すると将来の削除・移行コストが発生する、(d) 本ゲームは同時手番・割り込み選択が多く、状態クラス（`getArgs` / `zombie` を状態ごとに同居させられる）の方が保守しやすい。Studio が初期生成する非推奨ファイル（`states.inc.php` 等）は、動作確認後に削除または空のスタブにする（削除可否は未確定事項 B の No.3）。
+**新規プロジェクトの採用方針【提案】**: **現行構成のみを採る**。理由は (a) FileRef が現行標準と非推奨を明示している、(b) 新規プロジェクトは JSON 設定の使用が必須とされている、(c) 非推奨ファイルに依存すると将来の削除・移行コストが発生する、(d) 本ゲームは同時手番・割り込み選択が多く、状態クラス（`getArgs` / `zombie` を状態ごとに同居させられる）の方が保守しやすい。Studio の初期ファイルには非推奨ファイル（`states.inc.php` 等）が含まれていなかった（2026-10-14 確認。削除は不要）。
 
 #### 1.2 `minimumjourney` の具体的なファイル・クラス構成【提案】
 
 名前空間とクラス名は Migration の例（`namespace Bga\Games\YourGameName;`、`class Game extends \Bga\GameFramework\Table`、`declare(strict_types=1);`）に基づく。https://en.doc.boardgamearena.com/BGA_Studio_Migration_Guide
-名前空間の大文字小文字（`minimumjourney` か `MinimumJourney` か）は **【未確認】**。Studio が初期生成するファイルの名前空間に必ず合わせる（未確定事項 B の No.4）。以下は暫定的に `Bga\Games\minimumjourney` と書く。
+名前空間は **`Bga\Games\MinimumJourney`（大文字小文字あり）【確認済み、2026-10-14、Studio の初期ファイル】**。状態クラスは `Bga\Games\MinimumJourney\States` で、`modules/php/States/` に `\Bga\GameFramework\States\GameState` を継承して置かれていた（現行構成）。
 
 | BGA 側パス | 役割 | 根拠 |
 | --- | --- | --- |
-| `modules/php/Game.php` | クラス `Bga\Games\minimumjourney\Game`。`setupNewGame`、`getAllDatas`、`getGameProgression`、`upgradeTableDb`、共通ヘルパー | GamePhp |
+| `modules/php/Game.php` | クラス `Bga\Games\MinimumJourney\Game`。`setupNewGame`、`getAllDatas`、`getGameProgression`、`upgradeTableDb`、共通ヘルパー | GamePhp |
 | `modules/php/States/*.php` | 状態クラス。`Bga\GameFramework\States\GameState` を継承し、名前空間はフォルダ構造に対応させる | StateDir |
 | `modules/php/Cards/Card.php`、`CardManager.php` ほか | 任意の追加クラス。ItemManager 用の `#[Item('card')]` クラスなど | ItemManager、Reversi（`modules/php/BoardManager.php` の例） |
 | `modules/js/Game.js` | クライアント。`constructor(bga)`、`setup(gamedatas)`、`onEnteringState`、`onLeavingState`、`onUpdateActionButtons`、`notif_*` | GameJs |
 | `minimumjourney.css` | スタイル（ルート直下） | FileRef（`<gamename>.css` は必須） |
 | `dbmodel.sql` | DB スキーマ（ItemManager を使う場合、カード表は `initDb()` が生成するので重複定義しない） | FileRef、ItemManager |
 | `gameinfos.jsonc` | ゲームのメタ情報 | FileRef |
-| `gameoptions.jsonc`（`.json` 表記もあり） | ゲームオプション | 未確定事項 B の No.5 |
-| `gamepreferences.jsonc`（`.json` 表記もあり） | ユーザー設定（任意） | 同上 |
-| `stats.jsonc`（`.json` 表記もあり） | 統計定義 | 同上 |
+| `gameoptions.jsonc` | ゲームオプション | 初期ファイルで `.jsonc` を確認（2026-10-14） |
+| `gamepreferences.jsonc` | ユーザー設定（任意） | 同上 |
+| `stats.jsonc` | 統計定義 | 同上 |
 | `img/` | 画像（必須ディレクトリ。ゲーム箱・アイコン等の画像もここ） | FileRef、Img |
 | `misc/` | Studio 専用。本番に出ない。上限 1 MB | FileRef |
-| `_ide_helper.php` | フレームワーク関数の IDE 補完用。Studio 側が配置・更新する | VSCode |
+| `_ide_helper.php`、`bga-framework.d.ts` | PHP の補完・静的解析用スタブと、JS の型定義。Studio が初期ファイルとして配置する。リポジトリには入れず、`tools/bga/` にローカルでだけ置く（第 2 節） | VSCode、初期ファイル |
 
 - **【確認】** 状態 ID は正の整数で、1（初期状態）と 99（終了状態）は予約。状態クラスのコンストラクタ引数は `id` と `type` が必須、`name`・`description`・`descriptionMyTurn`・`transitions`・`updateGameProgression`・`initialPrivate` が任意。StateDir、StatesInc。
 - **【確認】** アクションは `act` で始まる public メソッドに `#[PossibleAction]` を付ける（autowire）。`action.php` は不要。GamePhp、StateDir。
@@ -104,29 +104,35 @@ MINIMUM JOURNEY を BGA Studio のプロジェクト `minimumjourney` として�
 
 ```text
 src/
-├── gameinfos.jsonc
+├── LICENCE_BGA                  # Studio の初期ファイル（取り込み済み）
+├── gameinfos.jsonc              # 同上（以下、取り込み済み）
 ├── gameoptions.jsonc
-├── gamepreferences.jsonc        # 必要になった場合のみ
+├── gamepreferences.jsonc
 ├── stats.jsonc
 ├── dbmodel.sql
 ├── minimumjourney.css
 ├── modules/
 │   ├── php/
-│   │   ├── Game.php
-│   │   ├── States/              # 状態クラス（内容は T-006 で確定）
-│   │   └── Cards/               # Card / CardManager など（T-007・T-008）
+│   │   ├── Game.php             # 取り込み済み（雛形のまま）
+│   │   ├── States/              # 取り込み済み: EndScore / NextPlayer / PlayerTurn（雛形。内容は T-006 で置き換える）
+│   │   └── Cards/               # 追加予定: Card / CardManager など（T-007・T-008）
 │   └── js/
-│       └── Game.js
-├── img/
-│   ├── cards_*.webp / png       # カードスプライト。コミットしない。CI（とローカル）で生成する【提案】（第 5 節、詳細は T-009）
-│   └── game_box.png ほか        # BGA 規定の箱・アイコン画像（コミットする。要件は Img を参照）
-├── misc/                        # 同期しない方がよいものがあれば置かない
-└── （_ide_helper.php は Studio 側に存在。リポジトリには入れない【提案】）
+│       └── Game.js              # 取り込み済み（雛形のまま）
+└── img/                         # サブディレクトリ禁止・おおむね 10 ファイル未満（第 2 節の取り決め、009 第 4 節）
+    ├── cards_*.webp、icons.webp # スプライト（拡大用も cards_zoom_*.webp として直下）。コミットしない。CI とローカルで生成
+    └── game_box.png ほか        # BGA 規定の箱・アイコン画像（コミットする。要件は Img を参照）
 ```
+
+取り込みの実績（2026-10-14、Studio の初期ファイルから）: 上の「取り込み済み」のファイルを中身そのままで `src/` に置いた。次は取り込まなかった。
+
+- TypeScript テンプレート一式（`package.json`、`rollup.config.mjs`、`tsconfig.json`、`src-disabled/`）。素の JS・素の CSS を使うため不要（No.1・No.2）。
+- `_ide_helper.php`、`bga-framework.d.ts`（開発用スタブ）。ライセンス上、リポジトリに置いてよいかが不明なため、コミットしない。ローカルに置く場所は `tools/bga/`（`.gitignore` 済み）。用途は PHPStan のスタブと JS の型チェック（004 第 2.4・2.6 節）。
+- `img/README`、`misc/README`、`modules/README`（説明文）。要点: `img/` はサブディレクトリを使わず、おおむね 10 ファイル未満・1 ファイル 4 MB 以下（009 第 4 節）。`misc/` はデプロイされない。`modules/` は `Game.php`・`Game.js` から読み込む補助ファイル用。
+- 非推奨ファイル（`states.inc.php`、`material.inc.php`、`action.php`、`view.php`、`.tpl`）は、そもそも生成されていなかった。
 
 対応と同期上の取り決め【提案】:
 
-- `src/X` ↔ BGA `/minimumjourney/X`。リポジトリに無く BGA 側にだけあるファイル（`_ide_helper.php` や Studio 生成ファイル）は、T-005 で「ミラーリング削除しない」を既定とする。VSCode の SFTP 設定例にも `delete: true` と `_ide_helper.php` の無視が出てくる（VSCode: https://en.doc.boardgamearena.com/Setting_up_BGA_Development_environment_using_VSCode）が、これはローカルが正のときの設定であり、CI での削除可否は T-005 が決める。
+- `src/X` ↔ BGA `/minimumjourney/X`。リポジトリに無く BGA 側にだけあるファイル（`_ide_helper.php`、`bga-framework.d.ts`、TypeScript テンプレート、README 類など Studio 生成ファイル）は、T-005 で「ミラーリング削除しない」を既定とする。VSCode の SFTP 設定例にも `delete: true` と `_ide_helper.php` の無視が出てくる（VSCode: https://en.doc.boardgamearena.com/Setting_up_BGA_Development_environment_using_VSCode）が、これはローカルが正のときの設定であり、CI での削除可否は T-005 が決める。
 - `node_modules/`、`package-lock.json`、`.git` 等は `src/` に置かない（リポジトリ直下に置く）。
 - スプライト生成物の置き場所【提案】: 生成スクリプトはリポジトリ直下の `scripts/` に置き、原本 `data/cards/` を入力として `src/img/cards_*` に出力する。生成物はリポジトリ直下の `.gitignore` で `src/img/cards_*` を除外し、コミットしない（箱・アイコン画像など手書きの画像は除外しない）。CI では同期の前にこのスクリプトを実行し、`src/` ごと（生成物を含めて）Studio に送る。開発者のローカルでも同じスクリプトで同じ生成物が得られるようにする（手元で試験同期する場合に使う）。
 
@@ -351,15 +357,15 @@ src/
 
 | No. | 事項 | 状況 |
 | --- | --- | --- |
-| U1 | 名前空間の大文字小文字（`Bga\Games\minimumjourney` か `Bga\Games\MinimumJourney` か） | Migration は `Bga\Games\YourGameName` としか書かない |
+| U1 | 名前空間の大文字小文字（`Bga\Games\minimumjourney` か `Bga\Games\MinimumJourney` か） | **確認済み（2026-10-14、Studio の初期ファイル）**: `Bga\Games\MinimumJourney` |
 | U2 | `modules/js/` 内の複数ファイルを相対 `import` で束ねられるか | 記述なし。`importEsmLib` はライブラリ向けとして確認 |
-| U3 | Studio が新規プロジェクトで実際に生成する初期ファイルの正確な一覧 | FirstSteps は旧ファイルも列挙しており、現行の生成内容と一致するか不明 |
+| U3 | Studio が新規プロジェクトで実際に生成する初期ファイルの正確な一覧 | **確認済み（2026-10-14、Studio の初期ファイル）**: 第 2 節の取り込みの実績に記載。非推奨ファイルは生成されない |
 | U4 | bga-cards でカードを横向き（90 度回転）にする具体的 API | BgaCards は「回転に対応」としか確認できず、API 名は未確認 |
 | U5 | SSH 鍵アップロード手順の画面上の詳細、ホスト鍵フィンガープリント、同時接続数・帯域の制限、GitHub-hosted runner からの接続可否 | 記述なし |
-| U6 | JSON 設定ファイルの正式な拡張子（`gameoptions.json` と `gameoptions.jsonc`、`stats.json` と `stats.jsonc`） | ドキュメント間で表記が揺れている（FileRef は `.jsonc`、Options/Stats ページと Migration は `.json`） |
+| U6 | JSON 設定ファイルの正式な拡張子（`gameoptions.json` と `gameoptions.jsonc`、`stats.json` と `stats.jsonc`） | **確認済み（2026-10-14、Studio の初期ファイル）**: `.jsonc`（gameinfos・gameoptions・gamepreferences・stats） |
 | U7 | 画像 1 枚あたりの上限（2 MB か 4 MB か） | Img は 2 MB、Checklist は 4 MB。本仕様書は 2 MB を採用 |
 | U8 | 同期後に Studio 側の再読込を自動化する公式手段 | 記述なし |
-| U9 | フレームワークのスタブ（静的解析用）の公式配布 | `_ide_helper.php` のみ確認 |
+| U9 | フレームワークのスタブ（静的解析用）の公式配布 | `_ide_helper.php`（PHP）と `bga-framework.d.ts`（JS の型定義）が初期ファイルに含まれる（2026-10-14 確認）。配布・再配布の許諾は明記されていない |
 | U10 | PHP_8_upgrade ページの取得結果に「PHP 8.8」という誤記があり、そのページ単独では PHP バージョンを確認できなかった | PHP 8.4 は Studio ページと FAQ で確認 |
 
 ### B. 作者への質問
@@ -368,9 +374,9 @@ src/
 | --- | --- | --- | --- |
 | 1 | クライアントは素の JS＋ JSDoc 型チェックで進めてよいか。TypeScript にしたいか | 素の JS ＋ `// @ts-check`（第 3.2 節） | 「それでも構いません」（2026-10-13）。素の JS ＋ JSDoc ＋ `// @ts-check` で確定 |
 | 2 | CSS は素の CSS でよいか（SCSS は使わない） | 素の CSS | 「CSSはお任せします」（2026-10-13 第2回）。提案どおり素の CSS（SCSS は使わない）で確定 |
-| 3 | Studio が最初に生成する非推奨ファイル（`states.inc.php`、`material.inc.php`、`action.php`、`view.php`、`.tpl`）を、初回同期後に削除してよいか。最初に Studio から初期ファイルをダウンロードして確認してよいか | ダウンロードして取り込み、非推奨ファイルは削除 | |
-| 4 | 初期生成ファイルの実際の名前空間・クラス名を、そのまま採用してよいか | Studio の生成物に合わせる | |
-| 5 | JSON 設定の拡張子は、Studio が生成したものに合わせてよいか | 生成物に合わせる | |
+| 3 | Studio が最初に生成する非推奨ファイル（`states.inc.php`、`material.inc.php`、`action.php`、`view.php`、`.tpl`）を、初回同期後に削除してよいか。最初に Studio から初期ファイルをダウンロードして確認してよいか | ダウンロードして取り込み、非推奨ファイルは削除 | **確定（2026-10-14）**: 初期ファイルをダウンロードして確認した。非推奨ファイルは生成されておらず、削除は不要 |
+| 4 | 初期生成ファイルの実際の名前空間・クラス名を、そのまま採用してよいか | Studio の生成物に合わせる | **確定（2026-10-14）**: `Bga\Games\MinimumJourney`、`Game`、`States\*` を採用 |
+| 5 | JSON 設定の拡張子は、Studio が生成したものに合わせてよいか | 生成物に合わせる | **確定（2026-10-14）**: `.jsonc` を採用 |
 | 6 | 約 58 種のカードの扱い（マテリアル）は、PHP の `material.inc.php`（非推奨）ではなく PHP の定数／クラスで持ってよいか | `modules/php/` 内の PHP クラスで持つ（T-002・T-008 で確定） | |
 | 7 | ストップ時の裏向きカードや準備場の裏向きカードの券面は、他のプレイヤーに公開されるか。山札の順序以外に秘匿が必要な情報はあるか（ルールブックの記述で判断できない場合） | 判断保留。ルール確定（T-001）後に T-007 で決める | 一部回答（2026-10-13）。「引いたカードは準備場に置きます。枚数に数えます。全員ストップなら引きません」。**第2回（2026-10-13）で訂正**: 「裏向きカードの中身は無効です。裏向きカードは準備したカードとみなされません。先程の回答は横向きカードと勘違いしました。」→ 裏向きカードは準備したカードではなく、枚数に数えず、中身は無効。全員ストップの回は引かない（この部分は有効）。横向きカードは枚数に数える。残る論点: 裏向きカードがラウンド中に山札から離れるのか（山札の一番上が次のカードに変わるのか。暫定案: デジタル実装では引かず山札の上に残っているものとして扱う）、デジタル実装で裏向きカードを表示するか（演出のみか。T-006 / T-009 で決める）、券面を他プレイヤーに見せるか、山札の順序以外に秘匿が必要な情報はあるか **第3回回答（2026-10-13）**: 「はい、離れています。そのため、山札の上に残りません。」「アナログ同様、山札の上から引いて、裏向きで重ねる。」ストップ時の裏向きカードは実際に山札の上から取り除き、裏向きで重ねて持つ（山札の一番上は次のカードになる）。デジタル実装でも山札から取り除く必要がある（暫定案だった「引かずに山札の上に残す」は不採用）。 |
 | 8 | 横向きカード（無効カード）の表現は、カードを 90 度回転させる形でよいか | 回転表示 | |
