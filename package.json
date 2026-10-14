@@ -9,9 +9,13 @@
     "lint": "npm run lint:md && npm run lint:repo",
     "lint:md": "markdownlint-cli2",
     "lint:repo": "node scripts/lint/check-repo.mjs",
-    "lint:links": "lychee --config lychee.toml \"./**/*.md\""
+    "lint:links": "lychee --config lychee.toml \"./**/*.md\"",
+    "build:sprites": "node scripts/build-sprites.mjs",
+    "check:sprites": "node scripts/check-sprites.mjs"
   },
   "devDependencies": {
-    "markdownlint-cli2": "^0.23.3"
-  }
+    "markdownlint-cli2": "^0.23.3",
+    "sharp": "0.35.5"
+  },
+  "type": "module"
 }
