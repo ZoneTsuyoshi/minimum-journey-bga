@@ -28,9 +28,9 @@ export const TIERS = {
   zoom: {
     cell: { w: 500, h: 699 },
     sheets: {
-      start: { file: 'zoom/cards_zoom_start.webp', cols: 4, rows: 5 },
-      drift_a: { file: 'zoom/cards_zoom_drift_a.webp', cols: 6, rows: 5 },
-      drift_b: { file: 'zoom/cards_zoom_drift_b.webp', cols: 6, rows: 4 },
+      start: { file: 'cards_zoom_start.webp', cols: 4, rows: 5 },
+      drift_a: { file: 'cards_zoom_drift_a.webp', cols: 6, rows: 5 },
+      drift_b: { file: 'cards_zoom_drift_b.webp', cols: 6, rows: 4 },
     },
   },
 };
