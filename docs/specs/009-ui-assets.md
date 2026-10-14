@@ -331,8 +331,8 @@ CSS ピクセル（BGA の論理ピクセル）での想定。レイアウトの
 }
 ```
 
-  - JS は `setupFrontDiv` / `setupBackDiv` で `--mj-sheet-url`・`--mj-cols`・`--mj-rows`・`--mj-col`・`--mj-row` を要素に設定する（BgaCards の例は `style.backgroundPositionX` を直接設定しているが、カスタムプロパティでも同等）。
-  - フレームワークの自動縮小（CSS zoom）で幅が小数 px になる場合は、カード幅をなるべく整数 px にする（CssPage の対策の一つ）。zoom 階層の高さ比は 699/500 で、base とは別に計算する。
+- JS は `setupFrontDiv` / `setupBackDiv` で `--mj-sheet-url`・`--mj-cols`・`--mj-rows`・`--mj-col`・`--mj-row` を要素に設定する（BgaCards の例は `style.backgroundPositionX` を直接設定しているが、カスタムプロパティでも同等）。
+- フレームワークの自動縮小（CSS zoom）で幅が小数 px になる場合は、カード幅をなるべく整数 px にする（CssPage の対策の一つ）。zoom 階層の高さ比は 699/500 で、base とは別に計算する。
 
 #### 4.4 rev の 716 px 幅、角丸・透過
 
@@ -424,7 +424,8 @@ CSS ピクセル（BGA の論理ピクセル）での想定。レイアウトの
 ```
 
   手書きの画像（アイコンなど）は `src/img/` に置いてコミットする（上のパターンに当たらない名前にする）。現在の `.gitignore` に `node_modules/` は含まれている【確認】。
-- **CI（GitHub Actions）**: 同期ジョブ（T-005）の前に、`actions/setup-node`（Node 22）→ `npm ci` → `npm run build:sprites` → `npm run check:sprites` を実行し、`src/` を（生成物ごと）同期する。lint ジョブ（T-004）にも `check:sprites` を入れるかは T-004 / T-005 で決める。
+
+- **CI（GitHub Actions）**: 同期ジョブ（T-005）の前に、`actions/setup-node`（Node 24。`.nvmrc` に合わせる）→ `npm ci` → `npm run build:sprites` → `npm run check:sprites` を実行し、`src/` を（生成物ごと）同期する。lint ジョブ（T-004）にも `check:sprites` を入れるかは T-004 / T-005 で決める。
 - **生成時間【実測】**（Apple Silicon、Node 23、sharp 0.35.5、`effort: 6`）: base 2 シートで約 11 秒、zoom 3 シートで約 24 秒、合計約 35 秒。GitHub Actions の標準ランナー（vCPU 2 本）では 1.5〜2 倍の約 1 分前後と推定する【推定】。
 - **キャッシュ【提案】**: `actions/cache` で `src/img/`（生成物）を、キー `sprites-${{ hashFiles('data/cards/**', 'scripts/**', 'package-lock.json') }}` で保存する。キーが一致すれば生成をスキップして `check:sprites` だけ実行する。npm のキャッシュは `actions/setup-node` の `cache: npm` を使う。
 - **転送量**: 生成物は合計約 4.4 MB。差分転送が内容比較（サイズ・更新時刻ではなくハッシュ）なら、キャッシュにヒットしたときの 2 回目以降の転送はほぼゼロになる（T-005 の検討事項）。
