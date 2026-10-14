@@ -196,10 +196,10 @@ lftp -c "
 
 | 順 | 作業 | 担当 | 時期 |
 | --- | --- | --- | --- |
-| 1 | 作者の SSH 鍵（手元用）を Studio に登録し、手元の SFTP クライアントを鍵に切り替える（第 7 節 手順 1〜3） | 作者 | 実装タスクの着手前 |
+| 1 | 作者の SSH 鍵（手元用）を Studio に登録し、手元の SFTP クライアントを鍵に切り替える（第 7 節 手順 1〜4） | 作者 | 実装タスクの着手前 |
 | 2 | サーバー上の初期ファイルを一時ディレクトリへダウンロードして内容を確認する（下記 4.2） | 作者（または作者の手元でエージェント） | 同上 |
 | 3 | ダウンロードした初期ファイルを `src/` に取り込む PR を作る。非推奨ファイル（`states.inc.php`、`material.inc.php`、`*.action.php`、`*.view.php`、`*.tpl`）の扱いは 003 の方針（現行構成のみを採用。動作確認後に削除または空のスタブ）に従う。`_ide_helper.php` は取り込まない。名前空間・クラス名・JSON 拡張子は Studio の生成物に合わせる（003 の未確定事項 B の No.3〜5 に依存） | エージェント（作者承認） | 実装の最初 |
-| 4 | ホスト鍵の取得・固定（第 2.4 節）、CI 専用鍵の生成・登録、Secrets / Variables 登録（第 7 節） | 作者 | 実装タスクの前 |
+| 4 | ホスト鍵の取得・固定（第 2.4 節）、CI 専用鍵の生成・登録、Secrets / Variables 登録（第 7 節 手順 1〜6） | 作者 | 実装タスクの前 |
 | 5 | 接続テストのワークフローを実行（第 10 節の段階 1） | 作者（実行）、エージェント（実装） | 実装中 |
 | 6 | 非推奨ファイルをサーバーから削除する場合は `remote-delete.txt` に列挙する（または SFTP で手動削除） | エージェント（作者承認） | 本番同期の前 |
 | 7 | 初回の本番同期後、Studio 側の再読込・動作確認（第 8 節） | 作者 | 初回同期後 |
@@ -304,7 +304,7 @@ on:
 
 ### 6. Secrets / Variables
 
-登録場所: GitHub リポジトリ Settings → Environments → `bga-studio`（環境の Secrets / Variables）。環境が使えない場合は Settings → Secrets and variables → Actions（リポジトリ単位）。値はこの仕様書に書かない。
+登録場所: GitHub リポジトリ Settings → Environments → `bga-studio`（環境の Secrets / Variables）。環境が使えない場合は Settings → Secrets and variables → Actions（リポジトリ単位）。値はこの仕様書に書かない。**導入時の実装（`bga-sync.yml`）は、プランが未確認のため、リポジトリ単位の登録を既定とし、`environment: bga-studio` はコメントアウトして残している**（環境が使えると確認できたら有効化し、登録先を環境へ移す。どちらの場合も `main` 限定は `if: github.ref == 'refs/heads/main'` でも担保している）。
 
 | 名前 | 種別 | 内容 | 備考 |
 | --- | --- | --- | --- |
@@ -320,74 +320,202 @@ on:
 
 ### 7. 作者が行う準備手順
 
-実装タスクの着手前に、リポジトリオーナー（作者）が手元で行う。**順序を守ること**（鍵を登録した瞬間にパスワード認証が無効になる。第 2.1 節）。
+実装タスクの着手前に、リポジトリオーナー（作者）が行う。**順序を守ること**（鍵を登録した瞬間にパスワード認証が無効になる。第 2.1 節）。
 
-> 前提: Studio のコントロールパネル https://studio.boardgamearena.com/controlpanel にログインできること。**【未確認】** 鍵の登録画面の詳細と、複数の鍵を登録できるかは公式に記載がない。手順 3 と 5 で実際に確かめ、結果を PR に記録する。
+#### 7.1 前提: SSH 鍵とは
 
-1. **鍵ペアを 2 本生成する**（手元用と CI 専用。鍵を使い回さない）。
+- SSH 鍵は**秘密鍵と公開鍵の 1 組**でできている。
+  - **秘密鍵**: 接続する側が持つ「合鍵」。他人や GitHub のリポジトリ・チャット・Issue に絶対に渡さない。
+  - **公開鍵**（ファイル名が `.pub`）: 接続される側（BGA Studio）に登録する「錠前」。見られても困らない。
+- 鍵は**作者の Mac で作る**。GitHub の画面で作るものではない。Studio のコントロールパネルで作るものでもない。
+- CI（GitHub Actions）は、Mac で作った **CI 用の秘密鍵**を GitHub の Secrets に預けて使う。Secrets は一度登録すると画面では中身を見られず、ワークフローの実行中だけ使われる。
+- 公開鍵のほうは Studio に登録する。GitHub に登録するのは CI 用の**秘密鍵**であり、公開鍵ではない点に注意。
+
+```text
+作者の Mac
+  ├─ 手元用の鍵   秘密鍵 ~/.ssh/bga_studio      ─ Mac に置いたまま
+  │              公開鍵 ~/.ssh/bga_studio.pub  ─ Studio に登録
+  └─ CI 用の鍵    秘密鍵 ~/.ssh/bga_studio_ci   ─ GitHub の Secrets に預ける
+                 公開鍵 ~/.ssh/bga_studio_ci.pub ─ Studio に登録
+```
+
+> 前提: Studio のコントロールパネル https://studio.boardgamearena.com/controlpanel にログインできること。**【未確認】** 鍵の登録画面の詳細と、複数の鍵を登録できるかは公式に記載がない。手順 2 と 4 で実際に確かめ、結果を PR に記録する。
+
+#### 7.2 鍵は 2 組（手元用と CI 用）
+
+| 名前 | 秘密鍵（置き場所） | 公開鍵 | 使う人・用途 | 秘密鍵の扱い |
+| --- | --- | --- | --- | --- |
+| 手元用 | Mac の `~/.ssh/bga_studio` | `~/.ssh/bga_studio.pub` | 作者の手元からの接続（初回のダウンロード、接続確認、SFTP クライアント） | Mac から出さない |
+| CI 用 | Mac の `~/.ssh/bga_studio_ci`（登録後は安全な場所へ移してよい） | `~/.ssh/bga_studio_ci.pub` | GitHub Actions からの自動同期 | GitHub の Secrets `BGA_SSH_PRIVATE_KEY` に登録 |
+
+2 組に分ける理由は、CI 用の鍵が漏れたときに、手元用の鍵を変えずに CI 用だけ差し替えられるようにするため。
+
+現状（2026-10-14）: 2 組とも作成済み（ed25519、パスフレーズなし）で、2 つの公開鍵は Studio に登録済み。**複数登録できたかは未確認**（手順 4 で確かめる）。
+
+#### 7.3 手順
+
+各手順の冒頭に「どこで行うか」を書く。
+
+##### 手順 1. 鍵を作る（作成済みのため、作り直すときだけ）
+
+**場所: Mac のターミナル。**
+
+```bash
+mkdir -p ~/.ssh && chmod 700 ~/.ssh
+
+# 手元用
+ssh-keygen -t ed25519 -C "bga-studio-local" -f ~/.ssh/bga_studio
+
+# CI 用。パスフレーズなし（-N ""）。CI は人がパスフレーズを入力できないため
+ssh-keygen -t ed25519 -N "" -C "github-actions minimum-journey-bga 2026-10" -f ~/.ssh/bga_studio_ci
+```
+
+- 同名のファイルがあると上書きの確認が出る。**既存の鍵を上書きすると元に戻せない**ので、作り直すとき以外は実行しない。
+- `ls ~/.ssh/bga_studio*` で 4 つのファイル（`bga_studio`、`bga_studio.pub`、`bga_studio_ci`、`bga_studio_ci.pub`）があれば作成済み。
+- 公開鍵（`.pub`）だけが外に出してよいファイル。秘密鍵（拡張子なしのほう）は**絶対にリポジトリ内に置かない**。
+- **【未確認】** BGA が ed25519 を受け付けるか（公式の例は `id_rsa`）。登録が拒否された場合は `-t rsa -b 4096` で作り直す。
+
+##### 手順 2. 公開鍵を Studio に登録する
+
+**場所: Mac のターミナル（公開鍵を表示）→ ブラウザ（コントロールパネル）。**
+
+1. Mac のターミナルで、登録する公開鍵を表示してコピーする。
 
    ```bash
-   mkdir -p ~/.ssh && chmod 700 ~/.ssh
-
-   # 手元用（SFTP クライアント・初回ダウンロード用）。パスフレーズ付きを推奨
-   ssh-keygen -t ed25519 -C "bga-studio-local-zonetsuyoshi" -f ~/.ssh/bga_studio_local
-
-   # CI 専用。パスフレーズなし（-N ""）。コメントに用途と日付を入れる
-   ssh-keygen -t ed25519 -N "" -C "github-actions minimum-journey-bga 2026-10" -f ~/.ssh/bga_studio_ci
+   cat ~/.ssh/bga_studio.pub
+   # ssh-ed25519 AAAA...（長い文字列） bga-studio-local   ← この 1 行全体がコピー対象
    ```
 
-   - 鍵種別は ed25519 を第一候補にする。**【未確認】** BGA が ed25519 を受け付けるか（公式の例は `id_rsa`）。登録が拒否された場合は `-t rsa -b 4096` で作り直す。
-   - 秘密鍵（`bga_studio_ci`、`bga_studio_local`）は**絶対にリポジトリ内に置かない**。公開鍵（`.pub`）だけをアップロードする。
+2. ブラウザで https://studio.boardgamearena.com/controlpanel を開き、SSH 公開鍵の登録欄にその 1 行を貼ってアップロードする。
+3. 登録するのは **`.pub` の中身の 1 行だけ**。秘密鍵（`.pub` が付かないほう）を貼らない。
+4. 鍵を登録すると、**パスワード認証は自動で無効になる**（第 2.1 節）。以後は鍵でしか接続できない。
+5. CI 用の公開鍵（`cat ~/.ssh/bga_studio_ci.pub`）も同じ方法で登録する（手順 4 で確認）。
 
-2. **ホスト鍵を取得して固定する**（第 2.4 節の手順 1〜3）。複数回線で一致を確認したら、`bga_known_hosts.txt` を手元に保存しておく。
+##### 手順 3. ホスト鍵を取得して確認する（接続先が本物かを固定する）
 
-3. **手元用の公開鍵を Studio に登録し、手元から接続できることを確認する。**
-   1. https://studio.boardgamearena.com/controlpanel を開き、SSH 公開鍵の登録欄に `cat ~/.ssh/bga_studio_local.pub` の出力を貼ってアップロードする。
-   2. 次のコマンドで接続する。`minimumjourney` が見えれば成功。
+**場所: Mac のターミナル。**
 
-      ```bash
-      sftp -P 2022 -i ~/.ssh/bga_studio_local -o IdentitiesOnly=yes \
-        -o UserKnownHostsFile=bga_known_hosts.txt ZoneTsuyoshi0@1.studio.boardgamearena.com
-      # sftp> ls
-      # sftp> exit
-      ```
+「ホスト鍵」はサーバーの身元を示す鍵。最初に控えておくと、あとで偽のサーバーに接続させられても気付ける。BGA は公式にフィンガープリント（ホスト鍵の指紋）を公開していないため、**複数の回線で同じ結果になること**を確認して代わりにする（第 2.4 節）。
 
-   3. 手元の SFTP クライアント（VSCode の SFTP 拡張、WinSCP、Cyberduck など）のパスワード認証を、鍵認証（`privateKeyPath`）に切り替える（VSCode は https://en.doc.boardgamearena.com/Setting_up_BGA_Development_environment_using_VSCode の `privateKeyPath` を参照。認証情報はプロジェクトの `sftp.json` ではなくユーザー設定に置く）。
+```bash
+# (a) ホスト鍵を取得して保存する（ed25519 と rsa の両方）
+ssh-keyscan -p 2022 -t ed25519,rsa 1.studio.boardgamearena.com > ~/bga_known_hosts.txt
 
-4. **CI 専用の公開鍵を Studio に追加登録する。**
-   1. コントロールパネルで `cat ~/.ssh/bga_studio_ci.pub` の出力を登録する。
-   2. **登録後、手順 3 の接続確認を手元用の鍵で再度行う。**
-      - 手元用の鍵で**接続できる** → 複数鍵を登録できる。問題なし。
-      - 手元用の鍵で**接続できない**（CI 用の鍵で置き換わった）→ 鍵は 1 本しか登録できない。後述「登録の順序を間違えた場合の復旧」へ。
-   3. CI 用の鍵でも接続できることを確認する（`-i ~/.ssh/bga_studio_ci`）。
+# (b) フィンガープリントを表示して控える
+ssh-keygen -lf ~/bga_known_hosts.txt
 
-5. **GitHub に環境と Secrets / Variables を登録する。**
-   1. GitHub のリポジトリ → Settings → Environments → New environment → 名前 `bga-studio`。Deployment branches は「Selected branches and tags」で `main` のみ。必須レビュアーは設定しない。
-   2. その環境の Secrets に追加:
-      - `BGA_SSH_PRIVATE_KEY`: `cat ~/.ssh/bga_studio_ci` の出力全文（`-----BEGIN` と `-----END` の行を含め、改行を保つ）
-      - `BGA_SFTP_USER`: Studio のユーザー名
-   3. その環境の Variables に追加: `BGA_SFTP_HOST`、`BGA_SFTP_PORT`、`BGA_REMOTE_DIR`、`BGA_SSH_KNOWN_HOSTS`（値は第 6 節）。
-   4. 登録後、`bga_studio_ci`（秘密鍵）が手元に不要なら、パスワードマネージャー等の安全な場所へ移し、通常の `~/.ssh` からは削除してよい（再発行は容易）。
-   - コマンドでの登録例（`gh` CLI）:
+# (c) 手元の known_hosts にも追記する（手元用の接続確認で使う）
+cat ~/bga_known_hosts.txt >> ~/.ssh/known_hosts
+```
 
-     ```bash
-     gh secret set BGA_SSH_PRIVATE_KEY --env bga-studio < ~/.ssh/bga_studio_ci
-     gh secret set BGA_SFTP_USER --env bga-studio
-     gh variable set BGA_SSH_KNOWN_HOSTS --env bga-studio < bga_known_hosts.txt
-     ```
+- 取得した行は `[1.studio.boardgamearena.com]:2022 ssh-ed25519 AAAA...` の形になる（ポートを指定したため角括弧付き）。
+- (b) の出力（`SHA256:...`）を控える。**別の回線**（例: スマートフォンのテザリング）で (a)(b) をもう一度行い、同じ値になることを確認する。一致しなければ中間者の疑いがあるため、先に進まずに相談する。
+- `~/bga_known_hosts.txt` の中身は、手順 6 で GitHub の Variables `BGA_SSH_KNOWN_HOSTS` に登録する。ホスト鍵は公開情報なので Secrets にしなくてよい。
+- **CI の実行中に `ssh-keyscan` した結果をそのまま信頼しない**（毎回取り直すと偽サーバーを検知できない）。
 
-6. **初回ダウンロード**（第 4.2 節）を行い、結果を共有する。
-7. 実装タスクの接続テスト（第 10 節の段階 1）の結果を確認する。
+##### 手順 4. 手元用の鍵で接続を確認する
 
-#### 登録の順序を間違えた場合の復旧【提案】
+**場所: Mac のターミナル。** `<ユーザー名>` は Studio のユーザー名（初期メールで通知されたもの）。
 
-| 状況 | 症状 | 復旧 |
+```bash
+sftp -P 2022 -i ~/.ssh/bga_studio -o IdentitiesOnly=yes <ユーザー名>@1.studio.boardgamearena.com
+# sftp> ls
+# sftp> exit
+```
+
+- **成功**: `sftp>` というプロンプトが出て、`ls` で `minimumjourney` が見える。
+- **失敗**: `Permission denied (publickey)` と出る場合は、「7.4 困ったとき」を参照。`REMOTE HOST IDENTIFICATION HAS CHANGED` と出る場合もそちらを参照。
+- **複数の鍵を登録できたかの確認**: CI 用の公開鍵を登録した後で、手元用（`-i ~/.ssh/bga_studio`）と CI 用（`-i ~/.ssh/bga_studio_ci`）の**両方**で上のコマンドを実行する。両方成功なら複数登録できている。片方だけなら鍵は 1 本しか持てない（7.4 の対処）。
+- 登録直後に接続できない場合は、数分待ってからもう一度試す（**【未確認】** 反映の遅延、C13）。
+
+##### 手順 5. 手元用の `~/.ssh/config` を設定する（任意）
+
+**場所: Mac のターミナル（エディタで `~/.ssh/config` を開く）。** 設定すると毎回のオプション指定が不要になる。
+
+```text
+Host bga-studio
+  HostName 1.studio.boardgamearena.com
+  Port 2022
+  User <ユーザー名>
+  IdentityFile ~/.ssh/bga_studio
+  IdentitiesOnly yes
+```
+
+設定後は `sftp bga-studio` で接続できる。この設定には秘密鍵の中身は含まれない（置き場所を書いているだけ）。
+
+##### 手順 6. GitHub に登録する
+
+**場所: Mac のターミナル（`gh` コマンド）、または GitHub の画面。** どちらか一方でよい。
+
+登録するもの（第 6 節）:
+
+| 名前 | 種別 | 値 |
 | --- | --- | --- |
-| 鍵を登録する前にパスワードで作業していた | 鍵の登録直後からパスワードで接続できない | 手元用の鍵を先に登録してあれば、そのまま鍵で接続する。登録した鍵が間違っていた場合は、コントロールパネルから正しい公開鍵を再度アップロード（上書き）する |
-| CI 用の鍵を登録したら手元用の鍵が使えなくなった（鍵が 1 本しか持てない） | 手元から接続できない | (a) 手元用の鍵を再登録すると CI の鍵が使えなくなる。**暫定案: 1 本の鍵を手元と CI で共用する**（`bga_studio_ci` を手元でも使う）。パスフレーズなしの鍵が手元にもあることになるため、鍵ファイルの管理（`chmod 600`、バックアップ先）を厳格にする。(b) または手元の編集はすべて GitHub 経由にし、手元からの SFTP は初回ダウンロード時だけ CI 用の鍵を使う |
-| どの鍵でも接続できない（鍵の貼り間違い、改行の欠落など） | `Permission denied (publickey)` | 公開鍵を `ssh-keygen -y -f ~/.ssh/bga_studio_ci` で再生成して貼り直す。それでもだめなら BGA のサポート／フォーラムに相談（**【未確認】** パスワード認証を再有効化する公式手順は不明） |
-| GitHub に貼った秘密鍵の改行が壊れた | CI で `error in libcrypto` や `invalid format` | `gh secret set ... < ファイル` で再登録（標準入力から読むと改行が保たれる） |
-| 鍵の漏えいが疑われる | — | コントロールパネルから公開鍵を差し替え（鍵を再生成して上書き）、GitHub の Secret を更新、旧鍵を破棄する |
+| `BGA_SSH_PRIVATE_KEY` | Secret | `~/.ssh/bga_studio_ci`（CI 用の**秘密鍵**）の全文 |
+| `BGA_SFTP_USER` | Secret | Studio のユーザー名 |
+| `BGA_SFTP_HOST` | Variable | `1.studio.boardgamearena.com` |
+| `BGA_SFTP_PORT` | Variable | `2022` |
+| `BGA_REMOTE_DIR` | Variable | `/minimumjourney` |
+| `BGA_SSH_KNOWN_HOSTS` | Variable | 手順 3 の `~/bga_known_hosts.txt` の中身 |
+
+登録場所は、まずリポジトリ単位（Settings → Secrets and variables → Actions）とする。Environments（Pro / Team 以上の private、または public リポジトリ）が使える場合は、Settings → Environments → `bga-studio` に登録してもよい。その場合は `.github/workflows/bga-sync.yml` の `# environment: bga-studio` のコメントを外す（未確定事項 No.3）。
+
+**A. `gh` コマンドで登録する（秘密鍵の中身が画面に出ない）**
+
+```bash
+cd ~/Developments/minimum-journey-bga   # リポジトリのフォルダ
+
+# 秘密鍵: ファイルからそのまま読み込む（< は「ファイルの中身を入力にする」。画面には出ない）
+gh secret set BGA_SSH_PRIVATE_KEY < ~/.ssh/bga_studio_ci
+
+# ユーザー名: 実行後に値の入力を求められる（入力は画面に表示されない）
+gh secret set BGA_SFTP_USER
+
+# Variables
+gh variable set BGA_SFTP_HOST --body "1.studio.boardgamearena.com"
+gh variable set BGA_SFTP_PORT --body "2022"
+gh variable set BGA_REMOTE_DIR --body "/minimumjourney"
+gh variable set BGA_SSH_KNOWN_HOSTS < ~/bga_known_hosts.txt
+
+# 登録の確認（名前だけが表示される。値は表示されない）
+gh secret list
+gh variable list
+```
+
+Environments に登録する場合は、各コマンドに `--env bga-studio` を付ける。
+
+**B. GitHub の画面で登録する**
+
+1. ブラウザでリポジトリを開き、Settings → Secrets and variables → Actions を開く。
+2. Secrets タブ → New repository secret。Name に `BGA_SSH_PRIVATE_KEY`、Secret に秘密鍵の全文を貼る。全文は Mac のターミナルで `pbcopy < ~/.ssh/bga_studio_ci` を実行するとクリップボードに入る（画面には出ない）。`-----BEGIN OPENSSH PRIVATE KEY-----` の行から `-----END OPENSSH PRIVATE KEY-----` の行まで、改行を含めてそのまま貼る。同様に `BGA_SFTP_USER` を追加する。
+3. Variables タブ → New repository variable で、上の表の 4 つを追加する。`BGA_SSH_KNOWN_HOSTS` は `pbcopy < ~/bga_known_hosts.txt` でコピーして貼る。
+4. 貼り付けたあと、クリップボードに秘密鍵が残るので、別の文字列をコピーして上書きしておく。
+
+登録後、CI 用の秘密鍵 `~/.ssh/bga_studio_ci` が手元に不要なら、パスワードマネージャー等の安全な場所に移して `~/.ssh` からは消してよい（なくしても作り直せる）。
+
+##### 手順 7. 接続テストを実行する
+
+**場所: GitHub の画面（ブラウザ）。** `bga-sync.yml` が `main` にマージされた後に行う。
+
+1. リポジトリの Actions タブを開く。
+2. 左の一覧から **BGA sync** を選ぶ。
+3. 右上の **Run workflow** を押し、Branch は `main`、**mode は `test`** を選んで Run workflow。
+4. 実行が終わったら、実行の画面の Summary に接続テストの結果（ホーム、`/minimumjourney`、`/minimumjourney/` の一覧）が出ている。`minimumjourney` フォルダの中身が見えれば成功。
+5. 「未設定のためスキップ」と出た場合は、手順 6 の登録が足りない（スキップされた名前が表示される）。
+6. 結果（複数鍵、ed25519、ランナーからの接続、末尾スラッシュの有無）を PR に記録する（第 12 節 C1〜C6）。
+
+#### 7.4 困ったとき
+
+| 状況 | 症状 | 対処 |
+| --- | --- | --- |
+| 接続が拒否される | `Permission denied (publickey)` | (1) ユーザー名が正しいか（SFTP のユーザー名は開発者アカウントとは別）。(2) Studio に登録した公開鍵が、使っている秘密鍵と対応しているか。`ssh-keygen -y -f ~/.ssh/bga_studio` の出力が、登録した `.pub` の 1 行（コメントを除く部分）と一致するか。(3) 貼り間違い（途中の改行、秘密鍵を貼った）がないか。(4) 登録直後なら数分待つ。それでもだめなら公開鍵を貼り直す（上書き）。解決しない場合は BGA のフォーラム／サポートに相談する（**【未確認】** パスワード認証を再び有効にする公式手順は不明、C12） |
+| ホスト鍵が一致しない | `REMOTE HOST IDENTIFICATION HAS CHANGED` や `Host key verification failed` | 偽のサーバーか、サーバー移行の可能性がある。**自動では回避しない。** 別の回線で手順 3 をやり直してフィンガープリントを確認し、正当なら `~/.ssh/known_hosts` から古い行を `ssh-keygen -R "[1.studio.boardgamearena.com]:2022"` で消して追記し直し、GitHub の Variables `BGA_SSH_KNOWN_HOSTS` を更新する |
+| 鍵を 1 つしか登録できなかった | 2 つ目を登録したら手元用（または CI 用）で接続できなくなる | **1 本の鍵を手元と CI で共用する**。どちらの公開鍵を登録していても、その対応する秘密鍵を手元でも CI でも使う（例: `bga_studio_ci` を Studio に登録し、手元でも `-i ~/.ssh/bga_studio_ci` を使う）。パスフレーズなしの秘密鍵が Mac と GitHub の両方にあることになるので、`chmod 600`、バックアップ先に注意する。または手元の編集をすべて GitHub 経由にし、手元からの接続は初回ダウンロード時のみにする |
+| パスワード認証に戻したい | — | **【未確認】** 公式の手順は不明（C12）。コントロールパネルに鍵の削除や取り消しの項目があるか画面で確認し、なければ BGA のサポートに問い合わせる。鍵を登録した状態を前提に運用する |
+| GitHub に貼った秘密鍵の形式が壊れた | CI で `BGA_SSH_PRIVATE_KEY の形式が不正です`、`error in libcrypto`、`invalid format` | `gh secret set BGA_SSH_PRIVATE_KEY < ~/.ssh/bga_studio_ci` で再登録する（ファイルから読むと改行が保たれる）。画面から貼る場合は `pbcopy` を使い、前後に余計な空白を入れない |
+| 鍵の漏えいが疑われる | — | 鍵を作り直し（手順 1。ファイル名を変える）、Studio の公開鍵を差し替え（手順 2）、GitHub の Secret を更新（手順 6）し、古い鍵を削除する |
+| 鍵を登録する前にパスワードで作業していた | 鍵の登録直後からパスワードで接続できない | 手順 4 の鍵での接続に切り替える。登録した鍵が間違っていた場合は、正しい公開鍵を再度アップロード（上書き）する |
+| ワークフローが「未設定のためスキップ」になる | Actions のログに警告が出て、何も接続しない | 表示された名前の Secrets / Variables を手順 6 で登録する |
 
 ### 8. 同期後に Studio 側で必要な手動操作
 
@@ -443,7 +571,7 @@ changed="$(git diff --name-only "$BEFORE" "$AFTER" -- src/)"
 | Studio 側での直接編集 | **禁止**。次の同期で上書きされる（全転送のため）。やむを得ず Studio 側で試す場合は、同じ内容を直ちに GitHub に反映する |
 | 直接編集の検知 | 手動実行用の `drift-check` モード（`workflow_dispatch` の `mode`）を追加できる: サーバーを一時ディレクトリにダウンロードして `src/` とバイト比較し、差分のあるファイル名だけを Summary に出す（`_ide_helper.php`、非推奨で残したファイルなどは除外リストで無視）。定期実行はしない（Studio への負荷と、失敗通知のノイズを避ける）。導入は段階 3 以降の任意 |
 | Studio 内蔵の SVN との関係 | Studio には内蔵 SVN があり、コントロールパネルの「Commit my modifications now」でサーバー上の現在のファイルをコミットできる（FirstSteps、Tools。外部の GitHub 併用を推奨）。**SVN のコミットは GitHub の履歴と独立**する。運用: GitHub が正、SVN は Studio 側の保険（マイルストーン時に作者が手動でコミット）。SVN から GitHub への逆同期はしない。SVN の履歴から復元する場合は、復元結果を GitHub に PR で反映してから再同期する |
-| 秘密鍵のローテーション | 年 1 回、または漏えいが疑われるとき。第 7 節の手順 1・4・5 を繰り返し、古い公開鍵を差し替える |
+| 秘密鍵のローテーション | 年 1 回、または漏えいが疑われるとき。第 7 節の手順 1・2・6 を繰り返し、古い公開鍵を差し替える |
 | 権限 | 環境 `bga-studio` の Secrets / Variables を編集できる人は作者のみ |
 
 ### 10. 段階導入
@@ -485,8 +613,8 @@ changed="$(git diff --name-only "$BEFORE" "$AFTER" -- src/)"
 
 | No. | 項目 | 確認方法 | 結果の影響 |
 | --- | --- | --- | --- |
-| C1 | 複数の SSH 公開鍵を登録できるか | 第 7 節 手順 4 | できない場合は鍵を 1 本共用（第 7 節の復旧表） |
-| C2 | ed25519 が使えるか | 手順 3 | 使えなければ RSA 4096 |
+| C1 | 複数の SSH 公開鍵を登録できるか | 第 7 節 手順 4 | できない場合は鍵を 1 本共用（第 7.4 節の「困ったとき」） |
+| C2 | ed25519 が使えるか | 手順 2・4 | 使えなければ RSA 4096 |
 | C3 | GitHub-hosted runner の IP から接続できるか | 段階 1 | 不可なら self-hosted runner か運用の見直し（作者に相談） |
 | C4 | lftp の鍵認証（ダミーパスワード、`connect-program`）が動くか | 段階 1 | 動かなければ `sftp -b` で実装 |
 | C5 | rsync が使えるか | 段階 1（`rsync --dry-run`） | 使えても本仕様書は lftp 推奨を変えない（差分転送が必要になったときの選択肢） |
