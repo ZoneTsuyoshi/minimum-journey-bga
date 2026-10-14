@@ -1,6 +1,6 @@
 # CI/CD の方針
 
-> ステータス: **未導入**。このドキュメントは方針のみを示します。具体的な設計は仕様書（[../tasks.md](../tasks.md) の T-004 / T-005）で確定させ、その後に導入します。
+> ステータス: **lint は導入済み、BGA Studio への同期は導入中**。lint は [../specs/004-ci-lint.md](../specs/004-ci-lint.md)、同期は [../specs/005-bga-sync.md](../specs/005-bga-sync.md) に基づきます。同期は段階導入で、第 1 段階（接続テスト）のワークフローを追加した状態です。このドキュメントは方針を示し、具体的な設計は各仕様書を正とします。
 
 ## 全体像
 
@@ -33,7 +33,7 @@ GitHub Actions で PR ごと、および `main` への push 時に実行しま�
 BGA Studio はゲームのソースを SFTP で受け取ります。`main` へのマージをトリガーに、`src/` 配下を BGA Studio のプロジェクトフォルダへ自動転送します。
 
 - 同期対象は **`src/` のみ**。`docs/`、`data/`、CI 設定などは転送しない。
-- 認証情報は GitHub Secrets で管理し、リポジトリには置かない。
+- 認証情報（秘密鍵・ユーザー名）は GitHub Secrets、ホスト・ポート・パス・known_hosts は Variables で管理し、リポジトリには置かない。
 - 手動実行（`workflow_dispatch`）もできるようにする。
 
 仕様書で確定させる事項:
@@ -51,4 +51,4 @@ CD の導入前に、リポジトリオーナー側で以下が必要です。
 
 1. ~~BGA Studio の開発者アカウントを取得する~~（済）
 2. ~~BGA Studio でプロジェクトを作成する~~（済。プロジェクト名: `minimumjourney`）
-3. SFTP の認証情報を GitHub の Settings → Secrets and variables → Actions に登録する
+3. SSH 鍵の作成から GitHub への登録までを、[005 第 7 節](../specs/005-bga-sync.md)の手順で行う（Settings → Secrets and variables → Actions）
