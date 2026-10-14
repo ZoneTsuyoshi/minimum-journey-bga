@@ -51,4 +51,4 @@ CD の導入前に、リポジトリオーナー側で以下が必要です。
 
 1. ~~BGA Studio の開発者アカウントを取得する~~（済）
 2. ~~BGA Studio でプロジェクトを作成する~~（済。プロジェクト名: `minimumjourney`）
-3. SSH 鍵の作成から GitHub への登録までを、[005 第 7 節](../specs/005-bga-sync.md)の手順で行う（Settings → Secrets and variables → Actions）
+3. ~~SSH 鍵の作成から GitHub への登録まで~~（済、2026-10-14。RSA 4096 の鍵 1 本を手元と CI で共用。SFTP のユーザー名は `ZoneTsuyoshi`。手順は [005 第 7 節](../specs/005-bga-sync.md)）

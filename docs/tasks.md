@@ -37,9 +37,9 @@
 | --- | --- | --- |
 | BGA Studio の開発者アカウント取得 | T-005 まで | 済 |
 | BGA Studio でのプロジェクト作成（プロジェクト名: `minimumjourney`） | T-003 まで | 済 |
-| SSH 鍵の生成と BGA Studio への登録、GitHub への Secrets / Variables の登録（手順は `specs/005-bga-sync.md` §7） | T-005 の導入時 | 進行中（鍵は作成・登録済み。Studio での認証がまだ通らない） |
+| SSH 鍵の生成と BGA Studio への登録、GitHub への Secrets / Variables の登録（手順は `specs/005-bga-sync.md` §7） | T-005 の導入時 | 済（2026-10-14） |
 | GitHub リポジトリの設定（`main` の保護、ブランチ自動削除、squash merge。手順は `specs/004-ci-lint.md` §7） | T-004 の導入時 | 未着手 |
 | `gh` CLI の再ログイン（エージェントが PR を作成・マージできるようにする） | 随時 | 済 |
-| BGA Studio 上の初期ファイルのダウンロードとファイル一覧の共有（`specs/005-bga-sync.md` §4） | T-005 の導入時 | 未着手 |
+| BGA Studio 上の初期ファイルのダウンロードとファイル一覧の共有（`specs/005-bga-sync.md` §4） | T-005 の導入時 | エージェントが実施中 |
 | メタ画像: Banner（JPG、1386×400、2MB 以下）の用意（`specs/009-ui-assets.md` §1.2） | ベータまで | 未着手 |
 | メタ画像: Display（JPG、高さ 400〜760px、幅は高さの 1.5 倍まで、最大 10 枚）の用意（同上） | 正式リリースまで | 未着手 |
