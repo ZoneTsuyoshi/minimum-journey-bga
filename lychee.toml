@@ -3,7 +3,7 @@
 
 # ネットワークに出ない。相対パスのファイル参照と # フラグメントのみ検査する
 offline = true
-include_fragments = true
+include_fragments = "full"  # lychee 0.24 以降は文字列で指定
 no_progress = true
 
 # 検査対象にしない Markdown（正規表現）。data/ 配下へのリンク先の存在確認は引き続き行われる
