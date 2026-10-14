@@ -11,7 +11,7 @@
 4. **各タスクはサブエージェント（sonnet）に委託する。** メインエージェントは分解・指示・レビュー・Git 操作の統括を担当する。
 5. **PR マージ後は、該当のワークツリー・ローカルブランチ・リモートブランチを削除する。**
 6. **`data/` は原本。編集・移動・削除しない。** 加工が必要なら `src/` 側に生成物を作る。
-7. **認証情報をコミットしない。** BGA Studio の SFTP 情報は GitHub Secrets のみに置く。
+7. **認証情報をコミットしない。** BGA Studio の認証情報（SSH 秘密鍵とユーザー名）は GitHub Secrets のみに置く。ホスト・ポート・リモートパス・known_hosts のような公開情報は GitHub Variables に置いてよい。
 
 ## タスクの進め方（要約）
 
@@ -91,7 +91,7 @@ git fetch --prune && git pull --ff-only origin main
 
 ## CI/CD
 
-方針は [docs/development/cicd.md](docs/development/cicd.md)。まだ未導入で、タスクとして仕様書から作成する。
+方針は [docs/development/cicd.md](docs/development/cicd.md)。lint（CI）は導入済み。BGA Studio への同期（CD）は仕様書 [005](docs/specs/005-bga-sync.md) に基づいて段階的に導入中（第 1 段階は接続テストのみ）。
 
 - CI: PR ごとに lint（PHP / JS / CSS / Markdown など）を実行し、通らない PR はマージしない。
 - CD: `main` へのマージをトリガーに `src/` を BGA Studio へ SFTP で自動同期する。

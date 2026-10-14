@@ -235,7 +235,7 @@ src/
 | 認証 | 本プロジェクトは **SSH 鍵認証で確定**（未確定事項 B の No.12 回答、2026-10-13）。公式には (a) 開発者登録時に受け取る SFTP パスワード、または (b) SSH 鍵があり、**SSH 鍵をアップロードするとパスワード認証は自動で無効になる** | Tools: https://en.doc.boardgamearena.com/Tools_and_tips_of_BGA_Studio |
 | SSH 鍵の登録 | Studio のコントロールパネル（https://studio.boardgamearena.com/controlpanel ）でアップロード | 検索結果の要約（Tools ページ由来）。取得時の要約では確認が弱く、実画面で要確認 |
 | プロジェクトフォルダ | ログイン後の home にプロジェクト名のフォルダが表示される。VSCode 設定例は `remotePath: "/<プロジェクト名>/"` → ここでは `/minimumjourney/` | FirstSteps、VSCode |
-| ユーザー名 | 開発者アカウントのユーザー名（本プロジェクトでは `ZoneTsuyoshi0`） | 依頼者提供の事実。BGA ドキュメントの SFTP ユーザー名はプレースホルダ |
+| ユーザー名 | SFTP のユーザー名は `ZoneTsuyoshi`（開発者登録メールの「SFTP user」）。`ZoneTsuyoshi0` は Studio の Web 画面へのログイン用テストアカウントで、SFTP では使えない | 2026-10-14 の実機確認（005 §2.1）。BGA ドキュメントの SFTP ユーザー名はプレースホルダ |
 | 推奨される同期 | 自動同期を設定する（手動 FTP は非推奨）。VSCode の SFTP 拡張、WinSCP、sshfs / rsync、lftp（`mirror --reverse --parallel=10`）が紹介されている | FirstSteps、Tools、VSCode |
 | バージョン管理 | Studio 内蔵の SVN がある。外部の GitHub リポジトリの併用が推奨されている（命名例 `bga-<game>`） | Tools |
 
