@@ -10,7 +10,8 @@ use Bga\Games\MinimumJourney\Setup\GameSetup;
 /**
  * getAllDatas に載せる盤面（仕様書 007 §8.2 のうち骨格に必要な分）。
  * 山札・探査山札は枚数のみ。facedown・setup_removed・prep_choice は含めない（007 §8.1）。
- * 準備場・獲得カード・除外・名声・付加カードなどは I-05 以降で足す。
+ * 準備場（付加カード込み）と獲得カードは公開情報なので全員に返す（007 §8.2）。
+ * 除外・名声などは I-05 以降で足す。
  */
 final class BoardView
 {
@@ -44,7 +45,18 @@ final class BoardView
         $finished = $this->players->prepFinishedMap();
         $playerData = [];
         foreach ($playerOrder as $playerId) {
+            $prep = [];
+            foreach ($this->cards->list(Zone::Prep, $playerId) as $card) {
+                $prep[] = [
+                    'card' => self::cardView($card),
+                    'order' => $card->order,
+                    'sideways' => $card->sideways,
+                    'attached' => array_map(self::cardView(...), $this->cards->attachedTo($card)),
+                ];
+            }
             $playerData[$playerId] = [
+                'prep' => $prep,
+                'acquired' => array_map(self::cardView(...), $this->cards->list(Zone::Acquired, $playerId)),
                 'deckCount' => $this->cards->count(Zone::Deck, $playerId),
                 'facedownCount' => $this->cards->count(Zone::Facedown, $playerId),
                 'prepFinished' => $finished[$playerId] ?? false,
