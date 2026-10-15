@@ -11,11 +11,6 @@ use Bga\Games\MinimumJourney\Data\PrepChoice;
  */
 final class RoundFlow
 {
-    /**
-     * 仮の規定ラウンド数。I-07 で正しい終了判定（未確認帯域の獲得・コスト 8 の探査山札の枯渇。006 §6.4）に置き換える。
-     */
-    public const PLACEHOLDER_ROUND_LIMIT = 3;
-
     private function __construct()
     {
     }
@@ -62,11 +57,11 @@ final class RoundFlow
     }
 
     /**
-     * 骨格の仮の終了判定（規定ラウンド数に達したら終了）。I-07 で置き換える。
+     * 補充後の分岐（006 §2.5 の状態 53）。終了フラグがあれば end → 60、なければ nextRound → 10。
      */
-    public static function isGameOver(int $roundNo, int $limit = self::PLACEHOLDER_ROUND_LIMIT): bool
+    public static function afterRefill(bool $gameEndTriggered): string
     {
-        return $roundNo >= $limit;
+        return $gameEndTriggered ? 'end' : 'nextRound';
     }
 
     /**

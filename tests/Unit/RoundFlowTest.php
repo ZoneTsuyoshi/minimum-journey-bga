@@ -52,14 +52,6 @@ final class RoundFlowTest extends TestCase
         self::assertNull(RoundFlow::currentExplorer([], 0));
     }
 
-    public function testPlaceholderGameOver(): void
-    {
-        self::assertFalse(RoundFlow::isGameOver(1));
-        self::assertFalse(RoundFlow::isGameOver(RoundFlow::PLACEHOLDER_ROUND_LIMIT - 1));
-        self::assertTrue(RoundFlow::isGameOver(RoundFlow::PLACEHOLDER_ROUND_LIMIT));
-        self::assertTrue(RoundFlow::isGameOver(5, 5));
-    }
-
     /**
      * @return iterable<string, array{int, int, int, int, int}>
      */

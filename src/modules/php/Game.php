@@ -33,6 +33,7 @@ use Bga\Games\MinimumJourney\Flow\ExploreRuleViolation;
 use Bga\Games\MinimumJourney\Flow\Notification;
 use Bga\Games\MinimumJourney\Flow\PrepPhase;
 use Bga\Games\MinimumJourney\Flow\PrepRuleViolation;
+use Bga\Games\MinimumJourney\Flow\ReturnPhase;
 use Bga\Games\MinimumJourney\Flow\RoundFlow;
 use Bga\Games\MinimumJourney\Flow\StateId;
 use Bga\Games\MinimumJourney\Setup\GameSetup;
@@ -46,6 +47,7 @@ class Game extends \Bga\GameFramework\Table
     public ExploreOutputCalculator $outputCalculator;
     public PrepPhase $prepPhase;
     public ExplorePhase $explorePhase;
+    public ReturnPhase $returnPhase;
 
     public function __construct()
     {
@@ -68,6 +70,12 @@ class Game extends \Bga\GameFramework\Table
             $this->playerValues,
             $this->globalValues,
             $this->outputCalculator,
+            fn(int $playerId): string => $this->getPlayerNameById($playerId),
+        );
+        $this->returnPhase = new ReturnPhase(
+            $this->cards,
+            $this->playerValues,
+            $this->globalValues,
             fn(int $playerId): string => $this->getPlayerNameById($playerId),
         );
     }
