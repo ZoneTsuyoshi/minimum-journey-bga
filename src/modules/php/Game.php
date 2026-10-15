@@ -40,6 +40,8 @@ use Bga\Games\MinimumJourney\Flow\ReturnPhase;
 use Bga\Games\MinimumJourney\Flow\RoundFlow;
 use Bga\Games\MinimumJourney\Flow\StateId;
 use Bga\Games\MinimumJourney\Setup\GameSetup;
+use Bga\Games\MinimumJourney\Stats\BgaStatStore;
+use Bga\Games\MinimumJourney\Stats\StatsRecorder;
 use Bga\Games\MinimumJourney\States\RoundStart;
 
 class Game extends \Bga\GameFramework\Table
@@ -52,10 +54,13 @@ class Game extends \Bga\GameFramework\Table
     public ExplorePhase $explorePhase;
     public ReturnPhase $returnPhase;
     public DrawResolver $drawResolver;
+    public StatsRecorder $stats;
 
     public function __construct()
     {
         parent::__construct();
+
+        $this->stats = new StatsRecorder(new BgaStatStore($this->bga->tableStats, $this->bga->playerStats));
 
         $database = new BgaDatabase();
         $this->cards = new CardRepository($database);
@@ -100,6 +105,7 @@ class Game extends \Bga\GameFramework\Table
      */
     public function sendNotifications(array $notifications): void
     {
+        $this->stats->recordNotifications($notifications, $this->globalValues->roundNo());
         foreach ($notifications as $n) {
             if ($n->to === null) {
                 $this->bga->notify->all($n->name, $n->message, $n->args);
@@ -277,13 +283,8 @@ class Game extends \Bga\GameFramework\Table
             $this->bga->tableOptions->get(GameSetup::OPTION_CHARM_SIDE),
         );
 
-        // Init game statistics.
-        //
-        // NOTE: statistics used in this file must be defined in your `stats.inc.php` file.
-
-        // Dummy content.
-        // $this->tableStats->init('table_teststat1', 0);
-        // $this->playerStats->init('player_teststat1', 0);
+        // 統計の初期化（007 §12。定義は stats.jsonc）
+        $this->stats->init();
 
         // 最初の状態は GAME 状態のラウンド開始（006 §2.1）
         return RoundStart::class;

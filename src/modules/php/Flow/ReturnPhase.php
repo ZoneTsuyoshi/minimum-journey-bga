@@ -263,6 +263,7 @@ final class ReturnPhase
                     'charm_bonus' => $score->charmBonus,
                     'unknown_acquired' => $score->unknownAcquired,
                     'symbols' => $score->symbols,
+                    'deck_size' => count($this->deckCardNos($playerId)),
                 ],
             );
         }

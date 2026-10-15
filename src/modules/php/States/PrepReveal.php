@@ -35,6 +35,7 @@ class PrepReveal extends GameState
     {
         $result = $this->game->prepPhase->reveal($this->game->seatOrder());
         $this->game->sendNotifications($result->notifications);
+        $this->game->stats->recordPrepReveal((string) $result->transition, $result->notifications);
         if ($result->transition === 'resolve') {
             // 2 人以上のドロー: 引かれたカードを解決キューに入れる（010 §6.1 手順 3）
             $this->game->drawResolver->enqueue($result->drawn);

@@ -1,28 +1,32 @@
-{    
-    // Statistics for the table
-    "table": {},
-    
-    // Statistics for each player
+{
+    // MINIMUM JOURNEY の統計（docs/specs/007-data-model.md §12。ID は作者了承済みで、公開後は変更しない）
+    // テーブル統計 10〜19、プレイヤー統計 20〜39
+    "table": {
+        "rounds_played": { "id": 10, "name": "Number of rounds", "type": "int" },
+        "prep_steps": { "id": 11, "name": "Number of Draw/Stop selections", "type": "int" },
+        "solo_draw_rounds": { "id": 12, "name": "Selections where only one player drew", "type": "int" },
+        "all_stop_rounds": { "id": 13, "name": "Selections where everyone stopped", "type": "int" },
+        "end_reason": { "id": 14, "name": "Game end condition", "type": "int" }
+    },
+
     "player": {
-      /* 
-      EXAMPLE:
+        "cards_acquired": { "id": 20, "name": "Cards acquired", "type": "int" },
+        "draw_count": { "id": 21, "name": "Times chose Draw", "type": "int" },
+        "stop_count": { "id": 22, "name": "Times chose Stop", "type": "int" },
+        "forced_choice_count": { "id": 23, "name": "Times forced to Draw or Stop", "type": "int" },
+        "solo_draw_count": { "id": 24, "name": "Times drew alone (halved)", "type": "int" },
+        "cards_removed": { "id": 25, "name": "Own cards removed from the game", "type": "int" },
+        "max_output": { "id": 26, "name": "Highest exploration output", "type": "int" },
+        "average_output": { "id": 27, "name": "Average exploration output", "type": "float" },
+        "pass_count": { "id": 28, "name": "Times passed", "type": "int" },
+        "first_turn_count": { "id": 29, "name": "Times first in exploration order", "type": "int" },
+        "charm_rounds": { "id": 30, "name": "Rounds holding the charm", "type": "int" },
+        "unknown_acquired": { "id": 31, "name": "Acquired the Unknown Region", "type": "bool" },
+        "deck_size_final": { "id": 32, "name": "Final deck size", "type": "int" }
+    },
 
-      "turns_number": {
-        "id": 10,
-        "name": "Number of turns",
-        "type": "int"
-      },
-      "player_teststat1": {
-        "id": 11,
-        "name": "player test stat 1",
-        "type": "int"
-      },
-      "player_teststat2": {
-        "id": 12,
-        "name": "player test stat 2",
-        "type": "float"
-      }
-      */
-
+    // end_reason の表示名（値 0 は終了条件が成立しなかった場合）
+    "value_labels": {
+        "14": ["-", "The Unknown Region was acquired", "The 8-cost pile ran out"]
     }
 }
