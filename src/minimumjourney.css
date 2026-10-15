@@ -1,65 +1,459 @@
-/**
- *------
- * BGA framework: Gregory Isabelli & Emmanuel Colin & BoardGameArena
- * MinimumJourney implementation : © <Your name here> <Your email address here>
- *
- * This code has been produced on the BGA studio platform for use on http://boardgamearena.com.
- * See http://en.boardgamearena.com/#!doc/Studio for more information.
- * -----
+/*
+ * MINIMUM JOURNEY のスタイル（I-08。仕様書 009 §7〜§11）。
+ * BGA の CSS は 1 ファイルのみ。@import は使えない。
+ * 画像の位置は px 単位に統一する（% は使わない。009 §1.1）。
+ * ダークモードは html[data-theme="dark"] で切り替える（009 §11）。
  */
 
-/*
-    This is the CSS stylesheet of your game User Interface.
-    
-    Styles defined on this file will be applied to HTML elements you create (in Game.js).
-    
-    Usually, you are using CSS to:
-    
-    1°) define the overall layout of your game
-        (ex: place the board on the top left, place player's hand beside, place the deck on the right, ...).
+/* ---- 色と寸法のトークン ---- */
+.mj-board,
+.mj-zoom {
+    --mj-bg: rgb(255 255 255 / 55%);
+    --mj-fg: #1b1b1f;
+    --mj-border: #8a8f99;
+    --mj-slot-bg: rgb(0 0 0 / 6%);
+    --mj-slot-border: #7b8090;
+    --mj-badge-bg: #1f2937;
+    --mj-badge-fg: #fff;
+    --mj-accent: #1d4ed8;
+    --mj-warn-bg: #fff4d6;
+    --mj-warn-fg: #5c3d00;
+    --mj-tooltip-bg: #fff;
+    --mj-tooltip-fg: #1b1b1f;
+}
 
-    2°) create your CSS-sprites:
-        All images of your games should be gathered into a small number of image files. Then, using
-        background-image and background-position CSS properties, you create HTML blocks that can 
-        display these images correctly (see example below).
-    
-    3°) ... anything else:
-        It is really easy to add and remove CSS classes dynamically from your Javascript with
-        dojo.addClass and dojo.removeClass. It is also easy to check if an element has a class
-        (dojo.hasClass) or to get all elements with a specific class (dojo.query). This is why,
-        very often, using CSS classes for the logic of your user interface allow you to do complex
-        thing easily.
-        
-        
-     Note: on the production platform, this file will be compressed and comments will be removed.
-           Consequently, don't hesitate to put as many comments as necessary.
-*/
+/* ---- 全体のレイアウト（案 B）。幅はコンテナから決める。使えない環境では 1 列のまま ---- */
+.mj-board {
+    container-type: inline-size;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+    margin: 0 auto;
+    padding: 8px 0;
+    color: var(--mj-fg);
+}
 
+.mj-scope {
+    /* 狭い画面: 1 段 5 枚が収まる幅から決める（最小 48px、最大 120px） */
+    --mj-w: clamp(48px, calc((100cqw - 56px) / 5), 120px);
+    --mj-h: calc(var(--mj-w) * 419 / 300);
 
-/* Note: you must not use any @import directive */
+    box-sizing: border-box;
+    min-width: 0;
+    padding: 8px;
+    border: 1px solid var(--mj-border);
+    border-radius: 8px;
+    background: var(--mj-bg);
+    color: var(--mj-fg);
+}
 
+.mj-players {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 0;
+}
 
-/********* You can start writing your CSS below this line: **********/
+.mj-compact {
+    --mj-w: clamp(40px, calc((100cqw - 56px) / 8), 72px);
+}
 
-
-/*
-    Example of CSS sprites (a black token and a white token, 20x20px each, embedded in the same "tokens.png" 40x20px image):
-
-    .white_token {
-        background-image: url('img/tokens.png');
-        background-position: 0px 0px;
+@container (min-width: 900px) {
+    .mj-board {
+        grid-template-columns: max-content minmax(0, 1fr);
+        align-items: start;
     }
-    .black_token {
-        background-image: url('img/tokens.png');
-        background-position: -20px 0px;
+
+    .mj-scope {
+        --mj-w: 120px;
     }
-    .token {
-        width: 20px;
-        height: 20px;
-        background-repeat: none;
+
+    .mj-compact {
+        --mj-w: 72px;
     }
-*/
+}
 
+.mj-heading {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 12px;
+    align-items: center;
+    margin: 0 0 8px;
+    font-size: 16px;
+    font-weight: bold;
+    color: inherit;
+}
 
+.mj-label {
+    font-size: 12px;
+    color: inherit;
+}
 
+.mj-warning {
+    margin: 0 0 8px;
+    padding: 4px 8px;
+    border: 2px solid currentcolor;
+    border-radius: 4px;
+    background: var(--mj-warn-bg);
+    color: var(--mj-warn-fg);
+    font-weight: bold;
+}
 
+.mj-warning::before {
+    content: "! ";
+}
+
+.mj-warning[hidden],
+.mj-stat[hidden],
+.mj-fold[hidden],
+.mj-zoom[hidden] {
+    display: none;
+}
+
+/* ---- カード ---- */
+.mj-card {
+    position: relative;
+    box-sizing: border-box;
+    width: var(--mj-w) !important;
+    height: var(--mj-h) !important;
+    border-radius: 4.2%;
+}
+
+.mj-face {
+    width: 100%;
+    height: 100%;
+    border-radius: 4.2%;
+    background-repeat: no-repeat;
+    background-size:
+        calc(var(--mj-w) * var(--mj-cols))
+        calc(var(--mj-w) * 419 / 300 * var(--mj-rows));
+    background-position:
+        calc(var(--mj-w) * var(--mj-col) * -1)
+        calc(var(--mj-w) * 419 / 300 * var(--mj-row) * -1);
+}
+
+/* 準備場: 横方向に重ねて、左側（探査力・シンボル・名前）を見せる（009 §8.2） */
+.mj-prep {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 4px 0;
+    min-width: calc(var(--mj-w) * 2);
+    min-height: var(--mj-h);
+    padding-right: calc(var(--mj-w) * 0.35);
+}
+
+.mj-prep .mj-card:not(:first-child) {
+    margin-left: calc(var(--mj-w) * -0.35);
+}
+
+.mj-compact .mj-prep .mj-card:not(:first-child) {
+    margin-left: calc(var(--mj-w) * -0.4);
+}
+
+.mj-prep-wrap {
+    flex: 1 1 0;
+    min-width: 0;
+}
+
+/* 順番の番号（数字で示す。色だけに頼らない） */
+.mj-order {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    z-index: 3;
+    min-width: 1.4em;
+    padding: 0 3px;
+    border: 1px solid var(--mj-badge-fg);
+    border-radius: 999px;
+    background: var(--mj-badge-bg);
+    color: var(--mj-badge-fg);
+    font-size: 12px;
+    font-weight: bold;
+    line-height: 1.4;
+    text-align: center;
+    pointer-events: none;
+}
+
+/* 横向き: 回転は bga-cards（getCardRotation）。占有幅の余白と斜線で示す */
+.mj-sideways {
+    margin-inline: calc(var(--mj-w) * 0.22);
+}
+
+.mj-prep .mj-sideways:not(:first-child) {
+    margin-left: calc(var(--mj-w) * 0.1);
+}
+
+.mj-sideways-mark {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    border-radius: 4.2%;
+    background: repeating-linear-gradient(
+        135deg,
+        rgb(0 0 0 / 0%) 0 8px,
+        rgb(0 0 0 / 35%) 8px 12px
+    );
+    pointer-events: none;
+}
+
+/* 付加カード（カード番号 46）: 本体の直後に少しずらし、破線の枠でグループ化する */
+.mj-attached {
+    outline: 2px dashed var(--mj-accent);
+    outline-offset: -2px;
+    transform: translateY(8px);
+}
+
+.mj-has-attached {
+    outline: 2px dashed var(--mj-accent);
+    outline-offset: -2px;
+}
+
+/* ---- 山・列・スロット ---- */
+.mj-pile,
+.mj-unknown,
+.mj-charm,
+.mj-acquired,
+.mj-slot {
+    position: relative;
+    box-sizing: border-box;
+    min-width: var(--mj-w);
+    min-height: var(--mj-h);
+}
+
+.mj-pile,
+.mj-charm,
+.mj-slot {
+    border: 2px dashed var(--mj-slot-border);
+    border-radius: 6px;
+    background: var(--mj-slot-bg);
+}
+
+.mj-slot {
+    flex: 0 0 auto;
+}
+
+/* カードが入っているときは枠をカードに任せる */
+.mj-pile:not(.mj-empty),
+.mj-slot:has(.mj-card),
+.mj-charm:has(.mj-card) {
+    border-color: transparent;
+    background: transparent;
+}
+
+.mj-row {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    margin-bottom: 8px;
+}
+
+.mj-row-slots {
+    display: flex;
+    gap: 4px;
+    min-width: 0;
+}
+
+.mj-pile-wrap,
+.mj-unknown-wrap,
+.mj-acquired-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    align-items: flex-start;
+}
+
+.mj-unknown-wrap {
+    margin-bottom: 8px;
+}
+
+.mj-player-main {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+}
+
+.mj-acquired-wrap {
+    margin-top: 8px;
+}
+
+.mj-acquired {
+    min-width: calc(var(--mj-w) * 1.5);
+}
+
+/* 枚数のバッジ（bga-cards の counter） */
+.mj-count {
+    min-width: 1.6em;
+    padding: 0 4px;
+    border: 1px solid var(--mj-badge-fg);
+    border-radius: 999px;
+    background: var(--mj-badge-bg);
+    color: var(--mj-badge-fg);
+    font-size: 13px;
+    font-weight: bold;
+    text-align: center;
+}
+
+.mj-cost-tag {
+    display: inline-flex;
+    gap: 2px;
+    align-items: center;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+/* ---- 選択の状態（操作 UI は後続タスク）。枠の太さと記号で示し、色だけに頼らない ---- */
+.mj-selectable {
+    outline: 4px solid var(--mj-accent);
+    outline-offset: -2px;
+    cursor: pointer;
+}
+
+.mj-selectable::after {
+    content: "+";
+    position: absolute;
+    right: 2px;
+    bottom: 2px;
+    z-index: 3;
+    width: 1.4em;
+    border-radius: 50%;
+    background: var(--mj-accent);
+    color: var(--mj-badge-fg);
+    font-weight: bold;
+    text-align: center;
+}
+
+.mj-unselectable {
+    filter: brightness(0.55);
+    cursor: default;
+}
+
+.mj-selected {
+    outline: 6px double var(--mj-accent);
+    outline-offset: -3px;
+}
+
+.mj-active-turn {
+    border-width: 3px;
+    border-color: var(--mj-accent);
+}
+
+/* ---- パネルと見出しの数値 ---- */
+.mj-stats {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 2px 10px;
+    align-items: center;
+    font-size: 13px;
+    font-weight: normal;
+}
+
+.mj-panel {
+    margin-top: 4px;
+    color: inherit;
+}
+
+.mj-stat {
+    display: inline-flex;
+    gap: 3px;
+    align-items: center;
+}
+
+.mj-stat-label {
+    opacity: 0.85;
+}
+
+.mj-fold {
+    min-height: 32px;
+    margin-top: 4px;
+    padding: 2px 8px;
+    border: 1px solid var(--mj-border);
+    border-radius: 4px;
+    background: var(--mj-bg);
+    color: var(--mj-fg);
+    cursor: pointer;
+}
+
+/* 他プレイヤーの準備場: 3 行を超えたら折りたたむ */
+.mj-compact:not(.mj-unfolded) .mj-prep {
+    max-height: calc(var(--mj-h) * 3 + 8px);
+    overflow: hidden;
+}
+
+/* ---- アイコン（icons.webp。出力寸法の 1/4 で表示: セル 24x22。009 §4.5） ---- */
+.mj-icon {
+    display: inline-block;
+    flex: none;
+    width: 24px;
+    height: 22px;
+    background-image: url("img/icons.webp");
+    background-repeat: no-repeat;
+    background-size: 144px 92px;
+    vertical-align: middle;
+}
+
+.mj-icon-earth { background-position: 0 0; }
+.mj-icon-solar { background-position: -24px 0; }
+.mj-icon-galaxy { background-position: -48px 0; }
+.mj-icon-virgo { background-position: -72px 0; }
+.mj-icon-laniakea { background-position: -96px 0; }
+.mj-icon-unknown { background-position: -120px 0; }
+.mj-icon-charm { background-position: 0 -22px; }
+.mj-icon-power { background-position: -24px -22px; }
+.mj-icon-fame { background-position: -48px -22px; }
+.mj-icon-cost { background-position: -72px -22px; }
+.mj-icon-flag { background-position: -96px -22px; }
+.mj-icon-crew { background-position: -120px -22px; }
+
+/* ---- 拡大表示 ---- */
+.mj-zoom {
+    --mj-zw: min(360px, 90vw);
+
+    position: fixed;
+    z-index: 2000;
+    box-sizing: border-box;
+    width: var(--mj-zw);
+    border-radius: 8px;
+    background: var(--mj-tooltip-bg);
+    color: var(--mj-tooltip-fg);
+    box-shadow: 0 4px 16px rgb(0 0 0 / 50%);
+    pointer-events: none;
+}
+
+.mj-zoom-img {
+    width: var(--mj-zw);
+    height: calc(var(--mj-zw) * 699 / 500);
+    border-radius: 4.2%;
+    background-repeat: no-repeat;
+    background-size:
+        calc(var(--mj-zw) * var(--mj-cols))
+        calc(var(--mj-zw) * 699 / 500 * var(--mj-rows));
+    background-position:
+        calc(var(--mj-zw) * var(--mj-col) * -1)
+        calc(var(--mj-zw) * 699 / 500 * var(--mj-row) * -1);
+}
+
+.mj-zoom-text {
+    font-size: 14px;
+}
+
+.mj-zoom-text:not(:empty) {
+    padding: 8px;
+}
+
+/* ---- ダークモード（最後に置く） ---- */
+html[data-theme="dark"] .mj-board,
+html[data-theme="dark"] .mj-zoom {
+    --mj-bg: rgb(20 24 40 / 70%);
+    --mj-fg: #eceff6;
+    --mj-border: #5b6477;
+    --mj-slot-bg: rgb(255 255 255 / 8%);
+    --mj-slot-border: #8d96ad;
+    --mj-badge-bg: #e5e7eb;
+    --mj-badge-fg: #111827;
+    --mj-accent: #93b4ff;
+    --mj-warn-bg: #4a3a10;
+    --mj-warn-fg: #ffe9a8;
+    --mj-tooltip-bg: #1f2433;
+    --mj-tooltip-fg: #eceff6;
+}
