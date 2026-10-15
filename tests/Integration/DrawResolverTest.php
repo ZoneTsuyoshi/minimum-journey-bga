@@ -6,14 +6,17 @@ namespace MinimumJourneyTests\Integration;
 
 use Bga\Games\MinimumJourney\Data\Card;
 use Bga\Games\MinimumJourney\Data\PrepChoice;
+use Bga\Games\MinimumJourney\Data\ResolveEntry;
 use Bga\Games\MinimumJourney\Data\ResolveEntryRepository;
 use Bga\Games\MinimumJourney\Data\Zone;
+use Bga\Games\MinimumJourney\Flow\DrawEffects;
 use Bga\Games\MinimumJourney\Flow\DrawResolver;
 use Bga\Games\MinimumJourney\Flow\DrawRuleViolation;
 use Bga\Games\MinimumJourney\Flow\ExploreOutputCalculator;
 use Bga\Games\MinimumJourney\Flow\ExplorePhase;
 use Bga\Games\MinimumJourney\Flow\Notification;
 use Bga\Games\MinimumJourney\Flow\PrepPhase;
+use Bga\Games\MinimumJourney\Material\EffectTiming;
 use MinimumJourneyTests\Support\DatabaseTestCase;
 
 /**
@@ -808,6 +811,59 @@ final class DrawResolverTest extends DatabaseTestCase
             self::assertArrayNotHasKey('position', $n->args);
         }
         self::assertCount(4, self::named($result['notes'], 'deckLooked'));
+    }
+
+    /** 1 人が同時解決の効果を 2 つ持つとき（052 と 050）、35 を出入りして 1 つずつ解決し、どちらも失われない */
+    public function testPlayerWithTwoSimultaneousEffectsResolvesOneAtATime(): void
+    {
+        $this->table(2);
+        $a = $this->deck(self::A, [2, 3, 1, 1, 1, 1]);
+        $this->deck(self::B);
+        $scales = $this->drawn(self::A, self::SCALES, 5);
+        $manual = $this->drawn(self::A, self::SPACE_MANUAL, 6);
+        $this->resolver->enqueue([self::A => $scales]);
+        // 同じプレイヤーの 2 つ目の同時解決効果（実際は 046 の付加や 008 のコピーで起こる）
+        $level = DrawEffects::definitionOf(self::SPACE_MANUAL)?->effectsFor(EffectTiming::OnDraw)[0]->drawLevel?->order();
+        (new ResolveEntryRepository($this->db))->insert(
+            self::A,
+            $manual->id,
+            self::SPACE_MANUAL,
+            ResolveEntry::ORIGIN_DRAWN,
+            null,
+            $level,
+            $level,
+            ResolveEntry::STATUS_PENDING,
+        );
+
+        $step = $this->resolver->advance();
+        self::assertSame('simul', $step->transition);
+        $first = $this->resolver->simulRequests();
+        self::assertCount(1, $first);
+        self::assertArrayHasKey(self::A, $first);
+        $firstType = $first[self::A]['plan']['type'];
+
+        $answer = $firstType === 'pickOne'
+            ? ['actPickOne', $a[1]->id]
+            : ['actPickFromDeck', null];
+        $this->resolver->simulAction(self::A, $answer[0], $answer[1]);
+
+        // 2 つ目の効果のために、もう一度 35 へ
+        $step = $this->resolver->advance();
+        self::assertSame('simul', $step->transition);
+        $second = $this->resolver->simulRequests();
+        self::assertCount(1, $second);
+        self::assertNotSame($firstType, $second[self::A]['plan']['type']);
+        $answer = $second[self::A]['plan']['type'] === 'pickOne'
+            ? ['actPickOne', $this->cards->peekTop(Zone::Deck, self::A, 1)[0]->id]
+            : ['actPickFromDeck', null];
+        $this->resolver->simulAction(self::A, $answer[0], $answer[1]);
+
+        $step = $this->resolver->advance();
+        self::assertSame('done', $step->transition);
+        self::assertSame([], $this->resolver->simulRequests());
+        foreach ((new ResolveEntryRepository($this->db))->all() as $entry) {
+            self::assertNotSame('valid', $entry->status);
+        }
     }
 
     /** 候補が 0 枚の 020 は、選ばせずにシャッフルだけを自動で行う（001 Q-28） */
