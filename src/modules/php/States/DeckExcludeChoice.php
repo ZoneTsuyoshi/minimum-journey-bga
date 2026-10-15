@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Bga\Games\MinimumJourney\States;
 
+use Bga\GameFramework\Actions\Types\IntArrayParam;
 use Bga\GameFramework\StateType;
 use Bga\GameFramework\States\GameState;
 use Bga\GameFramework\States\PossibleAction;
@@ -47,11 +48,15 @@ class DeckExcludeChoice extends GameState
     }
 
     /**
-     * @param list<int> $cardIds 0〜2 件
+     * 0 枚（[Do not exclude]）のときは空配列が送信で落ちて未指定になるため、null も空配列として扱う。
+     * 件数の上限は属性（max: 2）とルール側（excludeDeck）の両方で検証する。
+     *
+     * @param list<int>|null $cardIds 0〜2 件
      */
     #[PossibleAction]
-    public function actExcludeDeckCards(array $cardIds, int $activePlayerId): string
+    public function actExcludeDeckCards(#[IntArrayParam(max: 2)] ?array $cardIds, int $activePlayerId): string
     {
+        $cardIds ??= [];
         try {
             $result = $this->game->explorePhase->acquirePhase()->excludeDeck($activePlayerId, array_map('intval', $cardIds));
         } catch (ExploreRuleViolation $violation) {
