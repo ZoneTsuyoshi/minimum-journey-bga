@@ -119,6 +119,22 @@
     border-radius: 4.2%;
 }
 
+/*
+ * bga-cards 1.x のカードは、中の面（.bga-cards_card-sides）の大きさを
+ * --bga-cards_card-width / -height（CardManager の cardWidth・cardHeight = 120×168）から決め、
+ * カード要素の中央に置く。カード要素だけを --mj-w / --mj-h にすると、面は 120×168 のまま
+ * 左上へはみ出し、スプライトも面の大きさで切り出されてしまう（縮小表示で顕著）。
+ * 変数をインラインより強い !important で実寸に合わせる。山札・列・スロットの枠
+ * （slot の min-width など）も同じ変数を使うので、スタック側にも当てる。
+ */
+.mj-scope .mj-card,
+.mj-scope .card-stock {
+    /* stylelint-disable-next-line custom-property-pattern -- bga-cards の変数名 */
+    --bga-cards_card-width: var(--mj-w) !important;
+    /* stylelint-disable-next-line custom-property-pattern -- bga-cards の変数名 */
+    --bga-cards_card-height: var(--mj-h) !important;
+}
+
 .mj-face {
     width: 100%;
     height: 100%;
@@ -279,8 +295,11 @@
     height: var(--mj-h);
 }
 
-/* 獲得済みの山（AllVisibleDeck）は bga-cards が position: absolute にするため、流れの中に戻す */
-.mj-acquired.all-visible-deck {
+/*
+ * 獲得済みの山（AllVisibleDeck）は bga-cards が position: absolute にするため、流れの中に戻す。
+ * bga-cards の CSS は後から注入されるため、詳細度を上げて読み込み順に頼らない
+ */
+.mj-scope .mj-acquired.all-visible-deck {
     position: relative;
 }
 
