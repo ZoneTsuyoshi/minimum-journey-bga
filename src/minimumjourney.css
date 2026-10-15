@@ -209,6 +209,28 @@
     outline-offset: -2px;
 }
 
+/* 解決の選択（状態 31〜35）: 対象の強調、007 が保持したカード、本人にだけ見せるカードの置き場 */
+.mj-highlight {
+    outline: 3px solid var(--mj-accent);
+    outline-offset: -3px;
+}
+
+.mj-locked {
+    outline: 3px double var(--mj-accent);
+    outline-offset: -3px;
+}
+
+.mj-choice[hidden] {
+    display: none;
+}
+
+.mj-choice-cards {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 4px;
+}
+
 /* ---- 山・列・スロット ---- */
 .mj-pile,
 .mj-unknown,

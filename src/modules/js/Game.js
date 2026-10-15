@@ -280,6 +280,355 @@ class ExploreChoose {
 }
 
 
+/**
+ * 043 暴走転送ポッド（状態 31）。対象の全員が、引いたカードを山札に戻すかを同時に・互いに見えない状態で決める（010 H8）。
+ * 押した時点で確定する。決定の内容は全員が決めるまで他人に見えない。
+ */
+class ReturnPodDecision {
+    /**
+     * @param {Game} game
+     * @param {Bga} bga
+     */
+    constructor(game, bga) {
+        this.game = game;
+        this.bga = bga;
+        /** @type {{ id: number } | null} */
+        this.myCard = null;
+        /** @type {boolean | null} */
+        this.myDecision = null;
+    }
+
+    /**
+     * @param {{ _private?: { myCard?: { id: number } | null, myDecision?: boolean | null } }} args
+     * @param {boolean} isCurrentPlayerActive
+     */
+    onEnteringState(args, isCurrentPlayerActive) {
+        this.myCard = args._private?.myCard ?? null;
+        this.myDecision = args._private?.myDecision ?? null;
+        this.game.highlightCards(this.myCard === null ? [] : [int(this.myCard.id)]);
+        this.render(isCurrentPlayerActive);
+    }
+
+    /**
+     * @param {unknown} _args
+     * @param {boolean} isCurrentPlayerActive
+     */
+    onPlayerActivationChange(_args, isCurrentPlayerActive) {
+        this.render(isCurrentPlayerActive);
+    }
+
+    /**
+     * @param {unknown} _args
+     * @param {boolean} _isCurrentPlayerActive
+     */
+    onLeavingState(_args, _isCurrentPlayerActive) {
+        this.game.highlightCards([]);
+    }
+
+    /** @param {boolean} isCurrentPlayerActive */
+    render(isCurrentPlayerActive) {
+        this.bga.statusBar.removeActionButtons();
+        if (this.myCard === null) {
+            this.bga.statusBar.setTitle(_('Other players must decide whether to return their drawn card'));
+            return;
+        }
+        if (this.myDecision !== null || !isCurrentPlayerActive) {
+            this.bga.statusBar.setTitle(
+                this.myDecision === true
+                    ? _('You chose to return your drawn card. Waiting for the other players')
+                    : _('You chose to keep your drawn card. Waiting for the other players'),
+            );
+            return;
+        }
+        this.bga.statusBar.setTitle(_('${you} must decide whether to return your drawn card'));
+        this.addButton(_('Return my drawn card'), true, 'primary');
+        this.addButton(_('Keep my drawn card'), false, 'secondary');
+    }
+
+    /**
+     * @param {string} label
+     * @param {boolean} doReturn
+     * @param {'primary' | 'secondary'} color
+     */
+    addButton(label, doReturn, color) {
+        this.bga.statusBar.addActionButton(
+            label,
+            async () => {
+                await this.bga.actions.performAction('actDecideReturn', { doReturn }, { checkAction: false });
+                this.myDecision = doReturn;
+                this.render(false);
+            },
+            { color },
+        );
+    }
+}
+
+/**
+ * 探査場の列のカードを 1 枚選んで確定する状態の共通部品（008 のコピー元 32、007 のロック 34）。
+ */
+class RowCardChoice {
+    /**
+     * @param {Game} game
+     * @param {Bga} bga
+     * @param {{ title: string, others: string, button: string, action: string }} texts
+     */
+    constructor(game, bga, texts) {
+        this.game = game;
+        this.bga = bga;
+        this.texts = texts;
+        /** @type {number | null} */
+        this.selected = null;
+    }
+
+    /**
+     * @param {{ candidates?: { id: number }[] }} args
+     * @param {boolean} isCurrentPlayerActive
+     */
+    onEnteringState(args, isCurrentPlayerActive) {
+        this.selected = null;
+        if (!isCurrentPlayerActive) {
+            this.bga.statusBar.setTitle(this.texts.others);
+            return;
+        }
+        this.bga.statusBar.setTitle(this.texts.title);
+        this.game.enableRowSelection((args.candidates ?? []).map((c) => int(c.id)), (id) => {
+            this.selected = id;
+            this.render();
+        });
+    }
+
+    /**
+     * @param {unknown} _args
+     * @param {boolean} _isCurrentPlayerActive
+     */
+    onLeavingState(_args, _isCurrentPlayerActive) {
+        this.game.disableRowSelection();
+        this.selected = null;
+    }
+
+    render() {
+        this.bga.statusBar.removeActionButtons();
+        const cardId = this.selected;
+        if (cardId !== null) {
+            this.bga.statusBar.addActionButton(this.texts.button, () => this.bga.actions.performAction(this.texts.action, { cardId }), { color: 'primary' });
+        }
+    }
+}
+
+/**
+ * 036 簡易ワームホール（状態 33）。表にした山札の上のカードを、列の同じ探査コストのカードと入れ替えるか選ぶ。
+ * 入れ替えなくても山札はシャッフルされる。
+ */
+class WormholeChoice {
+    /**
+     * @param {Game} game
+     * @param {Bga} bga
+     */
+    constructor(game, bga) {
+        this.game = game;
+        this.bga = bga;
+        /** @type {number | null} */
+        this.selected = null;
+    }
+
+    /**
+     * @param {{ revealedCard?: { id: number, cardNo: number, art: number } | null, candidates?: { id: number }[] }} args
+     * @param {boolean} isCurrentPlayerActive
+     */
+    onEnteringState(args, isCurrentPlayerActive) {
+        this.selected = null;
+        if (args.revealedCard !== null && args.revealedCard !== undefined) {
+            this.game.showChoicePanel(_('Revealed from the top of the deck'), [args.revealedCard], null);
+        }
+        if (!isCurrentPlayerActive) {
+            this.bga.statusBar.setTitle(_('${actplayer} must choose whether to swap a card'));
+            return;
+        }
+        this.bga.statusBar.setTitle(_('${you} must choose whether to swap a card'));
+        this.game.enableRowSelection((args.candidates ?? []).map((c) => int(c.id)), (id) => {
+            this.selected = id;
+            this.render();
+        });
+        this.render();
+    }
+
+    /**
+     * @param {unknown} _args
+     * @param {boolean} _isCurrentPlayerActive
+     */
+    onLeavingState(_args, _isCurrentPlayerActive) {
+        this.game.disableRowSelection();
+        this.game.hideChoicePanel();
+        this.selected = null;
+    }
+
+    render() {
+        this.bga.statusBar.removeActionButtons();
+        const rowCardId = this.selected;
+        if (rowCardId !== null) {
+            this.bga.statusBar.addActionButton(
+                _('Swap with the selected card'),
+                () => this.bga.actions.performAction('actWormhole', { rowCardId }),
+                { color: 'primary' },
+            );
+        }
+        this.bga.statusBar.addActionButton(
+            _('Do not swap (shuffle only)'),
+            () => this.bga.actions.performAction('actWormhole', { rowCardId: 0 }),
+            { color: 'secondary' },
+        );
+    }
+}
+
+/**
+ * 自分にしか影響しない選択付きのドロー時効果（状態 35。005・009・010・014・020・035・050・052）。
+ * 効果の種類は本人用の _private.effect で区別する。見た山札のカードは本人にだけ届く。
+ */
+class SimultaneousEffects {
+    /**
+     * @param {Game} game
+     * @param {Bga} bga
+     */
+    constructor(game, bga) {
+        this.game = game;
+        this.bga = bga;
+        /** @type {number | null} */
+        this.selected = null;
+    }
+
+    /**
+     * @typedef {object} SimulPrivate
+     * @property {string} effect
+     * @property {{ id: number, cardNo: number, art: number }[]} seenCards
+     * @property {{ id: number, cardNo: number, art: number }[]} candidates
+     * @property {{ id: number } | null} prevCard
+     * @property {string} effectName
+     */
+
+    /**
+     * @param {{ _private?: SimulPrivate }} args
+     * @param {boolean} isCurrentPlayerActive
+     */
+    onEnteringState(args, isCurrentPlayerActive) {
+        this.selected = null;
+        this.bga.statusBar.removeActionButtons();
+        const mine = args._private;
+        if (mine === undefined || mine.effect === undefined || !isCurrentPlayerActive) {
+            this.bga.statusBar.setTitle(_('Some players must resolve their effects'));
+            return;
+        }
+        this.bga.statusBar.setTitle(_('${you} must resolve your effect'));
+        switch (mine.effect) {
+            case 'arrangeTop':
+                this.arrangeTop(mine);
+                break;
+            case 'topOrBottom':
+                this.topOrBottom(mine);
+                break;
+            case 'pickOne':
+                this.pickOne(mine);
+                break;
+            case 'pickFromDeck':
+                this.pickFromDeck(mine);
+                break;
+            default:
+                this.yesNo(mine);
+        }
+    }
+
+    /**
+     * @param {unknown} _args
+     * @param {boolean} _isCurrentPlayerActive
+     */
+    onLeavingState(_args, _isCurrentPlayerActive) {
+        this.game.hideChoicePanel();
+        this.game.highlightCards([]);
+        this.selected = null;
+    }
+
+    /**
+     * @param {string} label
+     * @param {() => Promise<unknown> | void} handler
+     * @param {'primary' | 'secondary'} [color]
+     */
+    button(label, handler, color = 'primary') {
+        this.bga.statusBar.addActionButton(label, handler, { color });
+    }
+
+    /**
+     * 005: 見た 2 枚の並び。一番上にするカードを選ぶ（残りが 2 番目）。
+     *
+     * @param {SimulPrivate} mine
+     */
+    arrangeTop(mine) {
+        const [first, second] = mine.seenCards;
+        this.game.showChoicePanel(_('Choose the card to put on top (the other goes second)'), mine.seenCards, (id) => {
+            this.bga.statusBar.removeActionButtons();
+            this.selected = id;
+            if (id !== null) {
+                const other = int(first.id) === id ? second : first;
+                this.button(_('Put the selected card on top'), () => this.bga.actions.performAction('actArrangeTop', { firstId: id, secondId: int(other.id) }));
+            }
+        });
+        this.button(_('Keep this order'), () => this.bga.actions.performAction('actArrangeTop', { firstId: int(first.id), secondId: int(second.id) }), 'secondary');
+    }
+
+    /**
+     * 010: 見たカードを山札の上に戻すか、下に置くか。
+     *
+     * @param {SimulPrivate} mine
+     */
+    topOrBottom(mine) {
+        this.game.showChoicePanel(_('The top card of your deck'), mine.seenCards, null);
+        this.button(_('Put it back on top'), () => this.bga.actions.performAction('actTopOrBottom', { position: 'top' }));
+        this.button(_('Put it on the bottom'), () => this.bga.actions.performAction('actTopOrBottom', { position: 'bottom' }), 'secondary');
+    }
+
+    /**
+     * 052: 見た 2 枚から山札の上に戻す 1 枚（残りは山札の下）。
+     *
+     * @param {SimulPrivate} mine
+     */
+    pickOne(mine) {
+        this.game.showChoicePanel(_('Choose the card to put on top (the other goes to the bottom)'), mine.seenCards, (id) => {
+            this.bga.statusBar.removeActionButtons();
+            this.selected = id;
+            if (id !== null) {
+                this.button(_('Put the selected card on top'), () => this.bga.actions.performAction('actPickOne', { cardId: id }));
+            }
+        });
+    }
+
+    /**
+     * 020・035・050: 山札から 1 枚を選んで一番上に置く（任意）。選ばなくてもシャッフルする。
+     *
+     * @param {SimulPrivate} mine
+     */
+    pickFromDeck(mine) {
+        this.game.showChoicePanel(_('Cards in your deck you may put on top'), mine.candidates, (id) => {
+            this.bga.statusBar.removeActionButtons();
+            this.selected = id;
+            if (id !== null) {
+                this.button(_('Put the selected card on top'), () => this.bga.actions.performAction('actPickFromDeck', { cardId: id }));
+            }
+            this.button(_('Do not pick (shuffle only)'), () => this.bga.actions.performAction('actPickFromDeck', { cardId: 0 }), 'secondary');
+        });
+        this.button(_('Do not pick (shuffle only)'), () => this.bga.actions.performAction('actPickFromDeck', { cardId: 0 }), 'secondary');
+    }
+
+    /**
+     * 009・014: 準備場のカードを山札に戻してシャッフルし、引き直すか。対象は準備場で強調する。
+     *
+     * @param {SimulPrivate} mine
+     */
+    yesNo(mine) {
+        const targets = mine.prevCard !== null ? [mine.prevCard] : mine.candidates;
+        this.game.highlightCards(targets.map((c) => int(c.id)));
+        this.button(_('Return and redraw'), () => this.bga.actions.performAction('actYesNo', { yes: true }));
+        this.button(_('Do not return'), () => this.bga.actions.performAction('actYesNo', { yes: false }), 'secondary');
+    }
+}
+
 // ---------------------------------------------------------------------------
 // 盤面の描画（I-08。仕様書 009 §7〜§11、007 §8・§10）
 // ---------------------------------------------------------------------------
@@ -454,10 +803,31 @@ export class Game {
         /** @type {ReturnType<typeof setTimeout> | null} */
         this.zoomTimer = null;
         this.zoomOpen = false;
+        /** @type {any} 解決の選択でカードを見せる一時的な置き場（LineStock） */
+        this.choiceStock = null;
+        /** @type {Element[]} 強調表示中のカード要素 */
+        this.highlighted = [];
+        /** @type {number | null} 007 が保持した列のカード */
+        this.lockedCardId = null;
 
         this.bga.states.register('PrepChoice', new PrepChoice(this, bga));
         this.bga.states.register('PrepChoiceLate', new PrepChoiceLate(this, bga));
         this.bga.states.register('ExploreChoose', new ExploreChoose(this, bga));
+        this.bga.states.register('ReturnPodDecision', new ReturnPodDecision(this, bga));
+        this.bga.states.register('CopySourceChoice', new RowCardChoice(this, bga, {
+            title: _('${you} must choose a card to copy'),
+            others: _('${actplayer} must choose a card to copy'),
+            button: _('Copy the selected card'),
+            action: 'actChooseCopySource',
+        }));
+        this.bga.states.register('WormholeChoice', new WormholeChoice(this, bga));
+        this.bga.states.register('LaserSightChoice', new RowCardChoice(this, bga, {
+            title: _('${you} must choose a card to lock'),
+            others: _('${actplayer} must choose a card to lock'),
+            button: _('Reserve the selected card'),
+            action: 'actChooseLockedCard',
+        }));
+        this.bga.states.register('SimultaneousEffects', new SimultaneousEffects(this, bga));
     }
 
     /**
@@ -503,6 +873,10 @@ export class Game {
 
         this.bga.gameArea.getElement().insertAdjacentHTML('beforeend', `
             <div id="mj-board" class="mj-board">
+                <div id="mj-choice" class="mj-choice mj-scope" hidden>
+                    <span class="mj-label"></span>
+                    <div id="mj-choice-cards" class="mj-choice-cards"></div>
+                </div>
                 <div id="mj-explore" class="mj-explore mj-scope"></div>
                 <div id="mj-players" class="mj-players"></div>
             </div>
@@ -518,6 +892,11 @@ export class Game {
             this.setupPlayerArea(playerId, gamedatas.players[playerId] ?? {}, compact);
         }
         this.setupCharm(gamedatas.charm);
+        if (gamedatas.lockedCard !== null && gamedatas.lockedCard !== undefined) {
+            this.lockedCardId = int(gamedatas.lockedCard.cardId);
+            const found = this.locate(this.lockedCardId);
+            found?.stock.getCardElement(found.card)?.classList.add('mj-locked');
+        }
         this.chosen = new Set((gamedatas.gamestate?.args?.chosen ?? []).map(int));
         this.refreshAllStats();
         this.setupZoom();
@@ -1029,6 +1408,103 @@ export class Game {
         this.zoomOpen = false;
     }
 
+    // ---- 解決の選択の部品（状態 31〜35。010 §6） ----
+
+    /**
+     * 探査場の列のカードを 1 枚選べるようにする（008 のコピー元、007 のロック、036 の入れ替え先）。
+     *
+     * @param {number[]} ids 選べるカードの ID
+     * @param {(id: number | null) => void} onChange 選択が変わったとき（外したら null）
+     */
+    enableRowSelection(ids, onChange) {
+        const selectable = new Set(ids);
+        const stocks = COSTS.map((cost) => this.rowStocks[cost]);
+        for (const stock of stocks) {
+            stock.setSelectionMode('single', stock.getCards().filter((/** @type {MjCard} */ c) => selectable.has(int(c.id))));
+            stock.onSelectionChange = (/** @type {MjCard[]} */ selection) => {
+                if (selection.length > 0) {
+                    for (const other of stocks) {
+                        if (other !== stock) {
+                            other.unselectAll(true);
+                        }
+                    }
+                }
+                onChange(selection.length > 0 ? int(selection[0].id) : null);
+            };
+        }
+    }
+
+    disableRowSelection() {
+        for (const cost of COSTS) {
+            const stock = this.rowStocks[cost];
+            stock.unselectAll(true);
+            stock.setSelectionMode('none');
+            stock.onSelectionChange = undefined;
+        }
+    }
+
+    /**
+     * 盤面に無いカード（山札の上など、本人にだけ見せるカード）を一時的に並べる。onSelect を渡すと 1 枚選べる。
+     *
+     * @param {string} label
+     * @param {{ id: number, cardNo: number, art: number }[]} cards
+     * @param {((id: number | null) => void) | null} onSelect
+     */
+    showChoicePanel(label, cards, onSelect) {
+        this.hideChoicePanel();
+        const root = document.getElementById('mj-choice');
+        const holder = document.getElementById('mj-choice-cards');
+        if (root === null || holder === null) {
+            return;
+        }
+        const labelEl = root.querySelector('.mj-label');
+        if (labelEl !== null) {
+            labelEl.textContent = label;
+        }
+        root.hidden = false;
+        this.choiceStock = new BgaCards.LineStock(this.cardsManager, holder, { gap: '8px' });
+        this.choiceStock.addCards(cards.map((c) => this.toCard(c)));
+        if (onSelect !== null) {
+            this.choiceStock.setSelectionMode('single');
+            this.choiceStock.onSelectionChange = (/** @type {MjCard[]} */ selection) => onSelect(selection.length > 0 ? int(selection[0].id) : null);
+        }
+    }
+
+    hideChoicePanel() {
+        if (this.choiceStock !== null) {
+            this.choiceStock.removeAll?.();
+            this.choiceStock = null;
+        }
+        const root = document.getElementById('mj-choice');
+        const holder = document.getElementById('mj-choice-cards');
+        if (holder !== null) {
+            holder.innerHTML = '';
+        }
+        if (root !== null) {
+            root.hidden = true;
+        }
+    }
+
+    /**
+     * 盤面のカードを強調表示する（009・014 の対象など。空配列で解除）。
+     *
+     * @param {number[]} ids
+     */
+    highlightCards(ids) {
+        for (const el of this.highlighted) {
+            el.classList.remove('mj-highlight');
+        }
+        this.highlighted = [];
+        for (const id of ids) {
+            const found = this.locate(id);
+            const el = found === null ? null : found.stock.getCardElement(found.card);
+            if (el !== null && el !== undefined) {
+                el.classList.add('mj-highlight');
+                this.highlighted.push(el);
+            }
+        }
+    }
+
     // ---- 通知 -------------------------------------------------------------
 
     setupNotifications() {
@@ -1081,6 +1557,11 @@ export class Game {
         this.chosen.clear();
         this.exploreOrder = [];
         this.exploreIndex = -1;
+        if (this.lockedCardId !== null) {
+            const found = this.locate(this.lockedCardId);
+            found?.stock.getCardElement(found.card)?.classList.remove('mj-locked');
+            this.lockedCardId = null;
+        }
         for (const s of Object.values(this.stats)) {
             s.isHalved = false;
             s.output = null;
@@ -1408,7 +1889,12 @@ export class Game {
 
     async notif_wormholeRevealed() {}
 
-    async notif_laserSightLocked() {}
+    /** 007 が保持した列のカードに印を付ける（N18）。ラウンドの終わりまで */
+    async notif_laserSightLocked(/** @type {{ card: any }} */ args) {
+        this.lockedCardId = int(args.card.id);
+        const found = this.locate(this.lockedCardId);
+        found?.stock.getCardElement(found.card)?.classList.add('mj-locked');
+    }
 
     async notif_deckLooked() {}
 
