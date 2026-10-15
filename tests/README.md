@@ -18,11 +18,16 @@ npm run test:integration
 
 `vendor/` はリポジトリ直下に作られる（`.gitignore` 済み）。
 
+## 単体テスト
+
+`Unit/` は BGA にも DB にも依存しない純粋なロジック（`Flow/RoundFlow`。状態遷移の判定と進行度）のテスト。`composer test:integration` が一緒に実行する（DB 接続は使わない）。
+
 ## 構成
 
 | パス | 内容 |
 | --- | --- |
-| `Integration/` | テスト本体。`SetupNewGameTest`（3 人・4 人のセットアップ）、`CardRepositoryTest`（SQL の動作） |
+| `Unit/` | 状態遷移の純粋な判定の単体テスト（`RoundFlowTest`） |
+| `Integration/` | テスト本体。`SetupNewGameTest`（3 人・4 人のセットアップ）、`CardRepositoryTest`（SQL の動作）、`BoardViewTest`（getAllDatas の盤面に非公開情報が出ない） |
 | `Support/PdoDatabase.php` | データ層の `Database` interface を PDO で実装したテスト用クラス |
 | `Support/Schema.php` | `src/dbmodel.sql` を流し、BGA が先に作る `player` テーブルを最小限で代用する |
 | `Support/ArrayGlobals.php` | BGA の `globals` の代わり（値を JSON にして配列に持つ） |

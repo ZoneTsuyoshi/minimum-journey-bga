@@ -36,3 +36,6 @@ id_ed25519*
 /src/img/cards_*.webp
 /src/img/icons.webp
 /build/
+
+# PHPUnit のキャッシュ
+.phpunit.result.cache

@@ -20,68 +20,42 @@ declare(strict_types=1);
 
 namespace Bga\Games\MinimumJourney;
 
-use Bga\Games\MinimumJourney\States\PlayerTurn;
-use Bga\GameFramework\Components\Counters\PlayerCounter;
 use Bga\Games\MinimumJourney\Data\BgaDatabase;
+use Bga\Games\MinimumJourney\Data\BoardView;
 use Bga\Games\MinimumJourney\Data\CardRepository;
 use Bga\Games\MinimumJourney\Data\GlobalValues;
 use Bga\Games\MinimumJourney\Data\PlayerValues;
+use Bga\Games\MinimumJourney\Data\Zone;
+use Bga\Games\MinimumJourney\Flow\RoundFlow;
+use Bga\Games\MinimumJourney\Flow\StateId;
 use Bga\Games\MinimumJourney\Setup\GameSetup;
+use Bga\Games\MinimumJourney\States\RoundStart;
 
 class Game extends \Bga\GameFramework\Table
 {
-    public static array $CARD_TYPES;
-
-    public PlayerCounter $playerEnergy;
-
     public CardRepository $cards;
     public GlobalValues $globalValues;
     public PlayerValues $playerValues;
 
-    /**
-     * Your global variables labels:
-     *
-     * Here, you can assign labels to global variables you are using for this game. You can use any number of global
-     * variables with IDs between 10 and 99. If you want to store any type instead of int, use $this->globals instead.
-     *
-     * NOTE: afterward, you can get/set the global variables with `getGameStateValue`, `setGameStateInitialValue` or
-     * `setGameStateValue` functions.
-     */
     public function __construct()
     {
         parent::__construct();
-
-        $this->playerEnergy = $this->bga->counterFactory->createPlayerCounter('energy');
 
         $database = new BgaDatabase();
         $this->cards = new CardRepository($database);
         $this->globalValues = new GlobalValues($this->bga->globals);
         $this->playerValues = new PlayerValues($database);
+    }
 
-        self::$CARD_TYPES = [
-            1 => [
-                "card_name" => clienttranslate('Troll'), // ...
-            ],
-            2 => [
-                "card_name" => clienttranslate('Goblin'), // ...
-            ],
-            // ...
-        ];
-
-        /* example of notification decorator.
-        // automatically complete notification args when needed
-        $this->bga->notify->addDecorator(function(string $message, array $args) {
-            if (isset($args['player_id']) && !isset($args['player_name']) && str_contains($message, '${player_name}')) {
-                $args['player_name'] = $this->getPlayerNameById($args['player_id']);
-            }
-
-            if (isset($args['card_id']) && !isset($args['card_name']) && str_contains($message, '${card_name}')) {
-                $args['card_name'] = self::$CARD_TYPES[$args['card_id']]['card_name'];
-                $args['i18n'][] = ['card_name'];
-            }
-
-            return $args;
-        });*/
+    /**
+     * 席順（player_no の昇順）のプレイヤー ID。
+     *
+     * @return list<int>
+     */
+    public function seatOrder(): array
+    {
+        $ids = $this->getObjectListFromDB('SELECT `player_id` FROM `player` ORDER BY `player_no`', true);
+        return array_map(static fn(mixed $id): int => (int) $id, array_values($ids));
     }
 
     /**
@@ -95,9 +69,19 @@ class Game extends \Bga\GameFramework\Table
      */
     public function getGameProgression()
     {
-        // TODO: compute and return the game progression
+        // 006 §8。探査山札の消費で測る
+        $pile8 = $this->cards->count(Zone::ExploreDeck, 8);
+        $total = 0;
+        foreach (GameSetup::EXPLORE_COSTS as $cost) {
+            $total += $this->cards->count(Zone::ExploreDeck, $cost);
+        }
 
-        return 0;
+        return RoundFlow::progression(
+            $this->globalValues->pile8Initial(),
+            $pile8,
+            $this->globalValues->pilesInitialTotal(),
+            $total,
+        );
     }
 
     /**
@@ -140,19 +124,16 @@ class Game extends \Bga\GameFramework\Table
      */
     protected function getAllDatas(int $currentPlayerId): array
     {
+        // 閲覧者に見せてよい情報だけを返す（山札・探査山札は枚数のみ。007 §8）
         $result = [];
-        // WARNING: We must only return information visible by the current player (using $currentPlayerId).
 
-        // Get information about players.
-        // NOTE: you can retrieve some extra field you added for "player" table in `dbmodel.sql` if you need it.
         $result["players"] = $this->getCollectionFromDb(
             "SELECT `player_id` AS `id`, `player_score` AS `score` FROM `player`"
         );
-        $this->playerEnergy->fillResult($result);
 
-        // TODO: Gather all information about current game situation (visible by player $currentPlayerId).
+        $board = (new BoardView($this->cards, $this->globalValues, $this->playerValues))->build($this->seatOrder());
 
-        return $result;
+        return array_replace_recursive($result, $board);
     }
 
     /**
@@ -161,13 +142,12 @@ class Game extends \Bga\GameFramework\Table
      */
     protected function setupNewGame($players, $options = [])
     {
-        $this->playerEnergy->initDb(array_keys($players), initialValue: 2);
-
         // Set the colors of the players with HTML color code. The default below is red/green/blue/orange/brown. The
         // number of colors defined here must correspond to the maximum number of players allowed for the gams.
         $gameinfos = $this->getGameinfos();
         $default_colors = $gameinfos['player_colors'];
 
+        $query_values = [];
         foreach ($players as $player_id => $player) {
             // Now you can access both $player_id and $player array
             $query_values[] = vsprintf("(%s, '%s', '%s')", [
@@ -206,29 +186,15 @@ class Game extends \Bga\GameFramework\Table
         // $this->tableStats->init('table_teststat1', 0);
         // $this->playerStats->init('player_teststat1', 0);
 
-        // Activate first player once everything has been initialized and ready.
-        $this->activeNextPlayer();
-
-        return PlayerTurn::class;
+        // 最初の状態は GAME 状態のラウンド開始（006 §2.1）
+        return RoundStart::class;
     }
 
     /**
-     * Example of debug function.
-     * Here, jump to a state you want to test (by default, jump to next player state)
-     * You can trigger it on Studio using the Debug button on the right of the top bar.
+     * デバッグ用: 指定した状態へ飛ぶ（Studio の Debug ボタンから）。
      */
-    public function debug_goToState(int $state = 3)
+    public function debug_goToState(int $state = StateId::PREP_STEP_START)
     {
         $this->gamestate->jumpToState($state);
     }
-
-    /*
-    Another example of debug function, to easily create situations you want to test.
-    Here, put a card you want to test in your hand (assuming you use the Deck component).
-
-    public function debug_setCardInHand(int $cardType, int $playerId) {
-        $card = array_values($this->cards->getCardsOfType($cardType))[0];
-        $this->cards->moveCard($card['id'], 'hand', $playerId);
-    }
-    */
 }
