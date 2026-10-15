@@ -73,12 +73,12 @@
 
 | No. | 事項 | 設計上の扱い |
 | --- | --- | --- |
-| V1 | `Location::from()` と `Location::filter()` の引数。ドキュメントには「具体的な location／絞り込み用の location を作る」としかなく、location 名と `locationArg` をどう渡すか（配列 `['deck', $pid]` か、引数か）が不明 | 擬似コードでは `Loc('deck', $pid)` と書き、実装時に `CardRepository`（§3.5）の中だけで実際の API に合わせる。ItemManager の API を呼ぶ箇所を 1 クラスに閉じ込めて影響を限定する |
-| V2 | ORDER の向き（数値が大きい方が山の上か）と、`getItemOnTop`、`pickItem` が上をどちらと見なすか | ゲームロジックは数値の向きに依存せず、`peekTop`、`drawTop`、`putOnTop`、`putOnBottom` を `CardRepository` 経由で呼ぶ。Studio で最初に確認する（テスト D1） |
+| V1 | `Location::from()` と `Location::filter()` の引数。ドキュメントには「具体的な location／絞り込み用の location を作る」としかなく、location 名と `locationArg` をどう渡すか（配列 `['deck', $pid]` か、引数か）が不明 | 擬似コードでは `Loc('deck', $pid)` と書き、実装時に `CardRepository`（§3.5）の中だけで実際の API に合わせる。ItemManager の API を呼ぶ箇所を 1 クラスに閉じ込めて影響を限定する 。確認済み（I-02）: `Location::from('hand', $playerId)` と配列形式の両方が可能（原文）。ただし自前 DAO を採用したため未使用。 |
+| V2 | ORDER の向き（数値が大きい方が山の上か）と、`getItemOnTop`、`pickItem` が上をどちらと見なすか | ゲームロジックは数値の向きに依存せず、`peekTop`、`drawTop`、`putOnTop`、`putOnBottom` を `CardRepository` 経由で呼ぶ。Studio で最初に確認する（テスト D1） 。確認済み（I-02）: ORDER は大きい方が山の上（原文）。自前 DAO も同じ向きにした。 |
 | V3 | ORDER の列が符号付きか。山札の下へ置く（010）には最小値より小さい値が要る | 自前の DDL で符号付き INT にする（§3.1）。`ItemManager` の `initDb()` が作る型は不明なため、`dbmodel.sql` で表を先に作り、`initDb()` を呼ばない案を第一候補にする（V4） |
-| V4 | `initDb()` を `setupNewGame` で呼んでよいか（D6 は PHP からの CREATE を暗黙コミットの理由で避けるよう求める）。`dbmodel.sql` で作った表を `ItemManager` が受け付けるか。列名を `dbField` で対応づけられるか | 第一候補: `dbmodel.sql` に `card` 表を書き、`#[ItemField(dbField: ...)]` で列名を合わせ、`initDb()` は呼ばない。だめなら `initDb()` に切り替える。それもだめなら Deck 互換の自前 DAO（§3.6） |
+| V4 | `initDb()` を `setupNewGame` で呼んでよいか（D6 は PHP からの CREATE を暗黙コミットの理由で避けるよう求める）。`dbmodel.sql` で作った表を `ItemManager` が受け付けるか。列名を `dbField` で対応づけられるか | 第一候補: `dbmodel.sql` に `card` 表を書き、`#[ItemField(dbField: ...)]` で列名を合わせ、`initDb()` は呼ばない。だめなら `initDb()` に切り替える。それもだめなら Deck 互換の自前 DAO（§3.6） 。確認済み（I-02）: 原文は「`initDb()` が表を作る。同じ表を `dbmodel.sql` に書かない」。第一候補（`dbmodel.sql` と併用）は不可。V3・V5 も原文から判断できないため、代替 B（自前 DAO）を採用。 |
 | V5 | `ItemManager::shuffle()` が内部で `bga_rand`／`random_int` を使うか | 山札のシャッフルは自前の Fisher-Yates（`bga_rand`）で `ORDER` を書き換える（§5）。`shuffle()` は使わない |
-| V6 | `changeIds()` が付け替える新しい ID の割り当て順（AUTO_INCREMENT の順か、乱数か）。付け替え後に、`location_arg` で他のカード ID を参照している行（付加カード）が自動で更新されるか | 呼ぶ前に付加カードを外すか、呼ぶ順を自前で制御する（§7.4）。渡す配列は乱数で並べ替える |
+| V6 | `changeIds()` が付け替える新しい ID の割り当て順（AUTO_INCREMENT の順か、乱数か）。付け替え後に、`location_arg` で他のカード ID を参照している行（付加カード）が自動で更新されるか | 呼ぶ前に付加カードを外すか、呼ぶ順を自前で制御する（§7.4）。渡す配列は乱数で並べ替える 。確認済み（I-02）: 原文は新しい ID の割り当て順に触れていない。自前の `hideIds` は最大 ID の次から、乱数順に付け替える。 |
 | V7 | `getAllDatas` に `_private` を返せるか（D8 に記述なし） | 使わない。閲覧者ごとに内容を分岐して返す（§8） |
 | V8 | 観戦者が `getAllDatas` に渡される `$currentPlayerId` の値、観戦者へのリプレイ時に `notify->player` や `_private` の通知が他人へ見えるか | 観戦者は「`$currentPlayerId` が卓のプレイヤーに含まれない」で判定する。非公開情報はそもそも通知に載せない設計（§7）にして、見えても漏れないようにする |
 | V9 | `player_score_aux` 列の型と範囲 | 符号付き 32 ビット整数に収まる 9 桁以内にする（§11.2） |
