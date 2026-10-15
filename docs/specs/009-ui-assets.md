@@ -744,7 +744,7 @@ BGA のガイドラインは、パネルを**小さく**して（モバイルの
 | U2 | GitHub Actions の ubuntu ランナーでの `npm ci`（sharp のビルド済みバイナリ）の成功 | T-005 の実装時に確認 |
 | U3 | 別の OS・CPU で同じ入力から同じバイト列の WebP になるか | CI とローカルで比較。要件にはしない |
 | U4 | bga-cards の回転（`getCardRotation`）が、配置の計算（占有幅）に反映されるか | デモ・Studio で確認 |
-| U5 | bga-cards の親子カード（046 の付加カード用）の API | 型定義とデモの再確認 |
+| U5 | bga-cards の親子カード（046 の付加カード用）の API。**確認済み（I-08）:** bga-cards 1.x の型定義（`bga-cards.d.ts`）に親子カードの API は無い。付加カードは `LineStock` 内の通常のカードとして本体の直後に置き、CSS のクラス（`mj-attached` / `mj-has-attached`）でグループ表示する | 型定義とデモの再確認 |
 | U6 | `modules/js/` に複数の JS ファイルを置けるか、`img/` の JSON が配信されるか（§4.3 の M1 の検査方法に影響） | Studio で試す |
 | U7 | PC のゲーム領域の実幅と、プレイヤーパネルの位置 | Studio で測定 |
 | U8 | 展開後約 42 MB（zoom の drift_a）、約 26 MB（base の drift）のモバイル端末での読み込み | 実機で確認 |
