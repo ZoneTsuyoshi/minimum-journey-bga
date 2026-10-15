@@ -936,6 +936,7 @@ const BgaCards = await importEsmLib('bga-cards', '1.x');
  * @property {number} cardNo カード番号。0 は裏面だけの偽カード
  * @property {number} art 絵柄番号（001〜003 は 1 以上。それ以外は 0）
  * @property {number} [order] 準備した順の通し番号（準備場のみ）
+ * @property {number} [stack] 準備場の重なり順（小さいほど前。本体は order × 2、付加カードは本体 + 1）
  * @property {boolean} [sideways] 横向き（1 人だけドローしたカード）
  * @property {number | null} [attachedTo] 付加カードのとき、本体（カード番号 46）の ID
  * @property {boolean} [hasAttached] 付加カードを持つ本体か
@@ -1137,7 +1138,6 @@ function defaultRowQuota(playerCount) {
  * @property {any} prep LineStock
  * @property {any} acquired AllVisibleDeck
  * @property {any} charm LineStock
- * @property {boolean} compact
  */
 
 export class Game {
@@ -1288,8 +1288,7 @@ export class Game {
         this.setupBoardWidth();
         this.setupExplore(gamedatas, playerOrder.length);
         for (const playerId of ordered) {
-            const compact = isSpectator || playerId !== me;
-            this.setupPlayerArea(playerId, gamedatas.players[playerId] ?? {}, compact);
+            this.setupPlayerArea(playerId, gamedatas.players[playerId] ?? {});
         }
         this.setupCharm(gamedatas.charm);
         if (gamedatas.lockedCard !== null && gamedatas.lockedCard !== undefined) {
@@ -1399,13 +1398,12 @@ export class Game {
     /**
      * @param {number} playerId
      * @param {any} data getAllDatas の players[pid]
-     * @param {boolean} compact 縮小表示（他プレイヤー・観戦者）
      */
-    setupPlayerArea(playerId, data, compact) {
+    setupPlayerArea(playerId, data) {
         const name = this.bga.players.getFormattedPlayerName(playerId);
         const container = /** @type {HTMLElement} */ (document.getElementById('mj-players'));
         container.insertAdjacentHTML('beforeend', `
-            <section id="mj-player-${playerId}" class="mj-player mj-scope ${compact ? 'mj-compact' : 'mj-mine'}" data-mj-pid="${playerId}">
+            <section id="mj-player-${playerId}" class="mj-player mj-scope" data-mj-pid="${playerId}">
                 <h3 class="mj-heading mj-player-head">
                     <span class="mj-player-name">${name}</span>
                     ${this.statsHtml(playerId)}
@@ -1421,7 +1419,6 @@ export class Game {
                     </div>
                     <div class="mj-prep-wrap">
                         <div id="mj-prep-${playerId}" class="mj-prep"></div>
-                        <button type="button" id="mj-fold-${playerId}" class="mj-fold" hidden></button>
                     </div>
                     <div class="mj-pile-wrap">
                         <div id="mj-charm-${playerId}" class="mj-charm"></div>
@@ -1445,10 +1442,9 @@ export class Game {
         /** @type {PlayerArea} */
         const area = {
             root,
-            compact,
             deck: this.registerStock(new BgaCards.Deck(this.cardsManager, el('mj-deck'), { cardNumber: deckCount, counter })),
             facedown: this.registerStock(new BgaCards.Deck(this.cardsManager, el('mj-facedown'), { cardNumber: facedownCount, counter })),
-            prep: this.registerStock(new BgaCards.LineStock(this.cardsManager, el('mj-prep'), { wrap: 'wrap', gap: '0' })),
+            prep: this.registerStock(new BgaCards.LineStock(this.cardsManager, el('mj-prep'), { direction: 'column', wrap: 'wrap', gap: '0' })),
             acquired: this.registerStock(new BgaCards.AllVisibleDeck(this.cardsManager, el('mj-acquired'), { shift: '14px', direction: 'horizontal' })),
             charm: this.registerStock(new BgaCards.LineStock(this.cardsManager, el('mj-charm'), { gap: '0' })),
         };
@@ -1471,18 +1467,6 @@ export class Game {
             fame: data.fame === null || data.fame === undefined ? null : int(data.fame),
         };
 
-        // 他プレイヤーの準備場は 3 行を超えたら折りたたむ（009 §8.2）
-        if (compact) {
-            const fold = el('mj-fold');
-            fold.addEventListener('click', () => {
-                area.root.classList.toggle('mj-unfolded');
-                this.updateFold(playerId);
-            });
-            if (typeof ResizeObserver !== 'undefined') {
-                new ResizeObserver(() => this.updateFold(playerId)).observe(el('mj-prep'));
-            }
-        }
-
         const panel = this.bga.playerPanels.getElement(playerId);
         panel.insertAdjacentHTML('beforeend', `<div class="mj-panel">${this.statsHtml(playerId)}</div>`);
     }
@@ -1495,8 +1479,8 @@ export class Game {
      */
     prepEntryCards(entry) {
         const attached = entry.attached ?? [];
-        const host = this.toCard(entry.card, { order: int(entry.order), sideways: entry.sideways === true, hasAttached: attached.length > 0 });
-        return [host, ...attached.map((a) => this.toCard(a, { attachedTo: int(host.id) }))];
+        const host = this.toCard(entry.card, { order: int(entry.order), stack: int(entry.order) * 2, sideways: entry.sideways === true, hasAttached: attached.length > 0 });
+        return [host, ...attached.map((a) => this.toCard(a, { attachedTo: int(host.id), stack: int(entry.order) * 2 + 1 }))];
     }
 
     /**
@@ -1584,24 +1568,6 @@ export class Game {
         this.areas[playerId]?.root.classList.toggle('mj-active-turn', this.exploreIndex >= 0 && this.exploreOrder[this.exploreIndex] === playerId);
     }
 
-    /**
-     * 他プレイヤーの準備場の折りたたみボタンを更新する。
-     *
-     * @param {number} playerId
-     */
-    updateFold(playerId) {
-        const area = this.areas[playerId];
-        const prepEl = document.getElementById(`mj-prep-${playerId}`);
-        const button = document.getElementById(`mj-fold-${playerId}`);
-        if (area === undefined || !area.compact || prepEl === null || button === null) {
-            return;
-        }
-        const unfolded = area.root.classList.contains('mj-unfolded');
-        const overflow = prepEl.scrollHeight > prepEl.clientHeight + 1;
-        button.hidden = !unfolded && !overflow;
-        button.textContent = unfolded ? _('Collapse') : _('Show all');
-    }
-
     // ---- カード要素 -------------------------------------------------------
 
     /**
@@ -1656,6 +1622,8 @@ export class Game {
             div.setAttribute('aria-label', info === undefined ? `${_('Card')} ${String(card.cardNo).padStart(3, '0')}` : info.name);
             div.setAttribute('role', 'img');
         }
+        // 準備場の重なり順: 先にめくったカードほど前
+        div.style.zIndex = card.stack === undefined ? '' : String(1000 - card.stack);
         div.classList.toggle('mj-sideways', card.sideways === true);
         div.classList.toggle('mj-attached', card.attachedTo !== undefined && card.attachedTo !== null);
         div.classList.toggle('mj-has-attached', card.hasAttached === true);
@@ -2142,7 +2110,7 @@ export class Game {
             return;
         }
         this.bumpStats(playerId, { deckCount: -1, prepCount: 1 });
-        await area.prep.addCard(this.toCard(args.card, { order: int(args.order) }), { fromElement: area.deck.getElement() });
+        await area.prep.addCard(this.toCard(args.card, { order: int(args.order), stack: int(args.order) * 2 }), { fromElement: area.deck.getElement() });
     }
 
     /**
@@ -2164,7 +2132,7 @@ export class Game {
         }
         const hostIndex = area.prep.getCards().findIndex((/** @type {MjCard} */ c) => c.id === hostId);
         const lastAttached = area.prep.getCards().reduce((/** @type {number} */ acc, /** @type {MjCard} */ c, /** @type {number} */ i) => (c.attachedTo === hostId ? i : acc), hostIndex);
-        await area.prep.addCard(this.toCard(args.card, { attachedTo: hostId }), { index: lastAttached + 1, fromElement: area.deck.getElement() });
+        await area.prep.addCard(this.toCard(args.card, { attachedTo: hostId, stack: (host?.card.stack ?? 0) + 1 }), { index: lastAttached + 1, fromElement: area.deck.getElement() });
     }
 
     /** ストップしたプレイヤーが山札の上から伏せた 1 枚（中身は誰にも見えない。N7） */
