@@ -601,7 +601,7 @@ final class DrawResolver
                     'i18n' => ['card_name'],
                 ],
             );
-            if ($this->wormholeCandidates($top) === []) {
+            if ($this->wormholeCandidates($top, $entry->player) === []) {
                 array_push($notifications, ...$this->wormholeKeep($entry, $top));
                 continue;
             }
@@ -613,16 +613,22 @@ final class DrawResolver
 
     /**
      * 36 の入れ替え候補: 列にある、表にしたカードと印字の探査コストが同じカード（002 No.42 (a)）。
+     * 007 で他プレイヤーに保持されたカードは除く（008 N-8 (b)。034 の AcquirePhase::freeCandidates と同じ判定で、
+     * 保持した本人の 036 では除かない）。
      *
      * @return list<Card>
      */
-    public function wormholeCandidates(Card $revealed): array
+    public function wormholeCandidates(Card $revealed, int $ownerId): array
     {
         $cost = DrawEffects::definitionOf($revealed->cardNo)->cost ?? 0;
         if ($cost <= 0) {
             return [];
         }
-        return $this->cards->list(Zone::Row, $cost);
+        $locked = $this->globals->lockedCard();
+        return array_values(array_filter(
+            $this->cards->list(Zone::Row, $cost),
+            static fn(Card $card): bool => $locked === null || $locked['card_id'] !== $card->id || $locked['player_id'] === $ownerId,
+        ));
     }
 
     public function wormholeOwner(): ?int
@@ -655,7 +661,7 @@ final class DrawResolver
             return new DrawStep(null, $this->wormholeKeep($entry, $top));
         }
         $row = null;
-        foreach ($this->wormholeCandidates($top) as $card) {
+        foreach ($this->wormholeCandidates($top, $playerId) as $card) {
             if ($card->id === $rowCardId) {
                 $row = $card;
             }
