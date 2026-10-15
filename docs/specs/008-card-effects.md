@@ -259,7 +259,7 @@ EffectGate.evaluateDraw(D, filters):                    # 010 §6.1 手順 5。D
 
 #### 1.8 ファイル構成とテストの単位【提案】
 
-003 §2 の `modules/php/Cards/` の下に置く。
+003 §2 の `modules/php/Cards/` の下に置く。ただし静的なカード定義（下の `CardCatalog.php` に当たるもの）は、I-01 の実装で `modules/php/Material/`（`CardDefinitions.php`、`CardDefinition.php`、`EffectDefinition.php` と列挙）に置いた（2026-10-15）。効果の処理（`Effects/` 以下）は引き続き `Cards/` に置く。
 
 ```text
 modules/php/Cards/
@@ -1766,7 +1766,7 @@ AcquireDispatch(player, card, path):
 
 | 段階 | 実装するもの | カード | 完了条件（テスト） |
 | --- | --- | --- | --- |
-| 0 | カード定義（`CardCatalog`）、領域（山札、準備場、獲得エリア、別置き場、除外）、`EffectGate` の骨格、`PowerCalculator`・`FameCalculator`・`ExploreRules` の骨格 | — | 全 58 枚の定義が 002 と一致する検査（受け入れ条件） |
+| 0 | カード定義（`Material\CardDefinitions`。旧名 `CardCatalog`）、領域（山札、準備場、獲得エリア、別置き場、除外）、`EffectGate` の骨格、`PowerCalculator`・`FameCalculator`・`ExploreRules` の骨格 | — | 全 58 枚の定義が 002 と一致する検査（受け入れ条件） |
 | 1 | 効果なしのカードと、お守りの探査力 | 001、002、003、051、056、057 | 探査出力の計算順（合計 → お守り → 半減 → 下限 0。001 §6-1）。TC-057-1〜3 |
 | 2 | 探査力変動（自身の変動）。入力は準備場の並びだけの純関数 | 044、018、016、017、023、022、032、033（探査力側）、040（探査力側）、041（探査力側）、042（探査力側）、045（探査力側） | 各カードのテストケース |
 | 3 | 探査力変動の段階エンジン（S1・S2・S4）。011 §6-1 の手順と E1〜E12 | 048、019、030、031 | 011 §6-2 の E1〜E10。E11・E12 は 011 No.1・No.2 の回答待ち |
