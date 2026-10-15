@@ -55,7 +55,7 @@ final class CardTexts
             '007' => [
                 'name' => clienttranslate('Laser Sight'),
                 'effects' => [
-                    ['timings' => [EffectTiming::OnDraw, EffectTiming::DuringExplore], 'text' => clienttranslate('Choose 1 card in the exploration rows. For the rest of the round, no player other than you can acquire that card. {unknown} cannot be chosen.')],
+                    ['timings' => [EffectTiming::OnDraw, EffectTiming::DuringExplore], 'text' => clienttranslate('Choose 1 card in the exploration rows. For the rest of the round, no player other than you can explore that card. {unknown} cannot be chosen.')],
                 ],
             ],
             '008' => [
