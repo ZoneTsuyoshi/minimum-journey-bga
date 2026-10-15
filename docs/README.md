@@ -10,6 +10,7 @@ MINIMUM JOURNEY の BGA 実装に関する開発用ドキュメントの索引�
 | [specs/](specs/README.md) | 仕様書。実装の前に必ずここへ作成する |
 | [development/git-workflow.md](development/git-workflow.md) | Git 運用ルール（ブランチ・ワークツリー・コミット・PR・後始末） |
 | [development/task-workflow.md](development/task-workflow.md) | タスクの進め方とサブエージェントへの委託方法 |
+| [publishing/game-description.md](publishing/game-description.md) | 英語のゲーム紹介文（BGG・BGA の説明文） |
 | [development/cicd.md](development/cicd.md) | CI（lint）と BGA Studio への自動同期の方針 |
 
 ## 一次情報

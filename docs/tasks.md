@@ -43,3 +43,4 @@
 | BGA Studio 上の初期ファイルのダウンロードとファイル一覧の共有（`specs/005-bga-sync.md` §4） | T-005 の導入時 | 済（2026-10-14。`src/` に取り込み） |
 | メタ画像: Banner（JPG、1386×400、2MB 以下）の用意（`specs/009-ui-assets.md` §1.2） | ベータまで | 未着手 |
 | メタ画像: Display（JPG、高さ 400〜760px、幅は高さの 1.5 倍まで、最大 10 枚）の用意（同上） | 正式リリースまで | 未着手 |
+| BoardGameGeek へのゲーム登録（手順と英語の紹介文は `publishing/game-description.md`）。登録後、BGG_ID を `src/gameinfos.jsonc` に設定する | 公開の準備まで | 未着手 |
