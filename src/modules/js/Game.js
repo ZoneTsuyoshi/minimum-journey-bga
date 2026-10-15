@@ -140,15 +140,21 @@ class ExploreChoose {
         this.deckHandlers = [];
         /** 012 の追加探査（探査するかパスするかを選ぶ） */
         this.additional = false;
+        /** そのラウンドの探査出力（タイトルに出す） */
+        this.output = 0;
+        /** 選べる対象が 1 つもないか */
+        this.noTargets = false;
     }
 
     /**
-     * @param {{ rowTargets?: { cardId: number }[], unknownTarget?: { cardId: number } | null, deckTargets?: { cost: number }[], additional?: boolean }} args
+     * @param {{ output?: number, rowTargets?: { cardId: number }[], unknownTarget?: { cardId: number } | null, deckTargets?: { cost: number }[], additional?: boolean }} args
      * @param {boolean} isCurrentPlayerActive
      */
     onEnteringState(args, isCurrentPlayerActive) {
         this.selection = null;
         this.additional = args.additional === true;
+        this.output = int(args.output ?? 0);
+        this.noTargets = (args.rowTargets ?? []).length === 0 && !args.unknownTarget && (args.deckTargets ?? []).length === 0;
         if (!isCurrentPlayerActive) {
             this.bga.statusBar.setTitle(this.additional ? _('${actplayer} may explore one more card') : _('${actplayer} must explore or pass'));
             return;
@@ -213,6 +219,7 @@ class ExploreChoose {
      * @param {MjCard[]} selection
      */
     onCardSelected(source, stock, selection) {
+        this.game.hideZoom();
         if (selection.length === 0) {
             this.selection = null;
         } else {
@@ -259,7 +266,17 @@ class ExploreChoose {
         const selection = this.selection;
         this.bga.statusBar.removeActionButtons();
         if (selection === null) {
-            this.bga.statusBar.setTitle(this.additional ? _('${you} may explore one more card, or pass') : _('${you} must explore or pass'));
+            const output = String(this.output);
+            if (this.noTargets) {
+                this.bga.statusBar.setTitle(_('No card is within your explore output (${output}). You must pass').replace('${output}', output));
+            } else {
+                this.bga.statusBar.setTitle(
+                    (this.additional
+                        ? _('${you} may explore one more card, or pass (explore output: ${output})')
+                        : _('${you} must explore or pass (explore output: ${output})')
+                    ).replace('${output}', output),
+                );
+            }
         } else if (selection.source === 'deck') {
             this.bga.statusBar.setTitle(
                 _('Explore the top card of the ${cost}-cost pile? It will be revealed and cannot be undone').replace('${cost}', String(selection.cost)),
@@ -1163,6 +1180,8 @@ export class Game {
         /** @type {Record<number, any>} カード番号 => ツールチップ用の内容（サーバーの CardInfoView） */
         this.cardInfo = {};
         this.lastPointerType = 'mouse';
+        /** @type {HTMLElement | null} 拡大中のカード（選べるカードなら、拡大をタップして選べる） */
+        this.zoomCard = null;
         /** @type {ReturnType<typeof setTimeout> | null} */
         this.zoomTimer = null;
         this.zoomOpen = false;
@@ -1752,9 +1771,16 @@ export class Game {
             });
         }
         // タッチ: 選択できないカードはタップでも開く。開いている間は、どこをタップしても閉じる
+        // 選べるカードの拡大は、拡大をタップするとそのカードを選ぶ
         document.addEventListener('click', (event) => {
             if (this.zoomOpen) {
+                const target = this.zoomCard;
+                const onZoom = event.target instanceof Element && event.target.closest('#mj-zoom') !== null;
                 this.hideZoom();
+                if (onZoom && target !== null && target.isConnected && target.classList.contains('mj-selectable')) {
+                    event.stopPropagation();
+                    target.click();
+                }
                 return;
             }
             const cardEl = cardOf(event.target);
@@ -1819,14 +1845,21 @@ export class Game {
         image.style.setProperty('--mj-rows', String(sheet.rows));
         image.style.setProperty('--mj-col', String(pos.col));
         image.style.setProperty('--mj-row', String(pos.row));
-        text.innerHTML = this.getCardTooltipHtml(int(key.slice(0, 2)));
+        const selectable = cardEl.classList.contains('mj-selectable');
+        this.zoomCard = selectable ? cardEl : null;
+        text.innerHTML = this.getCardTooltipHtml(int(key.slice(0, 2)))
+            + (selectable ? `<p class="mj-tip-effect">${escapeHtml(_('Tap the card to select it'))}</p>` : '');
 
         zoom.hidden = false;
         zoom.setAttribute('aria-hidden', 'false');
         const rect = cardEl.getBoundingClientRect();
         const zoomRect = zoom.getBoundingClientRect();
         const left = Math.min(Math.max(8, rect.left + rect.width / 2 - zoomRect.width / 2), window.innerWidth - zoomRect.width - 8);
-        const top = Math.min(Math.max(8, rect.top + rect.height / 2 - zoomRect.height / 2), Math.max(8, window.innerHeight - zoomRect.height - 8));
+        // 上部のステータスバー（[Explore] などのボタン）を隠さない
+        const bar = document.getElementById('page-title');
+        const barBottom = bar === null ? 0 : Math.max(0, bar.getBoundingClientRect().bottom);
+        const minTop = Math.max(8, barBottom + 8);
+        const top = Math.min(Math.max(minTop, rect.top + rect.height / 2 - zoomRect.height / 2), Math.max(minTop, window.innerHeight - zoomRect.height - 8));
         zoom.style.left = `${left}px`;
         zoom.style.top = `${top}px`;
         this.zoomOpen = true;
@@ -1840,6 +1873,7 @@ export class Game {
             zoom.setAttribute('aria-hidden', 'true');
         }
         this.zoomOpen = false;
+        this.zoomCard = null;
     }
 
     // ---- 解決の選択の部品（状態 31〜35。010 §6） ----
