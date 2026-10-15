@@ -1,0 +1,19 @@
+// J2: JavaScript の型チェック（仕様書 004 第 2.6 節）。実行: npm run lint:types
+{
+  "compilerOptions": {
+    "allowJs": true,
+    "checkJs": true,
+    "noEmit": true,
+    "target": "ES2022",
+    "module": "ES2022",
+    "moduleResolution": "Bundler",
+    "lib": ["ES2022", "DOM"],
+    "strict": true,
+    "skipLibCheck": true
+  },
+  "include": ["src/modules/js/**/*.js", "tools/bga/bga-framework.d.ts"],
+  "exclude": [
+    // Studio の雛形（JSDoc なし）。雛形の置き換え（実装タスク）で外す
+    "src/modules/js/Game.js"
+  ]
+}
