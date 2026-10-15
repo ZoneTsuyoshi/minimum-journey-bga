@@ -11,9 +11,5 @@
     "strict": true,
     "skipLibCheck": true
   },
-  "include": ["src/modules/js/**/*.js", "tools/bga/bga-framework.d.ts"],
-  "exclude": [
-    // Studio の雛形（JSDoc なし）。雛形の置き換え（実装タスク）で外す
-    "src/modules/js/Game.js"
-  ]
+  "include": ["src/modules/js/**/*.js", "tools/bga/bga-framework.d.ts"]
 }
