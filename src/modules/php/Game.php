@@ -26,6 +26,7 @@ use Bga\Games\MinimumJourney\Data\BgaDatabase;
 use Bga\Games\MinimumJourney\Data\CardRepository;
 use Bga\Games\MinimumJourney\Data\GlobalValues;
 use Bga\Games\MinimumJourney\Data\PlayerValues;
+use Bga\Games\MinimumJourney\Setup\GameSetup;
 
 class Game extends \Bga\GameFramework\Table
 {
@@ -190,7 +191,12 @@ class Game extends \Bga\GameFramework\Table
         $this->reattributeColorsBasedOnPreferences($players, $gameinfos["player_colors"]);
         $this->reloadPlayersBasicInfos();
 
-        // Init global values with their initial values.
+        // ゲームの準備（001 §3、007 §5.3）。BGA に依存しない部分は GameSetup にある。
+        // グローバル値の初期化、カードの作成とシャッフル、列の公開、お守りの面と初期所持者もここで行う。
+        (new GameSetup($this->cards, $this->globalValues))->run(
+            array_keys($players),
+            $this->bga->tableOptions->get(GameSetup::OPTION_CHARM_SIDE),
+        );
 
         // Init game statistics.
         //
@@ -199,8 +205,6 @@ class Game extends \Bga\GameFramework\Table
         // Dummy content.
         // $this->tableStats->init('table_teststat1', 0);
         // $this->playerStats->init('player_teststat1', 0);
-
-        // TODO: Setup the initial game situation here.
 
         // Activate first player once everything has been initialized and ready.
         $this->activeNextPlayer();
