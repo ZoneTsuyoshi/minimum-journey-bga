@@ -835,8 +835,11 @@ final class DrawResolver
                 $waiting = true;
             }
         }
-        $this->globals->setResolveLevel(ResolveLevel::P6);
-        return $waiting ? new DrawStep('simul', []) : null;
+        if ($waiting) {
+            // 選択待ちの間はレベルを動かさない。1 人が複数の効果を持つとき、35 を出入りして 1 つずつ解決する
+            return new DrawStep('simul', []);
+        }
+        return $this->go(ResolveLevel::P6);
     }
 
     /**
@@ -850,7 +853,7 @@ final class DrawResolver
         foreach ($this->pendingAt(DrawLevel::P5Sim) as $entry) {
             $anchor = $this->anchorOf($entry);
             $plan = $this->effects->plan($entry, $anchor);
-            if ($plan !== null) {
+            if ($plan !== null && !isset($result[$entry->player])) {
                 $result[$entry->player] = ['entry' => $entry, 'anchor' => $anchor, 'plan' => $plan];
             }
         }
