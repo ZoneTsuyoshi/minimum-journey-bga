@@ -1,0 +1,30 @@
+{
+    "name": "zonetsuyoshi/minimum-journey-bga",
+    "description": "MINIMUM JOURNEY の Board Game Arena 実装（開発用ツール。src/ には含めない）",
+    "type": "project",
+    "license": "proprietary",
+    "require-dev": {
+        "php-parallel-lint/php-parallel-lint": "^1.4",
+        "phpstan/phpstan": "^2.3",
+        "squizlabs/php_codesniffer": "^4.0"
+    },
+    "config": {
+        "platform": {
+            "php": "8.4.0"
+        },
+        "sort-packages": true
+    },
+    "scripts": {
+        "lint": [
+            "@lint:syntax",
+            "@lint:cs"
+        ],
+        "lint:syntax": "parallel-lint src",
+        "lint:cs": "phpcs",
+        "lint:stan": "phpstan analyse --memory-limit=1G"
+    },
+    "scripts-descriptions": {
+        "lint": "PHP の構文（P1）とコーディング規約（P2）を検査する。declare(strict_types=1) は npm run lint:strict、静的解析は lint:stan（BGA のスタブが必要）",
+        "lint:stan": "PHPStan（P3）。tools/bga/_ide_helper.php が必要"
+    }
+}
