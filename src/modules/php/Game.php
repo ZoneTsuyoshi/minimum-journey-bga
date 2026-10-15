@@ -22,12 +22,20 @@ namespace Bga\Games\MinimumJourney;
 
 use Bga\Games\MinimumJourney\States\PlayerTurn;
 use Bga\GameFramework\Components\Counters\PlayerCounter;
+use Bga\Games\MinimumJourney\Data\BgaDatabase;
+use Bga\Games\MinimumJourney\Data\CardRepository;
+use Bga\Games\MinimumJourney\Data\GlobalValues;
+use Bga\Games\MinimumJourney\Data\PlayerValues;
 
 class Game extends \Bga\GameFramework\Table
 {
     public static array $CARD_TYPES;
 
     public PlayerCounter $playerEnergy;
+
+    public CardRepository $cards;
+    public GlobalValues $globalValues;
+    public PlayerValues $playerValues;
 
     /**
      * Your global variables labels:
@@ -43,6 +51,11 @@ class Game extends \Bga\GameFramework\Table
         parent::__construct();
 
         $this->playerEnergy = $this->bga->counterFactory->createPlayerCounter('energy');
+
+        $database = new BgaDatabase();
+        $this->cards = new CardRepository($database);
+        $this->globalValues = new GlobalValues($this->bga->globals);
+        $this->playerValues = new PlayerValues($database);
 
         self::$CARD_TYPES = [
             1 => [
