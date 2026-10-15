@@ -45,7 +45,7 @@ final class ExplorePhaseTest extends DatabaseTestCase
         $this->ids = array_slice(self::PLAYER_IDS, 0, $count);
         $this->addPlayers($this->ids);
         (new GameSetup($this->cards, $this->globals, $this->rand))->run($this->ids, null);
-        $this->calculator = new ExploreOutputCalculator($this->cards, $this->globals);
+        $this->calculator = new ExploreOutputCalculator($this->cards, $this->globals, fn(): array => $this->ids);
         $name = static fn(int $id): string => 'P' . $id;
         $this->phase = new ExplorePhase($this->cards, $this->players, $this->globals, $this->calculator, $name);
         $this->globals->setRoundNo($round);
@@ -532,5 +532,56 @@ final class ExplorePhaseTest extends DatabaseTestCase
         $this->phase->start($this->ids);
         $board = $view->build($this->ids);
         self::assertSame($this->players->exploreOutput($this->ids[0]), $board['players'][$this->ids[0]]['output']);
+    }
+
+    /**
+     * 指定の番号のカード 1 枚を、プレイヤーの準備場の末尾へ置く（置いたカードを返す）。
+     */
+    private function put(int $playerId, int $cardNo): Card
+    {
+        $card = $this->cards->findByCardNo($cardNo)[0];
+        $this->cards->move($card, Zone::Prep, $playerId);
+        return $this->cards->get($card->id);
+    }
+
+    #[DataProvider('playerCounts')]
+    public function testPowerModChainIsReflectedInOutputNowAndTheFixedOutput(int $count): void
+    {
+        $this->start($count, 2);
+        [$a] = $this->ids;
+        // 011 E1: 029、030、048 → 048 が全てを名声に書き換え、030 が 029 を 0 にする。合計 6
+        foreach ([29, 30, 48] as $cardNo) {
+            $this->put($a, $cardNo);
+        }
+        self::assertSame(6, $this->calculator->outputNow($a));
+        self::assertSame(3, $this->calculator->decided($a, true), '半減は合計の後');
+
+        $this->phase->start($this->ids);
+        self::assertSame(6, $this->players->exploreOutput($a));
+    }
+
+    #[DataProvider('playerCounts')]
+    public function testPowerModUsesLeftNeighborCharmHolderAndTheAttachedCard(int $count): void
+    {
+        $this->start($count, 2);
+        $ids = $this->ids;
+        $last = $ids[$count - 1];
+        $this->giveCharm($ids[0]);
+
+        // 先頭の席: 022（左隣は 2 番目の席で 2 枚 → 2 <= 2 で +1）、041（お守りを保持 +1）、お守り +1
+        $this->put($ids[0], 22);
+        $this->put($ids[0], 41);
+        $this->put($ids[1], 1);
+        $this->put($ids[1], 2);
+        self::assertSame(3 + 4 + 1, $this->calculator->outputNow($ids[0]));
+
+        // 最後の席の左隣は先頭の席（2 枚）: 022 は 1 枚なので +1
+        $this->put($last, 22);
+        self::assertSame(3, $this->calculator->outputNow($last));
+
+        // 001、002 の後ろに 046 を置き、018 を付加: 046 は 3 枚目なので 2 + 0 + 3（付加カードは枚数に数えない）
+        $host = $this->put($ids[1], 46);
+        $this->cards->attach($host, $this->cards->findByCardNo(18)[0]);
+        self::assertSame(0 + 1 + 5, $this->calculator->outputNow($ids[1]));
     }
 }

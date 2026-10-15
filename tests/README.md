@@ -20,7 +20,7 @@ npm run test:integration
 
 ## 単体テスト
 
-`Unit/` は BGA にも DB にも依存しない純粋なロジック（`Flow/RoundFlow` の状態遷移の判定と進行度、`Flow/PrepClassifier` の準備フェイズの分類と開示後の計画、`Flow/ExploreOutput` の探査出力、`Flow/ExploreOrder` の探査手番（001 §8-1 の例）、`Flow/ExploreRules` の探査できる対象の判定）のテスト。`composer test:integration` が一緒に実行する（DB 接続は使わない）。
+`Unit/` は BGA にも DB にも依存しない純粋なロジック（`Flow/RoundFlow` の状態遷移の判定と進行度、`Flow/PrepClassifier` の準備フェイズの分類と開示後の計画、`Flow/ExploreOutput` の探査出力、`Flow/PowerMod` の探査力変動（011 §6 の検証例）、`Flow/ExploreOrder` の探査手番（001 §8-1 の例）、`Flow/ExploreRules` の探査できる対象の判定）のテスト。`composer test:integration` が一緒に実行する（DB 接続は使わない）。
 
 ## 構成
 

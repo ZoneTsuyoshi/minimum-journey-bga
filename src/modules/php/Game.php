@@ -57,7 +57,7 @@ class Game extends \Bga\GameFramework\Table
         $this->cards = new CardRepository($database);
         $this->globalValues = new GlobalValues($this->bga->globals);
         $this->playerValues = new PlayerValues($database);
-        $this->outputCalculator = new ExploreOutputCalculator($this->cards, $this->globalValues);
+        $this->outputCalculator = new ExploreOutputCalculator($this->cards, $this->globalValues, fn(): array => $this->seatOrder());
         $this->prepPhase = new PrepPhase(
             $this->cards,
             $this->playerValues,
