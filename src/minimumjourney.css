@@ -429,12 +429,15 @@
 
 /* ---- 拡大表示 ---- */
 .mj-zoom {
-    --mj-zw: min(360px, 90vw);
+    /* 画像の幅。英語の効果テキストが下に入るぶん、高さに余裕を残す */
+    --mj-zw: max(140px, min(360px, 90vw, calc((100vh - 240px) * 500 / 699)));
 
     position: fixed;
     z-index: 2000;
     box-sizing: border-box;
-    width: var(--mj-zw);
+    width: max(var(--mj-zw), min(280px, 94vw));
+    max-height: calc(100vh - 16px);
+    overflow: hidden;
     border-radius: 8px;
     background: var(--mj-tooltip-bg);
     color: var(--mj-tooltip-fg);
@@ -462,6 +465,71 @@
 .mj-zoom-text:not(:empty) {
     padding: 8px;
 }
+
+/* ---- 拡大表示の英語テキスト（009 §6） ---- */
+.mj-tip-head {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px 8px;
+    align-items: baseline;
+    font-size: 15px;
+}
+
+.mj-tip-ja {
+    font-size: 12px;
+    opacity: 0.8;
+}
+
+.mj-tip-stats,
+.mj-tip-symbols {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px 12px;
+    align-items: center;
+    margin-top: 4px;
+}
+
+.mj-tip-stat {
+    display: inline-flex;
+    gap: 2px;
+    align-items: center;
+}
+
+.mj-term {
+    display: inline-flex;
+    gap: 1px;
+    align-items: center;
+    font-weight: bold;
+    white-space: nowrap;
+}
+
+.mj-tip-effect {
+    margin: 6px 0 0;
+    line-height: 1.5;
+}
+
+.mj-tip-none {
+    opacity: 0.7;
+}
+
+/* 効果タイミングのラベル。色だけでなく文字でも区別する（009 §11） */
+.mj-timing {
+    display: inline-block;
+    padding: 0 6px;
+    border-radius: 3px;
+    background: #4b5563;
+    color: #fff;
+    font-size: 12px;
+    font-weight: bold;
+    line-height: 18px;
+}
+
+.mj-timing-draw { background: #1d6f42; }
+.mj-timing-explore { background: #1d4ed8; }
+.mj-timing-during { background: #0e7490; }
+.mj-timing-power { background: #b45309; }
+.mj-timing-fame { background: #a21caf; }
+.mj-timing-acquire { background: #b91c1c; }
 
 /* ---- ダークモード（最後に置く） ---- */
 html[data-theme="dark"] .mj-board,
