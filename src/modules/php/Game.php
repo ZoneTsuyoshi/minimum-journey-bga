@@ -23,6 +23,7 @@ namespace Bga\Games\MinimumJourney;
 use Bga\GameFramework\UserException;
 use Bga\Games\MinimumJourney\Data\BgaDatabase;
 use Bga\Games\MinimumJourney\Data\BoardView;
+use Bga\Games\MinimumJourney\Data\CardInfoView;
 use Bga\Games\MinimumJourney\Data\CardRepository;
 use Bga\Games\MinimumJourney\Data\GlobalValues;
 use Bga\Games\MinimumJourney\Data\PlayerValues;
@@ -32,6 +33,7 @@ use Bga\Games\MinimumJourney\Flow\DrawResolver;
 use Bga\Games\MinimumJourney\Flow\DrawRuleViolation;
 use Bga\Games\MinimumJourney\Flow\ExploreOutputCalculator;
 use Bga\Games\MinimumJourney\Flow\ExplorePhase;
+use Bga\Games\MinimumJourney\Flow\FameTotals;
 use Bga\Games\MinimumJourney\Flow\ExploreRuleViolation;
 use Bga\Games\MinimumJourney\Flow\Notification;
 use Bga\Games\MinimumJourney\Flow\PrepPhase;
@@ -112,6 +114,29 @@ class Game extends \Bga\GameFramework\Table
             } else {
                 $this->bga->notify->player($n->to, $n->name, $n->message, $n->args);
             }
+        }
+        if ($this->isFameShown() && FameTotals::affectedBy($notifications)) {
+            $this->sendFameUpdate();
+        }
+    }
+
+    /**
+     * ゲームオプション 101（名声合計の表示）が有効か（007 §13.1）。
+     */
+    public function isFameShown(): bool
+    {
+        return $this->bga->tableOptions->get(GameSetup::OPTION_SHOW_FAME) === 2;
+    }
+
+    /**
+     * N34 fameUpdate: 現在の名声合計を、卓の各プレイヤーにだけ送る。notify->all は観戦者に届くので使わない（007 §11.3）。
+     */
+    public function sendFameUpdate(): void
+    {
+        $seatOrder = $this->seatOrder();
+        $fame = (new FameTotals($this->cards, $this->globalValues))->totals($seatOrder);
+        foreach ($seatOrder as $playerId) {
+            $this->bga->notify->player($playerId, 'fameUpdate', '', ['fame' => $fame]);
         }
     }
 
@@ -237,6 +262,22 @@ class Game extends \Bga\GameFramework\Table
         );
 
         $board = (new BoardView($this->cards, $this->globalValues, $this->playerValues, $this->outputCalculator))->build($this->seatOrder());
+
+        // 名声合計は 101 が有効なときだけ、卓のプレイヤーにだけ返す（観戦者には返さない。007 §11.3）
+        $seatOrder = $this->seatOrder();
+        if ($this->isFameShown() && in_array($currentPlayerId, $seatOrder, true)) {
+            $fame = (new FameTotals($this->cards, $this->globalValues))->totals($seatOrder);
+            foreach ($fame as $playerId => $total) {
+                $board['players'][$playerId]['fame'] = $total;
+            }
+        }
+
+        // ツールチップ用の静的なカード情報と、ゲームオプション（007 §8.2）
+        $result['cardInfo'] = CardInfoView::build(fn(string $text): string => $this->_($text));
+        $result['options'] = [
+            'charmSide' => $this->bga->tableOptions->get(GameSetup::OPTION_CHARM_SIDE),
+            'showFame' => $this->bga->tableOptions->get(GameSetup::OPTION_SHOW_FAME),
+        ];
 
         return array_replace_recursive($result, $board);
     }
