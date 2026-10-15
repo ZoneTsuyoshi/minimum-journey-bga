@@ -1,4 +1,5 @@
 <?php
+
 /**
  *------
  * BGA framework: Gregory Isabelli & Emmanuel Colin & BoardGameArena
@@ -14,6 +15,7 @@
  *
  * In this PHP file, you are going to defines the rules of the game.
  */
+
 declare(strict_types=1);
 
 namespace Bga\Games\MinimumJourney;
@@ -58,12 +60,12 @@ class Game extends \Bga\GameFramework\Table
             if (isset($args['player_id']) && !isset($args['player_name']) && str_contains($message, '${player_name}')) {
                 $args['player_name'] = $this->getPlayerNameById($args['player_id']);
             }
-        
+
             if (isset($args['card_id']) && !isset($args['card_name']) && str_contains($message, '${card_name}')) {
                 $args['card_name'] = self::$CARD_TYPES[$args['card_id']]['card_name'];
                 $args['i18n'][] = ['card_name'];
             }
-            
+
             return $args;
         });*/
     }
@@ -198,7 +200,8 @@ class Game extends \Bga\GameFramework\Table
      * Here, jump to a state you want to test (by default, jump to next player state)
      * You can trigger it on Studio using the Debug button on the right of the top bar.
      */
-    public function debug_goToState(int $state = 3) {
+    public function debug_goToState(int $state = 3)
+    {
         $this->gamestate->jumpToState($state);
     }
 
