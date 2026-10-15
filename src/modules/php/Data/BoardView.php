@@ -41,6 +41,7 @@ final class BoardView
 
         $unknown = $this->cards->list(Zone::Unknown);
         $charm = $this->cards->list(Zone::Charm);
+        $locked = $this->globals->lockedCard();
 
         $finished = $this->players->prepFinishedMap();
         $playerData = [];
@@ -76,6 +77,7 @@ final class BoardView
             'rows' => $rows,
             'unknown' => $unknown === [] ? null : self::cardView($unknown[0]),
             'charm' => $charm === [] ? null : ['card' => self::cardView($charm[0]), 'holder' => $charm[0]->locationArg],
+            'lockedCard' => $locked === null ? null : ['playerId' => $locked['player_id'], 'cardId' => $locked['card_id']],
             'exploreOrder' => $this->globals->exploreOrder(),
             'exploreIndex' => $this->globals->exploreIndex(),
             'players' => $playerData,

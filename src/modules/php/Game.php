@@ -26,7 +26,10 @@ use Bga\Games\MinimumJourney\Data\BoardView;
 use Bga\Games\MinimumJourney\Data\CardRepository;
 use Bga\Games\MinimumJourney\Data\GlobalValues;
 use Bga\Games\MinimumJourney\Data\PlayerValues;
+use Bga\Games\MinimumJourney\Data\ResolveEntryRepository;
 use Bga\Games\MinimumJourney\Data\Zone;
+use Bga\Games\MinimumJourney\Flow\DrawResolver;
+use Bga\Games\MinimumJourney\Flow\DrawRuleViolation;
 use Bga\Games\MinimumJourney\Flow\ExploreOutputCalculator;
 use Bga\Games\MinimumJourney\Flow\ExplorePhase;
 use Bga\Games\MinimumJourney\Flow\ExploreRuleViolation;
@@ -48,6 +51,7 @@ class Game extends \Bga\GameFramework\Table
     public PrepPhase $prepPhase;
     public ExplorePhase $explorePhase;
     public ReturnPhase $returnPhase;
+    public DrawResolver $drawResolver;
 
     public function __construct()
     {
@@ -71,6 +75,15 @@ class Game extends \Bga\GameFramework\Table
             $this->globalValues,
             $this->outputCalculator,
             fn(int $playerId): string => $this->getPlayerNameById($playerId),
+        );
+        $this->drawResolver = new DrawResolver(
+            $this->cards,
+            $this->playerValues,
+            $this->globalValues,
+            new ResolveEntryRepository($database),
+            $this->outputCalculator,
+            fn(int $playerId): string => $this->getPlayerNameById($playerId),
+            fn(): array => $this->seatOrder(),
         );
         $this->returnPhase = new ReturnPhase(
             $this->cards,
@@ -116,6 +129,19 @@ class Game extends \Bga\GameFramework\Table
             ExploreRuleViolation::NOT_A_TARGET => $this->_('You cannot explore that card'),
             ExploreRuleViolation::ALREADY_EXPLORED => $this->_('You have already explored this turn'),
             default => $this->_('It is not your turn to explore'),
+        };
+        return new UserException($message);
+    }
+
+    /**
+     * ドロー時効果の選択の規則違反を、翻訳つきのユーザー向けエラーにする。
+     */
+    public function drawError(DrawRuleViolation $violation): UserException
+    {
+        $message = match ($violation->reason) {
+            DrawRuleViolation::INVALID_TARGET => $this->_('You cannot choose that'),
+            DrawRuleViolation::ALREADY_DECIDED => $this->_('You have already decided'),
+            default => $this->_('You cannot choose now'),
         };
         return new UserException($message);
     }

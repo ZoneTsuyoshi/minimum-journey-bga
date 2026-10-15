@@ -126,8 +126,12 @@ final class ExplorePhase
     {
         $rowCards = [];
         $deckCounts = [];
+        $locked = $this->globals->lockedCard();
         foreach (GameSetup::EXPLORE_COSTS as $cost) {
             foreach ($this->cards->list(Zone::Row, $cost) as $card) {
+                if ($locked !== null && $locked['card_id'] === $card->id && $locked['player_id'] !== $playerId) {
+                    continue; // 007 が保持した列のカードは、持ち主以外は探査できない（R27）。山札の上の探査は制限しない
+                }
                 $rowCards[] = ['cardId' => $card->id, 'slot' => $card->order, 'cost' => $cost];
             }
             $deckCounts[$cost] = $this->cards->count(Zone::ExploreDeck, $cost);
