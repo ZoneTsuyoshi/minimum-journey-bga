@@ -6,13 +6,12 @@ namespace Bga\Games\MinimumJourney\States;
 
 use Bga\GameFramework\StateType;
 use Bga\GameFramework\States\GameState;
-use Bga\Games\MinimumJourney\Flow\RoundFlow;
 use Bga\Games\MinimumJourney\Flow\StateId;
 use Bga\Games\MinimumJourney\Game;
 
 /**
  * 次の探査手番のプレイヤーを決める（006 §6.1）。全員終わっていれば帰還フェイズへ。
- * 骨格では探査時効果（42）は経由しない（I-11）。
+ * 探査時効果（42）は I-11 まで経由しない。
  */
 class ExploreTurnStart extends GameState
 {
@@ -33,22 +32,12 @@ class ExploreTurnStart extends GameState
 
     public function onEnteringState(): string
     {
-        $globals = $this->game->globalValues;
-        $playerId = RoundFlow::currentExplorer($globals->exploreOrder(), $globals->exploreIndex());
-        if ($playerId === null) {
-            return 'allDone';
+        $result = $this->game->explorePhase->beginTurn();
+        if ($result->playerId !== null) {
+            $this->game->gamestate->changeActivePlayer($result->playerId);
         }
+        $this->game->sendNotifications($result->notifications);
 
-        $this->game->gamestate->changeActivePlayer($playerId);
-        $globals->setExploreState([
-            'player_id' => $playerId,
-            'sum_cost' => 0,
-            'explored' => 0,
-            'used_on_explore' => [],
-            'additional_done' => false,
-            'cost_mod' => 0,
-        ]);
-
-        return 'choose';
+        return (string) $result->transition;
     }
 }

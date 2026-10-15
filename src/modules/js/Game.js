@@ -121,7 +121,10 @@ class PrepChoiceLate {
 }
 
 /**
- * 探査手番（状態 43）。骨格ではパスだけ。
+ * 探査手番（状態 43。009 §9.2）。
+ * 探査できるカード・未確認帯域・探査山札の上を選択可能にし（判定はサーバーが args で送る）、選ぶ → [Explore] で確定、[Cancel] で選び直す。
+ * 山札の上は選んだ時点では公開されない（確定で公開して獲得し、取り消せない）。[Pass] はいつでも押せる。
+ * 探査できる対象がないときはサーバーが自動パスするので、この状態には入らない（ログに出る）。
  */
 class ExploreChoose {
     /**
@@ -131,26 +134,149 @@ class ExploreChoose {
     constructor(game, bga) {
         this.game = game;
         this.bga = bga;
+        /** @type {{ source: 'row' | 'unknown' | 'deck', cardId: number, cost: number } | null} */
+        this.selection = null;
+        /** @type {{ element: HTMLElement, handler: () => void }[]} 山札に付けたクリック処理（状態を出るときに外す） */
+        this.deckHandlers = [];
     }
 
     /**
-     * @param {unknown} _args
+     * @param {{ rowTargets?: { cardId: number }[], unknownTarget?: { cardId: number } | null, deckTargets?: { cost: number }[] }} args
      * @param {boolean} isCurrentPlayerActive
      */
-    onEnteringState(_args, isCurrentPlayerActive) {
-        this.bga.statusBar.setTitle(
-            isCurrentPlayerActive ? _('${you} must explore or pass') : _('${actplayer} must explore or pass'),
-        );
-        if (isCurrentPlayerActive) {
-            this.bga.statusBar.addActionButton(_('Pass'), () => this.bga.actions.performAction('actPass'), { color: 'secondary' });
+    onEnteringState(args, isCurrentPlayerActive) {
+        this.selection = null;
+        if (!isCurrentPlayerActive) {
+            this.bga.statusBar.setTitle(_('${actplayer} must explore or pass'));
+            return;
         }
+        this.enableTargets(args);
+        this.render();
     }
 
     /**
      * @param {unknown} _args
      * @param {boolean} _isCurrentPlayerActive
      */
-    onLeavingState(_args, _isCurrentPlayerActive) {}
+    onLeavingState(_args, _isCurrentPlayerActive) {
+        for (const stock of this.targetStocks()) {
+            stock.setSelectionMode('none');
+            stock.onSelectionChange = undefined;
+        }
+        for (const { element, handler } of this.deckHandlers) {
+            element.removeEventListener('click', handler);
+            element.classList.remove('mj-selectable', 'mj-unselectable', 'mj-selected');
+        }
+        this.deckHandlers = [];
+        this.selection = null;
+    }
+
+    /** 探査対象になりうるカードの置き場（列と未確認帯域） */
+    targetStocks() {
+        return [...Object.values(this.game.rowStocks), this.game.unknownStock];
+    }
+
+    /**
+     * @param {{ rowTargets?: { cardId: number }[], unknownTarget?: { cardId: number } | null, deckTargets?: { cost: number }[] }} args
+     */
+    enableTargets(args) {
+        const rowIds = new Set((args.rowTargets ?? []).map((t) => int(t.cardId)));
+        const unknownId = args.unknownTarget === null || args.unknownTarget === undefined ? null : int(args.unknownTarget.cardId);
+        for (const cost of COSTS) {
+            const stock = this.game.rowStocks[cost];
+            stock.setSelectionMode('single', stock.getCards().filter((/** @type {MjCard} */ c) => rowIds.has(int(c.id))));
+            stock.onSelectionChange = (/** @type {MjCard[]} */ selection) => this.onCardSelected('row', stock, selection);
+        }
+        const unknown = this.game.unknownStock;
+        unknown.setSelectionMode('single', unknown.getCards().filter((/** @type {MjCard} */ c) => int(c.id) === unknownId));
+        unknown.onSelectionChange = (/** @type {MjCard[]} */ selection) => this.onCardSelected('unknown', unknown, selection);
+
+        const deckCosts = new Set((args.deckTargets ?? []).map((t) => int(t.cost)));
+        for (const cost of COSTS) {
+            const element = this.game.exploreDecks[cost].getElement();
+            const selectable = deckCosts.has(cost);
+            element.classList.add(selectable ? 'mj-selectable' : 'mj-unselectable');
+            if (selectable) {
+                const handler = () => this.onDeckSelected(cost);
+                element.addEventListener('click', handler);
+                this.deckHandlers.push({ element, handler });
+            }
+        }
+    }
+
+    /**
+     * @param {'row' | 'unknown'} source
+     * @param {any} stock
+     * @param {MjCard[]} selection
+     */
+    onCardSelected(source, stock, selection) {
+        if (selection.length === 0) {
+            this.selection = null;
+        } else {
+            this.clearSelection(stock);
+            this.selection = { source, cardId: int(selection[0].id), cost: 0 };
+        }
+        this.render();
+    }
+
+    /**
+     * 山札の上を選ぶ（この時点ではカードを公開しない）。もう一度押すと選択を外す。
+     *
+     * @param {number} cost
+     */
+    onDeckSelected(cost) {
+        const already = this.selection?.source === 'deck' && this.selection.cost === cost;
+        this.clearSelection(null);
+        if (!already) {
+            this.selection = { source: 'deck', cardId: 0, cost };
+            this.game.exploreDecks[cost].getElement().classList.add('mj-selected');
+        }
+        this.render();
+    }
+
+    /**
+     * 選択を外す。keep の置き場の選択は残す。
+     *
+     * @param {any} keep
+     */
+    clearSelection(keep) {
+        for (const stock of this.targetStocks()) {
+            if (stock !== keep) {
+                stock.unselectAll(true);
+            }
+        }
+        for (const cost of COSTS) {
+            this.game.exploreDecks[cost].getElement().classList.remove('mj-selected');
+        }
+        this.selection = null;
+    }
+
+    /** タイトルとボタン: 選ぶ → [Explore]（確定）・[Cancel]、[Pass] はいつでも */
+    render() {
+        const selection = this.selection;
+        this.bga.statusBar.removeActionButtons();
+        if (selection === null) {
+            this.bga.statusBar.setTitle(_('${you} must explore or pass'));
+        } else if (selection.source === 'deck') {
+            this.bga.statusBar.setTitle(
+                _('Explore the top card of the ${cost}-cost pile? It will be revealed and cannot be undone').replace('${cost}', String(selection.cost)),
+            );
+        } else {
+            this.bga.statusBar.setTitle(_('Explore the selected card?'));
+        }
+        if (selection !== null) {
+            this.bga.statusBar.addActionButton(
+                _('Explore'),
+                () => this.bga.actions.performAction('actExplore', { source: selection.source, cardId: selection.cardId, cost: selection.cost }),
+                { color: 'primary' },
+            );
+            this.bga.statusBar.addActionButton(_('Cancel'), () => {
+                this.clearSelection(null);
+                this.render();
+            }, { color: 'secondary' });
+        }
+        this.bga.statusBar.addActionButton(_('Pass'), () => this.bga.actions.performAction('actPass'), { color: 'secondary' });
+    }
 }
 
 

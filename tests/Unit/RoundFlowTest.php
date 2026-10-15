@@ -45,8 +45,7 @@ final class RoundFlowTest extends TestCase
 
     public function testExploreTurnsFollowTheOrderAndEnd(): void
     {
-        $order = RoundFlow::placeholderExploreOrder([5, 6, 7]);
-        self::assertSame([5, 6, 7], $order);
+        $order = [5, 6, 7];
         self::assertSame(5, RoundFlow::currentExplorer($order, 0));
         self::assertSame(7, RoundFlow::currentExplorer($order, 2));
         self::assertNull(RoundFlow::currentExplorer($order, 3));

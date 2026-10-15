@@ -354,9 +354,9 @@ final class PrepPhaseTest extends DatabaseTestCase
         $drawn = self::named($reveal->notifications, 'cardDrawn');
         self::assertCount(2, $drawn);
         self::assertSame($drawnIds[0], $drawn[0]->args['card']['id']);
-        // countersUpdate は枚数だけ
+        // countersUpdate は枚数と現在の探査出力だけ
         $counters = self::named($reveal->notifications, 'countersUpdate')[0];
-        self::assertSame(['deckCount', 'facedownCount', 'prepCount'], array_keys($counters->args['players'][$c]));
+        self::assertSame(['deckCount', 'facedownCount', 'prepCount', 'outputNow'], array_keys($counters->args['players'][$c]));
     }
 
     public function testMemoryAlbumAndSafetyDeviceRecordsAreReadAndConsumed(): void

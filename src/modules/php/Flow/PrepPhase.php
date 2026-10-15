@@ -20,6 +20,7 @@ final class PrepPhase
 {
     /** @var callable(int): string */
     private $playerName;
+    private readonly ExploreOutputCalculator $calculator;
 
     /**
      * @param callable(int): string $playerName プレイヤー名の取得
@@ -29,8 +30,10 @@ final class PrepPhase
         private readonly PlayerValues $players,
         private readonly GlobalValues $globals,
         callable $playerName,
+        ?ExploreOutputCalculator $calculator = null,
     ) {
         $this->playerName = $playerName;
+        $this->calculator = $calculator ?? new ExploreOutputCalculator($cards, $globals);
     }
 
     /**
@@ -263,7 +266,7 @@ final class PrepPhase
     }
 
     /**
-     * N33 countersUpdate（変更があったプレイヤーの枚数だけ。探査出力 outputNow は I-06 で足す）。
+     * N33 countersUpdate（変更があったプレイヤーの枚数と、現在の探査出力 outputNow。お守りを含み半減は含めない）。
      *
      * @param list<int> $drawers
      * @param list<int> $stoppers
@@ -276,6 +279,7 @@ final class PrepPhase
                 'deckCount' => $this->cards->count(Zone::Deck, $playerId),
                 'facedownCount' => $this->cards->count(Zone::Facedown, $playerId),
                 'prepCount' => $this->cards->count(Zone::Prep, $playerId),
+                'outputNow' => $this->calculator->outputNow($playerId),
             ];
         }
         return new Notification(null, 'countersUpdate', '', ['players' => $players]);

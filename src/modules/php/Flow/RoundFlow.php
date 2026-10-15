@@ -62,17 +62,6 @@ final class RoundFlow
     }
 
     /**
-     * 骨格の仮の探査手番（席順）。I-06 で正しい順（枚数 → 探査出力 → お守りからの距離）に置き換える。
-     *
-     * @param list<int> $seatOrder
-     * @return list<int>
-     */
-    public static function placeholderExploreOrder(array $seatOrder): array
-    {
-        return $seatOrder;
-    }
-
-    /**
      * 骨格の仮の終了判定（規定ラウンド数に達したら終了）。I-07 で置き換える。
      */
     public static function isGameOver(int $roundNo, int $limit = self::PLACEHOLDER_ROUND_LIMIT): bool

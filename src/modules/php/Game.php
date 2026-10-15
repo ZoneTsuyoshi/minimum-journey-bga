@@ -27,6 +27,9 @@ use Bga\Games\MinimumJourney\Data\CardRepository;
 use Bga\Games\MinimumJourney\Data\GlobalValues;
 use Bga\Games\MinimumJourney\Data\PlayerValues;
 use Bga\Games\MinimumJourney\Data\Zone;
+use Bga\Games\MinimumJourney\Flow\ExploreOutputCalculator;
+use Bga\Games\MinimumJourney\Flow\ExplorePhase;
+use Bga\Games\MinimumJourney\Flow\ExploreRuleViolation;
 use Bga\Games\MinimumJourney\Flow\Notification;
 use Bga\Games\MinimumJourney\Flow\PrepPhase;
 use Bga\Games\MinimumJourney\Flow\PrepRuleViolation;
@@ -40,7 +43,9 @@ class Game extends \Bga\GameFramework\Table
     public CardRepository $cards;
     public GlobalValues $globalValues;
     public PlayerValues $playerValues;
+    public ExploreOutputCalculator $outputCalculator;
     public PrepPhase $prepPhase;
+    public ExplorePhase $explorePhase;
 
     public function __construct()
     {
@@ -50,10 +55,19 @@ class Game extends \Bga\GameFramework\Table
         $this->cards = new CardRepository($database);
         $this->globalValues = new GlobalValues($this->bga->globals);
         $this->playerValues = new PlayerValues($database);
+        $this->outputCalculator = new ExploreOutputCalculator($this->cards, $this->globalValues);
         $this->prepPhase = new PrepPhase(
             $this->cards,
             $this->playerValues,
             $this->globalValues,
+            fn(int $playerId): string => $this->getPlayerNameById($playerId),
+            $this->outputCalculator,
+        );
+        $this->explorePhase = new ExplorePhase(
+            $this->cards,
+            $this->playerValues,
+            $this->globalValues,
+            $this->outputCalculator,
             fn(int $playerId): string => $this->getPlayerNameById($playerId),
         );
     }
@@ -82,6 +96,19 @@ class Game extends \Bga\GameFramework\Table
         $message = $violation->reason === PrepRuleViolation::EMPTY_DECK
             ? $this->_('You cannot draw because your deck is empty')
             : $this->_('You cannot choose now');
+        return new UserException($message);
+    }
+
+    /**
+     * 探査フェイズの規則違反を、翻訳つきのユーザー向けエラーにする。
+     */
+    public function exploreError(ExploreRuleViolation $violation): UserException
+    {
+        $message = match ($violation->reason) {
+            ExploreRuleViolation::NOT_A_TARGET => $this->_('You cannot explore that card'),
+            ExploreRuleViolation::ALREADY_EXPLORED => $this->_('You have already explored this turn'),
+            default => $this->_('It is not your turn to explore'),
+        };
         return new UserException($message);
     }
 
@@ -169,7 +196,7 @@ class Game extends \Bga\GameFramework\Table
             "SELECT `player_id` AS `id`, `player_score` AS `score` FROM `player`"
         );
 
-        $board = (new BoardView($this->cards, $this->globalValues, $this->playerValues))->build($this->seatOrder());
+        $board = (new BoardView($this->cards, $this->globalValues, $this->playerValues, $this->outputCalculator))->build($this->seatOrder());
 
         return array_replace_recursive($result, $board);
     }
