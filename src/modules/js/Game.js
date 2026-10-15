@@ -785,6 +785,9 @@ class SimultaneousEffects {
         this.bga = bga;
         /** @type {number | null} */
         this.selected = null;
+        /** @type {SimulPrivate | null} */
+        this.mine = null;
+        this.built = false;
     }
 
     /**
@@ -801,13 +804,35 @@ class SimultaneousEffects {
      * @param {boolean} isCurrentPlayerActive
      */
     onEnteringState(args, isCurrentPlayerActive) {
-        this.selected = null;
-        this.bga.statusBar.removeActionButtons();
-        const mine = args._private;
-        if (mine === undefined || mine.effect === undefined || !isCurrentPlayerActive) {
+        this.mine = args._private ?? null;
+        this.built = false;
+        this.onPlayerActivationChange(args, isCurrentPlayerActive);
+    }
+
+    /**
+     * 状態に入った直後は、サーバーがまだ本人をアクティブにしていないことがある（setPlayersMultiactive は入場後）。
+     * そのため選択の UI は、本人がアクティブになった時点で作る。
+     *
+     * @param {unknown} _args
+     * @param {boolean} isCurrentPlayerActive
+     */
+    onPlayerActivationChange(_args, isCurrentPlayerActive) {
+        const mine = this.mine;
+        if (mine === null || mine.effect === undefined || !isCurrentPlayerActive) {
+            this.built = false;
+            this.selected = null;
+            this.bga.statusBar.removeActionButtons();
+            this.game.hideChoicePanel();
+            this.game.highlightCards([]);
             this.bga.statusBar.setTitle(_('Some players must resolve their effects'));
             return;
         }
+        if (this.built) {
+            return;
+        }
+        this.built = true;
+        this.selected = null;
+        this.bga.statusBar.removeActionButtons();
         this.setEffectTitle(mine);
         switch (mine.effect) {
             case 'arrangeTop':
@@ -835,6 +860,8 @@ class SimultaneousEffects {
         this.game.hideChoicePanel();
         this.game.highlightCards([]);
         this.selected = null;
+        this.mine = null;
+        this.built = false;
     }
 
     /**
