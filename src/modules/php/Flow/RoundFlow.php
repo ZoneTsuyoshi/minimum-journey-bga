@@ -21,23 +21,6 @@ final class RoundFlow
     }
 
     /**
-     * 準備選択をするプレイヤー（準備終了していない人。席順を保つ）。006 §2.2 の状態 20 の骨格。
-     *
-     * @param array<int, bool> $prepFinished プレイヤー ID => 準備終了
-     * @return list<int>
-     */
-    public static function pendingSelectors(array $prepFinished): array
-    {
-        $result = [];
-        foreach ($prepFinished as $playerId => $finished) {
-            if (!$finished) {
-                $result[] = $playerId;
-            }
-        }
-        return $result;
-    }
-
-    /**
      * 準備の開示後の分岐（006 §2.2 の状態 24）。ドロー 0 人 → allStop、1 人 → soloDraw、2 人以上 → resolve。
      *
      * @param array<int, PrepChoice|null> $choices プレイヤー ID => 選択
