@@ -1,3 +1,6 @@
 # サーバー（Studio）から明示的に削除するファイル。1 行 1 パス、src/ からの相対パス。
 # 空行と # で始まる行は無視する。ファイルのみ（ディレクトリの再帰削除は非対応）。
 # mode: sync のときだけ、転送の後に削除する。仕様書 005 第 3.2 節。
+modules/php/States/PlayerTurn.php
+modules/php/States/NextPlayer.php
+modules/php/States/EndScore.php
