@@ -26,8 +26,8 @@ class FinalScoring extends GameState
 
     public function onEnteringState(): int
     {
-        $result = $this->game->returnPhase->finalScoring($this->game->seatOrder());
-        $this->game->sendNotifications($result->notifications);
+        $result = $this->game->returnPhase->finalScoring($this->game->mjSeatOrder());
+        $this->game->mjSendNotifications($result->notifications);
         foreach ($result->scores as $playerId => $score) {
             $this->bga->playerScore->set($playerId, $score->fame(), null);
             $this->bga->playerScoreAux->set($playerId, $score->aux, null);

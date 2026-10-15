@@ -55,10 +55,10 @@ class DeckExcludeChoice extends GameState
         try {
             $result = $this->game->explorePhase->acquirePhase()->excludeDeck($activePlayerId, array_map('intval', $cardIds));
         } catch (ExploreRuleViolation $violation) {
-            throw $this->game->exploreError($violation);
+            throw $this->game->mjExploreError($violation);
         }
         $this->game->giveExtraTime($activePlayerId);
-        $this->game->sendNotifications($result->notifications);
+        $this->game->mjSendNotifications($result->notifications);
 
         return (string) $result->transition;
     }
@@ -69,7 +69,7 @@ class DeckExcludeChoice extends GameState
     public function zombie(int $playerId): string
     {
         $result = $this->game->explorePhase->acquirePhase()->excludeDeck($playerId, []);
-        $this->game->sendNotifications($result->notifications);
+        $this->game->mjSendNotifications($result->notifications);
 
         return (string) $result->transition;
     }

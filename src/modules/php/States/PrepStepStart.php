@@ -32,8 +32,8 @@ class PrepStepStart extends GameState
 
     public function onEnteringState(): string
     {
-        $result = $this->game->prepPhase->begin($this->game->seatOrder());
-        $this->game->sendNotifications($result->notifications);
+        $result = $this->game->prepPhase->begin($this->game->mjSeatOrder());
+        $this->game->mjSendNotifications($result->notifications);
 
         return (string) $result->transition;
     }

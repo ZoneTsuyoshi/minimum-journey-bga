@@ -51,9 +51,9 @@ class LaserSightChoice extends GameState
         try {
             $step = $this->game->drawResolver->chooseLockedCard($activePlayerId, $cardId);
         } catch (DrawRuleViolation $violation) {
-            throw $this->game->drawError($violation);
+            throw $this->game->mjDrawError($violation);
         }
-        $this->game->sendNotifications($step->notifications);
+        $this->game->mjSendNotifications($step->notifications);
 
         return 'done';
     }
@@ -63,7 +63,7 @@ class LaserSightChoice extends GameState
      */
     public function zombie(int $playerId): string
     {
-        $this->game->sendNotifications($this->game->drawResolver->zombieLaser($playerId)->notifications);
+        $this->game->mjSendNotifications($this->game->drawResolver->zombieLaser($playerId)->notifications);
 
         return 'done';
     }

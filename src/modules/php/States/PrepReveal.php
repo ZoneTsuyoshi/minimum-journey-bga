@@ -33,8 +33,8 @@ class PrepReveal extends GameState
 
     public function onEnteringState(): string
     {
-        $result = $this->game->prepPhase->reveal($this->game->seatOrder());
-        $this->game->sendNotifications($result->notifications);
+        $result = $this->game->prepPhase->reveal($this->game->mjSeatOrder());
+        $this->game->mjSendNotifications($result->notifications);
         $this->game->stats->recordPrepReveal((string) $result->transition, $result->notifications);
         if ($result->transition === 'resolve') {
             // 2 人以上のドロー: 引かれたカードを解決キューに入れる（010 §6.1 手順 3）

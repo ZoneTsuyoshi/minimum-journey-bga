@@ -39,7 +39,7 @@ class AcquireDispatch extends GameState
     public function onEnteringState(): string
     {
         $result = $this->game->explorePhase->acquirePhase()->next();
-        $this->game->sendNotifications($result->notifications);
+        $this->game->mjSendNotifications($result->notifications);
         if ($result->transition !== 'finished') {
             $this->game->gamestate->changeActivePlayer((int) $result->playerId);
             return (string) $result->transition;

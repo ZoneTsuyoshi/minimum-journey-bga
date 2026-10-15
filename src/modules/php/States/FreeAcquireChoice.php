@@ -57,10 +57,10 @@ class FreeAcquireChoice extends GameState
         try {
             $result = $this->game->explorePhase->acquirePhase()->freeAcquire($activePlayerId, $type, $ref);
         } catch (ExploreRuleViolation $violation) {
-            throw $this->game->exploreError($violation);
+            throw $this->game->mjExploreError($violation);
         }
         $this->game->giveExtraTime($activePlayerId);
-        $this->game->sendNotifications($result->notifications);
+        $this->game->mjSendNotifications($result->notifications);
 
         return (string) $result->transition;
     }
@@ -71,7 +71,7 @@ class FreeAcquireChoice extends GameState
     public function zombie(int $playerId): string
     {
         $result = $this->game->explorePhase->acquirePhase()->zombieFreeAcquire($playerId);
-        $this->game->sendNotifications($result->notifications);
+        $this->game->mjSendNotifications($result->notifications);
 
         return (string) $result->transition;
     }

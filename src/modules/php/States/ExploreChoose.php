@@ -39,7 +39,7 @@ class ExploreChoose extends GameState
     public function onEnteringState(int $activePlayerId): ?string
     {
         $result = $this->game->explorePhase->enterChoose($activePlayerId);
-        $this->game->sendNotifications($result->notifications);
+        $this->game->mjSendNotifications($result->notifications);
 
         return $result->transition;
     }
@@ -76,10 +76,10 @@ class ExploreChoose extends GameState
         try {
             $result = $this->game->explorePhase->explore($activePlayerId, $source, $cardId, $cost);
         } catch (ExploreRuleViolation $violation) {
-            throw $this->game->exploreError($violation);
+            throw $this->game->mjExploreError($violation);
         }
         $this->game->giveExtraTime($activePlayerId);
-        $this->game->sendNotifications($result->notifications);
+        $this->game->mjSendNotifications($result->notifications);
 
         return (string) $result->transition;
     }
@@ -88,7 +88,7 @@ class ExploreChoose extends GameState
     public function actPass(int $activePlayerId): string
     {
         $this->game->giveExtraTime($activePlayerId);
-        return $this->pass($activePlayerId);
+        return $this->mjPass($activePlayerId);
     }
 
     /**
@@ -96,13 +96,13 @@ class ExploreChoose extends GameState
      */
     public function zombie(int $playerId): string
     {
-        return $this->pass($playerId);
+        return $this->mjPass($playerId);
     }
 
-    private function pass(int $playerId): string
+    private function mjPass(int $playerId): string
     {
         $result = $this->game->explorePhase->pass($playerId);
-        $this->game->sendNotifications($result->notifications);
+        $this->game->mjSendNotifications($result->notifications);
 
         return (string) $result->transition;
     }

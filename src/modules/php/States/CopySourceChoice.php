@@ -51,9 +51,9 @@ class CopySourceChoice extends GameState
         try {
             $step = $this->game->drawResolver->chooseCopy($activePlayerId, $cardId);
         } catch (DrawRuleViolation $violation) {
-            throw $this->game->drawError($violation);
+            throw $this->game->mjDrawError($violation);
         }
-        $this->game->sendNotifications($step->notifications);
+        $this->game->mjSendNotifications($step->notifications);
 
         return 'chosen';
     }
@@ -63,7 +63,7 @@ class CopySourceChoice extends GameState
      */
     public function zombie(int $playerId): string
     {
-        $this->game->sendNotifications($this->game->drawResolver->zombieCopy($playerId)->notifications);
+        $this->game->mjSendNotifications($this->game->drawResolver->zombieCopy($playerId)->notifications);
 
         return 'chosen';
     }

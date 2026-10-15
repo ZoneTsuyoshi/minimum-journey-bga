@@ -57,7 +57,7 @@ class WormholeChoice extends GameState
     public function actWormhole(int $rowCardId, int $activePlayerId): string
     {
         $this->game->giveExtraTime($activePlayerId);
-        return $this->swap($activePlayerId, $rowCardId > 0 ? $rowCardId : null);
+        return $this->mjSwap($activePlayerId, $rowCardId > 0 ? $rowCardId : null);
     }
 
     /**
@@ -65,17 +65,17 @@ class WormholeChoice extends GameState
      */
     public function zombie(int $playerId): string
     {
-        return $this->swap($playerId, null);
+        return $this->mjSwap($playerId, null);
     }
 
-    private function swap(int $playerId, ?int $rowCardId): string
+    private function mjSwap(int $playerId, ?int $rowCardId): string
     {
         try {
             $step = $this->game->drawResolver->wormhole($playerId, $rowCardId);
         } catch (DrawRuleViolation $violation) {
-            throw $this->game->drawError($violation);
+            throw $this->game->mjDrawError($violation);
         }
-        $this->game->sendNotifications($step->notifications);
+        $this->game->mjSendNotifications($step->notifications);
 
         // 山札に加わった列のカードの獲得時効果があれば 44 で解決する（008 N-1）。終われば 44 が 30 へ戻す
         return $this->game->explorePhase->acquirePhase()->hasPending() ? 'acquire' : 'done';

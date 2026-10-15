@@ -51,10 +51,10 @@ class AcquireExcludeChoice extends GameState
         try {
             $result = $this->game->explorePhase->acquirePhase()->excludePrepRequired($activePlayerId, $cardId);
         } catch (ExploreRuleViolation $violation) {
-            throw $this->game->exploreError($violation);
+            throw $this->game->mjExploreError($violation);
         }
         $this->game->giveExtraTime($activePlayerId);
-        $this->game->sendNotifications($result->notifications);
+        $this->game->mjSendNotifications($result->notifications);
 
         return (string) $result->transition;
     }
@@ -65,7 +65,7 @@ class AcquireExcludeChoice extends GameState
     public function zombie(int $playerId): string
     {
         $result = $this->game->explorePhase->acquirePhase()->zombieExcludeRequired($playerId);
-        $this->game->sendNotifications($result->notifications);
+        $this->game->mjSendNotifications($result->notifications);
 
         return (string) $result->transition;
     }
