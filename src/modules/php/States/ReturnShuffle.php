@@ -10,7 +10,7 @@ use Bga\Games\MinimumJourney\Flow\StateId;
 use Bga\Games\MinimumJourney\Game;
 
 /**
- * 帰還フェイズ②：シャッフル（006 §2.5）。骨格では混ぜない差し込み口（I-07）。
+ * 帰還フェイズ②：シャッフル（006 §2.5、001 §7-2）。
  */
 class ReturnShuffle extends GameState
 {
@@ -29,15 +29,8 @@ class ReturnShuffle extends GameState
 
     public function onEnteringState(): string
     {
-        $this->shuffleDecks();
+        $this->game->sendNotifications($this->game->returnPhase->shuffle($this->game->seatOrder()));
 
         return 'next';
-    }
-
-    /**
-     * I-07: 準備場・獲得カード・裏向きの別置き場・山札をまとめてシャッフルする。
-     */
-    protected function shuffleDecks(): void
-    {
     }
 }

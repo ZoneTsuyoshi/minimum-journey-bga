@@ -254,32 +254,11 @@ final class ExplorePhase
     }
 
     /**
-     * 終了フラグを立てる。すでに立っていれば何もしない（先に起きた理由を残す）。
-     *
      * @return list<Notification>
      */
     private function triggerEnd(string $reason, int $playerId): array
     {
-        if ($this->globals->gameEndTriggered()) {
-            return [];
-        }
-        $this->globals->setGameEndTriggered(true);
-        $this->globals->setEndReason($reason);
-
-        return [new Notification(
-            null,
-            'gameEndTriggered',
-            clienttranslate('The game ends at the end of this round (${reason_label})'),
-            [
-                'reason' => $reason,
-                'reason_label' => $reason === GlobalValues::END_UNKNOWN
-                    ? clienttranslate('the Unknown Band was acquired')
-                    : clienttranslate('the 8-cost pile is empty'),
-                'player_id' => $playerId,
-                'player_name' => $playerId === 0 ? '' : ($this->playerName)($playerId),
-                'i18n' => ['reason_label'],
-            ],
-        )];
+        return GameEndTrigger::trigger($this->globals, $this->playerName, $reason, $playerId);
     }
 
     private function passNotification(int $playerId, bool $auto): Notification

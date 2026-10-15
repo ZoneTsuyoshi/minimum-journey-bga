@@ -6,13 +6,12 @@ namespace Bga\Games\MinimumJourney\States;
 
 use Bga\GameFramework\StateType;
 use Bga\GameFramework\States\GameState;
-use Bga\Games\MinimumJourney\Flow\RoundFlow;
 use Bga\Games\MinimumJourney\Flow\StateId;
 use Bga\Games\MinimumJourney\Game;
 
 /**
  * 帰還フェイズ③④：列の補充と終了判定（006 §2.5）。
- * 骨格では補充せず、規定ラウンド数（RoundFlow::PLACEHOLDER_ROUND_LIMIT）で終わる仮実装。I-07 で正しい判定に置き換える。
+ * 補充後にコスト 8 の探査山札が空なら終了フラグを立て、終了フラグがあれば 60、なければ次のラウンド（10）へ進む。
  */
 class ReturnRefill extends GameState
 {
@@ -33,15 +32,9 @@ class ReturnRefill extends GameState
 
     public function onEnteringState(): string
     {
-        $this->refillRows();
+        $result = $this->game->returnPhase->refill($this->game->seatOrder());
+        $this->game->sendNotifications($result->notifications);
 
-        return RoundFlow::isGameOver($this->game->globalValues->roundNo()) ? 'end' : 'nextRound';
-    }
-
-    /**
-     * I-07: 探査場の列を規定枚数まで補充し、コスト 8 の探査山札が尽きたら終了フラグを立てる。
-     */
-    protected function refillRows(): void
-    {
+        return (string) $result->transition;
     }
 }
