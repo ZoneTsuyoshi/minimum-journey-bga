@@ -1263,6 +1263,7 @@ export class Game {
             </div>
         `);
 
+        this.setupBoardWidth();
         this.setupExplore(gamedatas, playerOrder.length);
         for (const playerId of ordered) {
             const compact = isSpectator || playerId !== me;
@@ -1278,6 +1279,27 @@ export class Game {
         this.refreshAllStats();
         this.setupZoom();
         this.setupNotifications();
+    }
+
+    /**
+     * 盤面の幅（px）を CSS 変数 --mj-bw に入れる。カードの大きさ（--mj-w）は cqw ではなくこの値から決める。
+     * cqw は使う要素ごとに基準のコンテナを探すため、環境によって枠・カード・スプライトで値が食い違うことがある。
+     */
+    setupBoardWidth() {
+        const board = document.getElementById('mj-board');
+        if (board === null) {
+            return;
+        }
+        const update = () => {
+            const width = board.clientWidth;
+            if (width > 0) {
+                board.style.setProperty('--mj-bw', `${width}px`);
+            }
+        };
+        update();
+        if (typeof ResizeObserver !== 'undefined') {
+            new ResizeObserver(update).observe(board);
+        }
     }
 
     // ---- 探査場 -----------------------------------------------------------
