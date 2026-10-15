@@ -20,6 +20,8 @@ final class ExploreOutputCalculator
     public function __construct(
         private readonly CardRepository $cards,
         private readonly GlobalValues $globals,
+        /** @var (\Closure(): list<int>)|null 席順（player_no の昇順）のプレイヤー ID。022 の左隣の判定に使う */
+        private readonly ?\Closure $seatOrder = null,
     ) {
     }
 
@@ -31,9 +33,42 @@ final class ExploreOutputCalculator
         $inputs = [];
         foreach ($this->cards->list(Zone::Prep, $playerId) as $card) {
             $definition = CardDefinitions::get(sprintf('%03d', $card->cardNo));
-            $inputs[] = new PrepCardInput($card->cardNo, $definition->power ?? 0, $card->sideways);
+            $attached = $this->cards->attachedTo($card)[0] ?? null;
+            $inputs[] = new PrepCardInput($card->cardNo, $definition->power ?? 0, $card->sideways, $attached?->cardNo);
         }
-        return array_sum(PowerMod::apply($inputs, $this->globals->roundNo()));
+        return array_sum(PowerMod::apply(
+            $inputs,
+            $this->globals->roundNo(),
+            $this->holdsCharm($playerId),
+            $this->leftNeighborPrepCount($playerId),
+        ));
+    }
+
+    /**
+     * お守りを保持しているか（面は問わない。041）。
+     */
+    private function holdsCharm(int $playerId): bool
+    {
+        $charm = $this->cards->list(Zone::Charm)[0] ?? null;
+        return $charm !== null && $charm->locationArg === $playerId;
+    }
+
+    /**
+     * 左隣のプレイヤー（席順で次の席。最後の席の次は最初）の準備場の枚数。横向きを数え、付加カード・裏向きは数えない。
+     * 席順が渡されていなければ null。
+     */
+    private function leftNeighborPrepCount(int $playerId): ?int
+    {
+        if ($this->seatOrder === null) {
+            return null;
+        }
+        $seats = ($this->seatOrder)();
+        $index = array_search($playerId, $seats, true);
+        if ($index === false || count($seats) < 2) {
+            return null;
+        }
+        $left = $seats[($index + 1) % count($seats)];
+        return count($this->cards->list(Zone::Prep, $left));
     }
 
     /**
