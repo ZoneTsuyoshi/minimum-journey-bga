@@ -16,7 +16,8 @@
     "lint:links": "lychee --config lychee.toml \"./**/*.md\"",
     "build:sprites": "node scripts/build-sprites.mjs",
     "check:sprites": "node scripts/check-sprites.mjs",
-    "check:cards": "node scripts/check-card-definitions.mjs"
+    "check:cards": "node scripts/check-card-definitions.mjs",
+    "test:integration": "sh tests/run-integration.sh"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

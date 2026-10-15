@@ -6,7 +6,18 @@
     "require-dev": {
         "php-parallel-lint/php-parallel-lint": "^1.4",
         "phpstan/phpstan": "^2.3",
+        "phpunit/phpunit": "12.5.39",
         "squizlabs/php_codesniffer": "^4.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Bga\\Games\\MinimumJourney\\": "src/modules/php/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "MinimumJourneyTests\\": "tests/"
+        }
     },
     "config": {
         "platform": {
@@ -19,12 +30,14 @@
             "@lint:syntax",
             "@lint:cs"
         ],
-        "lint:syntax": "parallel-lint src",
+        "lint:syntax": "parallel-lint src tests",
         "lint:cs": "phpcs",
-        "lint:stan": "phpstan analyse --memory-limit=1G"
+        "lint:stan": "phpstan analyse --memory-limit=1G",
+        "test:integration": "phpunit --configuration tests/phpunit.xml.dist"
     },
     "scripts-descriptions": {
         "lint": "PHP の構文（P1）とコーディング規約（P2）を検査する。declare(strict_types=1) は npm run lint:strict、静的解析は lint:stan（BGA のスタブが必要）",
-        "lint:stan": "PHPStan（P3）。tools/bga/_ide_helper.php が必要"
+        "lint:stan": "PHPStan（P3）。tools/bga/_ide_helper.php が必要",
+        "test:integration": "MariaDB を使った結合テスト。DB 接続の環境変数が必要なので、通常は npm run test:integration（Docker）で実行する"
     }
 }

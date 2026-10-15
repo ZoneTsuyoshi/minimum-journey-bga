@@ -4,6 +4,7 @@
     <description>MINIMUM JOURNEY の PHP コーディング規約（PSR-12 ベース）</description>
 
     <file>src</file>
+    <file>tests</file>
     <arg name="extensions" value="php"/>
     <arg name="colors"/>
     <arg value="sp"/>
