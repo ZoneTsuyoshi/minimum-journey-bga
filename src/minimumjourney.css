@@ -33,10 +33,18 @@
     color: var(--mj-fg);
 }
 
-.mj-scope {
-    /* 狭い画面: 1 段 5 枚が収まる幅から決める（最小 48px、最大 120px）。--mj-bw は Game.js が入れる盤面の幅（px） */
-    --mj-w: clamp(48px, calc((var(--mj-bw, 100cqw) - 56px) / 5), 120px);
+:root {
+    /*
+     * カードの大きさ。.mj-scope の中ではなく :root で決める。
+     * bga-animations は移動中のカードを body 直下の animation-surface へ移すため、.mj-scope に定義すると
+     * 移動中だけ --mj-w が未定義になり、スプライトの切り取りが崩れる。
+     * 1 段 5 枚が収まる幅から決める（最小 48px、最大 120px）。--mj-bw は Game.js が <html> に入れる盤面の幅（px）。
+     */
+    --mj-w: clamp(48px, calc((var(--mj-bw, 100vw) - 56px) / 5), 120px);
     --mj-h: calc(var(--mj-w) * 419 / 300);
+}
+
+.mj-scope {
     --mj-prep-step: 0.58;
     --mj-prep-rows: 5;
 
@@ -60,10 +68,6 @@
     .mj-board {
         grid-template-columns: max-content minmax(0, 1fr);
         align-items: start;
-    }
-
-    .mj-scope {
-        --mj-w: 120px;
     }
 }
 
@@ -119,8 +123,9 @@
  * 左上へはみ出し、スプライトも面の大きさで切り出されてしまう（縮小表示で顕著）。
  * 変数をインラインより強い !important で実寸に合わせる。山札・列・スロットの枠
  * （slot の min-width など）も同じ変数を使うので、スタック側にも当てる。
+ * .mj-card は移動中に .mj-scope の外（animation-surface）へ出るので、.mj-scope を付けない。
  */
-.mj-scope .mj-card,
+.mj-card,
 .mj-scope .card-stock {
     /* stylelint-disable-next-line custom-property-pattern -- bga-cards の変数名 */
     --bga-cards_card-width: var(--mj-w) !important;
