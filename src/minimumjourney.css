@@ -34,8 +34,8 @@
 }
 
 .mj-scope {
-    /* 狭い画面: 1 段 5 枚が収まる幅から決める（最小 48px、最大 120px） */
-    --mj-w: clamp(48px, calc((100cqw - 56px) / 5), 120px);
+    /* 狭い画面: 1 段 5 枚が収まる幅から決める（最小 48px、最大 120px）。--mj-bw は Game.js が入れる盤面の幅（px） */
+    --mj-w: clamp(48px, calc((var(--mj-bw, 100cqw) - 56px) / 5), 120px);
     --mj-h: calc(var(--mj-w) * 419 / 300);
 
     box-sizing: border-box;
@@ -55,7 +55,7 @@
 }
 
 .mj-compact {
-    --mj-w: clamp(40px, calc((100cqw - 56px) / 8), 72px);
+    --mj-w: clamp(40px, calc((var(--mj-bw, 100cqw) - 56px) / 8), 72px);
 }
 
 @container (min-width: 900px) {
@@ -267,6 +267,23 @@
     --height: var(--mj-h) !important;
 }
 
+/*
+ * 山札の枠は bga-cards の width: var(--width) だけに頼らず、ここでも大きさを決める。
+ * 中身のカードは絶対配置のため、枠の幅が決まらないと枠が潰れて山札が左へはみ出す。
+ * 未確認帯域も同じく、カードの実寸の枠を取って見出しに重ならないようにする。
+ */
+.mj-pile,
+.mj-unknown {
+    flex: 0 0 auto;
+    width: var(--mj-w);
+    height: var(--mj-h);
+}
+
+/* 獲得済みの山（AllVisibleDeck）は bga-cards が position: absolute にするため、流れの中に戻す */
+.mj-acquired.all-visible-deck {
+    position: relative;
+}
+
 /* カードが入っているときは枠をカードに任せる */
 .mj-pile:not(.mj-empty),
 .mj-slot:has(.mj-card),
@@ -279,6 +296,7 @@
     display: flex;
     gap: 8px;
     align-items: flex-start;
+    min-width: 0;
     margin-bottom: 8px;
 }
 
@@ -291,6 +309,8 @@
 .mj-pile-wrap,
 .mj-unknown-wrap,
 .mj-acquired-wrap {
+    /* 枠の幅を中身（絶対配置のカード）に頼らず固定し、横並びで縮んだり左へずれたりしないようにする */
+    flex: 0 0 auto;
     display: flex;
     flex-direction: column;
     gap: 2px;
