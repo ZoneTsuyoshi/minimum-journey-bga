@@ -10,6 +10,7 @@ use Bga\Games\MinimumJourney\Data\GlobalValues;
 use Bga\Games\MinimumJourney\Data\Zone;
 use Bga\Games\MinimumJourney\Flow\ExploreOutputCalculator;
 use Bga\Games\MinimumJourney\Flow\ExplorePhase;
+use Bga\Games\MinimumJourney\Flow\FameModifiers;
 use Bga\Games\MinimumJourney\Flow\FinalScorer;
 use Bga\Games\MinimumJourney\Flow\Notification;
 use Bga\Games\MinimumJourney\Flow\ReturnPhase;
@@ -415,7 +416,7 @@ final class ReturnPhaseTest extends DatabaseTestCase
         foreach ($result->scores as $id => $score) {
             $holders += $score->charmBonus;
             self::assertGreaterThan(0, $score->fame());
-            $expected = FinalScorer::baseFame($this->cardNos($id)) + $score->charmBonus;
+            $expected = FinalScorer::baseFame($this->cardNos($id)) + FameModifiers::total($this->cardNos($id), $score->charmBonus === 1) + $score->charmBonus;
             self::assertSame($expected, $score->fame());
         }
         self::assertSame(1, $holders, 'お守りの所持者はちょうど 1 人');

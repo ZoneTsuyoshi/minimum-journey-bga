@@ -11,7 +11,7 @@ use Bga\Games\MinimumJourney\Game;
 
 /**
  * 帰還フェイズ①：お守りの移動（006 §2.5、001 §7-1）。
- * 058 の獲得時効果（遷移 exclude → 51）は I-11 までは使わず、常に next → 52 へ進む。
+ * 面が 058 なら、新所有者の獲得時効果（遷移 exclude → 51）。
  */
 class ReturnAmulet extends GameState
 {
@@ -31,8 +31,12 @@ class ReturnAmulet extends GameState
 
     public function onEnteringState(): string
     {
-        $this->game->sendNotifications($this->game->returnPhase->moveCharm($this->game->seatOrder()));
+        $result = $this->game->returnPhase->moveCharmStep($this->game->seatOrder());
+        $this->game->sendNotifications($result->notifications);
+        if ($result->transition === 'exclude') {
+            $this->game->gamestate->changeActivePlayer((int) $result->playerId);
+        }
 
-        return 'next';
+        return (string) $result->transition;
     }
 }

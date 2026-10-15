@@ -15,10 +15,12 @@ use Bga\Games\MinimumJourney\Setup\GameSetup;
 /**
  * 帰還フェイズ（状態 50・52・53）と最終得点（状態 60）の DB を使う部分（仕様書 006 §6.4、001 §7・§9）。
  * BGA の Table には依存せず、送る通知は戻り値で返す（状態クラスが送る）。結合テストで直接動かす。
- * 058 の獲得時効果・040 の山札の上への配置・名声変動の効果は差し込み口のみ（I-11）。
+ * 058 の獲得時効果と 040 の山札の上への配置もここで扱う（008 §5）。
  */
 final class ReturnPhase
 {
+    private const CARD_MISFORTUNE_CHARM = 58;
+
     /** @var callable(int): string */
     private $playerName;
 
@@ -43,11 +45,22 @@ final class ReturnPhase
      */
     public function moveCharm(array $seatOrder): array
     {
+        return $this->moveCharmStep($seatOrder)->notifications;
+    }
+
+    /**
+     * 状態 50。moveCharm に、058 の獲得時効果の遷移を加えたもの。
+     * お守りの面が 058 なら、新所有者（所有者が変わらなくても）の準備場に表向きのカードがあるとき exclude（状態 51）、なければ next。
+     *
+     * @param list<int> $seatOrder
+     */
+    public function moveCharmStep(array $seatOrder): ExploreStepResult
+    {
         $this->globals->setPhase(GlobalValues::PHASE_RETURN);
 
         $charm = $this->cards->list(Zone::Charm)[0] ?? null;
         if ($charm === null) {
-            return [];
+            return new ExploreStepResult('next', []);
         }
         $outputs = [];
         foreach ($seatOrder as $playerId) {
@@ -73,8 +86,12 @@ final class ReturnPhase
                 ],
             );
         }
-        // 058 の獲得時効果（新所有者が準備場から最大 1 枚を除外。所有者が変わらなくても発動）は I-11
-        return $notifications;
+        // 058 の獲得時効果: 新所有者が準備場から最大 1 枚を除外する（所有者が変わらなくても発動。001 §11 No.10）
+        $holder = $newHolder ?? $charm->locationArg;
+        if ($charm->cardNo === self::CARD_MISFORTUNE_CHARM && $this->cards->count(Zone::Prep, $holder) > 0) {
+            return new ExploreStepResult('exclude', $notifications, $holder);
+        }
+        return new ExploreStepResult('next', $notifications);
     }
 
     /**
@@ -113,7 +130,7 @@ final class ReturnPhase
             $this->cards->shuffleDeck($playerId);
             $counts[$playerId] = $this->cards->count(Zone::Deck, $playerId);
         }
-        $this->placeBeacons($seatOrder);
+        $beacons = $this->placeBeacons($seatOrder);
 
         // ラウンド単位の値を初期化する（次のラウンドの 10 でも初期化するが、帰還の後に残さない）
         $this->players->resetRoundValues();
@@ -122,21 +139,49 @@ final class ReturnPhase
         $this->globals->setExploreState(null);
         $this->globals->setLockedCard(null);
 
-        return [new Notification(
-            null,
-            'cardsGatheredToDecks',
-            clienttranslate('All players shuffle their cards into their decks'),
-            ['gathered' => $gathered, 'counts' => $counts],
-        )];
+        return [
+            new Notification(
+                null,
+                'cardsGatheredToDecks',
+                clienttranslate('All players shuffle their cards into their decks'),
+                ['gathered' => $gathered, 'counts' => $counts],
+            ),
+            ...$beacons,
+        ];
     }
 
     /**
-     * 状態 52 の差し込み口: 040 先駆者の道標を探査フェイズで獲得していたら、シャッフル後に山札の上へ置く（I-11）。
+     * 状態 52: 040 先駆者の道標を探査フェイズで獲得していたら、シャッフル後に山札の上へ置く（008 §5.3）。
+     * 帰還フェイズ②の前に除外されていれば（055 など）何もしない。記録は消す。
      *
      * @param list<int> $seatOrder
+     * @return list<Notification>
      */
-    private function placeBeacons(array $seatOrder): void
+    private function placeBeacons(array $seatOrder): array
     {
+        $notifications = [];
+        foreach ($this->globals->topAfterShuffle() as $record) {
+            $card = $this->cards->findByCardNo($record['card_no'])[0] ?? null;
+            $inDeck = $card !== null && $card->zone === Zone::Deck && $card->locationArg === $record['player_id'];
+            if ($card === null || !$inDeck || !in_array($record['player_id'], $seatOrder, true)) {
+                continue;
+            }
+            $this->cards->putOnTop($card, Zone::Deck, $record['player_id']);
+            $notifications[] = new Notification(
+                null,
+                'beaconPlaced',
+                clienttranslate('${player_name} puts ${card_name} on top of their deck'),
+                [
+                    'player_id' => $record['player_id'],
+                    'player_name' => ($this->playerName)($record['player_id']),
+                    'card_name' => self::cardName($card),
+                    'i18n' => ['card_name'],
+                ],
+            );
+        }
+        $this->globals->setTopAfterShuffle([]);
+
+        return $notifications;
     }
 
     /**

@@ -29,6 +29,7 @@ class WormholeChoice extends GameState
             descriptionMyTurn: clienttranslate('${you} must choose whether to swap a card'),
             transitions: [
                 'done' => StateId::DRAW_RESOLVE,
+                'acquire' => StateId::ACQUIRE_DISPATCH,
             ],
         );
     }
@@ -76,6 +77,7 @@ class WormholeChoice extends GameState
         }
         $this->game->sendNotifications($step->notifications);
 
-        return 'done';
+        // 山札に加わった列のカードの獲得時効果があれば 44 で解決する（008 N-1）。終われば 44 が 30 へ戻す
+        return $this->game->explorePhase->acquirePhase()->hasPending() ? 'acquire' : 'done';
     }
 }

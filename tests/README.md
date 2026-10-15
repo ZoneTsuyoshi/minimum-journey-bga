@@ -20,14 +20,14 @@ npm run test:integration
 
 ## 単体テスト
 
-`Unit/` は BGA にも DB にも依存しない純粋なロジック（`Flow/RoundFlow` の状態遷移の判定と進行度、`Flow/PrepClassifier` の準備フェイズの分類と開示後の計画、`Flow/ExploreOutput` の探査出力、`Flow/PowerMod` の探査力変動（011 §6 の検証例）、`Flow/ExploreOrder` の探査手番（001 §8-1 の例）、`Flow/ExploreRules` の探査できる対象の判定、`Flow/DrawRules` の解決順の規則）のテスト。`composer test:integration` が一緒に実行する（DB 接続は使わない）。
+`Unit/` は BGA にも DB にも依存しない純粋なロジック（`Flow/RoundFlow` の状態遷移の判定と進行度、`Flow/PrepClassifier` の準備フェイズの分類と開示後の計画、`Flow/ExploreOutput` の探査出力、`Flow/PowerMod` の探査力変動（011 §6 の検証例）、`Flow/ExploreOrder` の探査手番（001 §8-1 の例）、`Flow/ExploreRules` の探査できる対象の判定、`Flow/DrawRules` の解決順の規則、`Flow/CostContext` の探査中の補正と禁止、`Flow/FameModifiers` の名声変動）のテスト。`composer test:integration` が一緒に実行する（DB 接続は使わない）。
 
 ## 構成
 
 | パス | 内容 |
 | --- | --- |
 | `Unit/` | 状態遷移の純粋な判定の単体テスト（`RoundFlowTest`、`PrepClassifierTest`） |
-| `Integration/` | テスト本体。`SetupNewGameTest`（3 人・4 人のセットアップ）、`CardRepositoryTest`（SQL の動作）、`BoardViewTest`（getAllDatas の盤面に非公開情報が出ない）、`PrepPhaseTest`（準備フェイズ 20〜24 を実 DB で回す）、`ExplorePhaseTest`（探査出力・探査手番・探査・パス・自動パス・終了フラグ。準備 → 探査）、`DrawResolverTest`（ドロー時効果の解決エンジン。010 §7 の検証例と 008 のカード別テストケース） |
+| `Integration/` | テスト本体。`SetupNewGameTest`（3 人・4 人のセットアップ）、`CardRepositoryTest`（SQL の動作）、`BoardViewTest`（getAllDatas の盤面に非公開情報が出ない）、`PrepPhaseTest`（準備フェイズ 20〜24 を実 DB で回す）、`ExplorePhaseTest`（探査出力・探査手番・探査・パス・自動パス・終了フラグ。準備 → 探査）、`DrawResolverTest`（ドロー時効果の解決エンジン。010 §7 の検証例と 008 のカード別テストケース）、`ExploreEffectsTest`（探査時 011・013、探査中の補正と禁止、012 の追加探査）、`AcquireEffectsTest`（獲得時 004・034・040・055・058 と 036 の入れ替えで山札に加わったカード） |
 | `Support/PdoDatabase.php` | データ層の `Database` interface を PDO で実装したテスト用クラス |
 | `Support/Schema.php` | `src/dbmodel.sql` を流し、BGA が先に作る `player` テーブルを最小限で代用する |
 | `Support/ArrayGlobals.php` | BGA の `globals` の代わり（値を JSON にして配列に持つ） |

@@ -680,9 +680,12 @@ final class DrawResolver
             ],
         )];
         $this->cards->move($top, Zone::Row, $row->locationArg, $row->order);
-        $this->cards->returnToDeck([$row], $playerId, true);
+        $map = $this->cards->returnToDeck([$row], $playerId, true);
         $notifications[] = $this->effects->shuffled($playerId);
         $this->entries->setStatus($entry->id, ResolveEntry::STATUS_DONE);
+        // 山札に加わった列のカードは「獲得」にあたり、獲得時効果（004・034・055）を即時に解決する（008 N-1。
+        // 状態 33 の後に 44 が解決する。シャッフルの結果は非公開なので、シャッフルの後に解決しても結果は変わらない）
+        (new AcquirePhase($this->cards, $this->globals, $this->playerName))->enqueue($map[$row->id] ?? $row->id, $playerId);
         return new DrawStep(null, $notifications);
     }
 
