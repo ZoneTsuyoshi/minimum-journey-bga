@@ -10,16 +10,16 @@
 
 | No. | タイトル | ステータス | 対応タスク |
 | --- | --- | --- | --- |
-| 001 | ゲームルール仕様 | Approved | T-001 |
-| 002 | カードデータ仕様 | Approved | T-002 |
-| 003 | BGA プロジェクト構成・技術方針 | Approved | T-003 |
+| 001 | ゲームルール仕様 | Implemented | T-001 |
+| 002 | カードデータ仕様 | Implemented | T-002 |
+| 003 | BGA プロジェクト構成・技術方針 | Implemented | T-003 |
 | 004 | CI（lint チェック） | Approved | T-004 |
-| 005 | BGA Studio への自動同期 | Approved | T-005 |
-| 006 | 状態遷移 | Approved | T-006 |
-| 007 | データモデル・通知 | Approved | T-007 |
-| 008 | カード効果の実装方針 | Approved | T-008 |
+| 005 | BGA Studio への自動同期 | Implemented | T-005 |
+| 006 | 状態遷移 | Implemented | T-006 |
+| 007 | データモデル・通知 | Implemented | T-007 |
+| 008 | カード効果の実装方針 | Implemented | T-008 |
 | 009 | UI・アセット設計 | Approved | T-009 |
-| 010 | ドロー時効果の優先度 | Approved | T-010 |
-| 011 | 探査力変動効果の適用順 | Approved | T-011 |
+| 010 | ドロー時効果の優先度 | Implemented | T-010 |
+| 011 | 探査力変動効果の適用順 | Implemented | T-011 |
 
 各仕様書は別ブランチ（`docs/spec-NNN-<slug>`）で作成し、PR のマージで `main` に入る。

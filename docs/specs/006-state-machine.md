@@ -100,11 +100,11 @@ BGA のゲームはサーバー側の状態機械で進行する。この仕様�
 | ID | クラス名 | 種別 | 説明 | アクティブ | アクション（引数） | args | 遷移 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | 30 | `DrawResolve` | GAME | 解決エンジン。永続カーソル `resolve_level` を持ち、レベルを P0 → P1 → P2 → P2a → 6b → P3 → P4 → P5-順番 → P5-同時 → P6 → 最終確定の順に進める（§5.2）。自動処理できるレベルは状態を出ずに実行し、プレイヤーの選択が要るレベルで下の割り込み状態へ遷移する。割り込み状態は終了時にここへ戻る | なし | なし | — | `pod` → 31、`copy` → 32、`wormhole` → 33、`laser` → 34、`simul` → 35、`done` → 20 `PrepStepStart` |
-| 31 | `ReturnPodDecision` | MULTIPLE_ACTIVE_PLAYER | P2。043 の対象（043 の持ち主以外で、この回にカードを引いた全員）が、自分の引いたカードを山札へ戻すかを同時・非公開に決める（H8） | 対象全員 | `actDecideReturn(bool $return)`（押した時点で確定） | 【公開】`targets`（決める人の ID）、`decided`（決定済みの ID。内容なし）。【本人】`myCard`（自分の引いたカード ID。公開済み情報）、`myDecision` | `allDecided` → 30 |
+| 31 | `ReturnPodDecision` | MULTIPLE_ACTIVE_PLAYER | P2。043 の対象（043 の持ち主以外で、この回にカードを引いた全員）が、自分の引いたカードを山札へ戻すかを同時・非公開に決める（H8） | 対象全員 | `actDecideReturn(bool $doReturn)`（押した時点で確定） | 【公開】`targets`（決める人の ID）、`decided`（決定済みの ID。内容なし）。【本人】`myCard`（自分の引いたカード ID。公開済み情報）、`myDecision` | `allDecided` → 30 |
 | 32 | `CopySourceChoice` | ACTIVE_PLAYER | 6b。有効な 008 の持ち主が、その時点の探査場の列から[太陽系]または[天の川銀河]を持つカードを 1 枚選ぶ（K1）。046 の付加カードとして引かれた 008 も同じ。008 は 1 枚だけ存在するので常に 1 人 | 008 の持ち主 | `actChooseCopySource(int $cardId)` | 【公開】`candidates`（列のカード ID）。対象が 0 枚なら状態に入らない | `chosen` → 30 |
-| 33 | `WormholeChoice` | ACTIVE_PLAYER | P4。036 の持ち主の山札の上のカードを表にして**公開**し、列の同コストのカードと入れ替えるかを選ぶ（入れ替えない場合も山札へ戻してシャッフルする。001 Q-28） | 036 の持ち主 | `actWormhole(?int $rowCardId)`（`null` = 入れ替えない） | 【公開】`revealedCard`、`candidates`（列の同じ探査コストのカード ID）。同コストの列カードが 0 枚なら入れ替え不可（シャッフルのみ自動） | `done` → 30 |
+| 33 | `WormholeChoice` | ACTIVE_PLAYER | P4。036 の持ち主の山札の上のカードを表にして**公開**し、列の同コストのカードと入れ替えるかを選ぶ（入れ替えない場合も山札へ戻してシャッフルする。001 Q-28） | 036 の持ち主 | `actWormhole(int $rowCardId)`（`0` = 入れ替えない） | 【公開】`revealedCard`、`candidates`（列の同じ探査コストのカード ID）。同コストの列カードが 0 枚なら入れ替え不可（シャッフルのみ自動） | `done` → 30、`acquire` → 44（入れ替えで山札に入った列のカードに【獲得時】効果があるとき。2.6） |
 | 34 | `LaserSightChoice` | ACTIVE_PLAYER | P5-順番。007（または 007 をコピーした 008）の持ち主が、036 の入れ替え後の列から 1 枚選ぶ。[未確認帯域]は選べない。選んだカードは、このラウンド中、他プレイヤーが獲得できない（探査中効果として保持。002 No.27） | 007 の持ち主（同優先度が複数なら D4 の順に 1 人ずつ。現行カードでは常に最大 1 人） | `actChooseLockedCard(int $cardId)` | 【公開】`candidates`（列のカード ID。056 を除く） | `done` → 30 |
-| 35 | `SimultaneousEffects` | MULTIPLE_ACTIVE_PLAYER | P5-同時。自分にしか影響しない選択付き効果（005・009・010・014・020・035・050・052、および 008 がコピーした同種の効果）を、該当する全員が同時に解決する。各プレイヤーの「効果の種類と選択肢」を `_private` args で渡し、アクションは効果の種類で分ける（§5.3） | 選択が要る効果を持つプレイヤーのみ | `actArrangeTop(int[] $order)`（005）、`actYesNo(bool $yes)`（009・014）、`actTopOrBottom(string $place)`（010）、`actPickFromDeck(?int $cardId)`（020・035・050）、`actPickOne(int $cardId)`（052） | 【公開】`pending`（未完了のプレイヤー ID と効果カード ID。何をするかは効果カードから分かる公開情報）。【本人】`effect`（種類）、`seenCards`（山札から見たカード ID 配列。005・010・052）、`candidates`（020・035・050 の山札内の候補）、`prevCard`（009 の直前のカード） | `allDone` → 30 |
+| 35 | `SimultaneousEffects` | MULTIPLE_ACTIVE_PLAYER | P5-同時。自分にしか影響しない選択付き効果（005・009・010・014・020・035・050・052、および 008 がコピーした同種の効果）を、該当する全員が同時に解決する。各プレイヤーの「効果の種類と選択肢」を `_private` args で渡し、アクションは効果の種類で分ける（§5.3） | 選択が要る効果を持つプレイヤーのみ | `actArrangeTop(int $firstId, int $secondId)`（005。先に渡した方が一番上）、`actYesNo(bool $yes)`（009・014）、`actTopOrBottom(string $position)`（010。`'top'` / `'bottom'`）、`actPickFromDeck(int $cardId)`（020・035・050。`0` = 置かない）、`actPickOne(int $cardId)`（052） | 【公開】`pending`（未完了のプレイヤー ID と効果カード ID。何をするかは効果カードから分かる公開情報）。【本人】`effect`（種類）、`seenCards`（山札から見たカード ID 配列。005・010・052）、`candidates`（020・035・050 の山札内の候補）、`prevCard`（009 の直前のカード） | `allDone` → 30 |
 
 #### 2.4 探査フェイズ
 
@@ -112,12 +112,12 @@ BGA のゲームはサーバー側の状態機械で進行する。この仕様�
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | 40 | `ExploreStart` | GAME | 探査出力の決定（011 §6 の手順で全員分を計算し、1 度だけ確定。以後再計算しない。A2）、探査手番の決定（001 §6-2。枚数 → 探査出力 → お守りからの時計回り距離）、順序を永続化。出力・順序を公開通知 | なし | なし | — | `start` → 41 |
 | 41 | `ExploreTurnStart` | GAME | 次の探査手番のプレイヤーを決める（`changeActivePlayer`）。全員終わっていれば帰還へ。そのプレイヤーの準備場（表向き・横向きでない）に使用可能な【探査時】効果（011・013）があれば 42 へ。なければ 43 へ | なし | なし | — | `onExplore` → 42、`choose` → 43、`allDone` → 50 `ReturnAmulet` |
-| 42 | `ExploreOnExploreChoice` | ACTIVE_PLAYER | 探査時効果（011・013）の使用。プレイヤーが選んだ順に 1 つずつ（任意効果）。使い切るか「終了」で 43 へ | 手番のプレイヤー | `actUseOnExplore(int $cardId, ?int $deckCost)`（011 は `$deckCost` = 加える山札のコスト 2/4/6/8、013 は `null`）、`actSkipOnExplore()` | 【公開】`usable`（使える効果カード ID と、011 の選べる山札コスト） | `again` → 42（残りの効果があれば）、`done` → 43 |
-| 43 | `ExploreChoose` | ACTIVE_PLAYER | 探査対象の選択（009 §9.2）。サーバーが実効コスト（探査中効果・007 のロック・025/026 の制限を反映）を計算し、探査できる対象と**パス可否**を args で送る。探査できる対象が 1 つもなければ**状態に入らず自動パス**（ログに出す）。追加探査（012）のときは同じ状態を `additional=true` で再入場する。確認ステップ（選ぶ → [Explore]）はクライアント状態で行い、サーバーには確定時の 1 アクションだけが届く | 手番のプレイヤー | `actExplore(string $type, ?int $ref)`：`type` = `'row'`（`ref` = カード ID）/ `'unknown'`（未確認帯域）/ `'deck'`（`ref` = 山札のコスト）。`actPass()` | 【公開】`output`（探査出力）、`rowTargets`（探査できる列のカード ID と実効コスト）、`unknownTarget`（探査できるか・実効コスト）、`deckTargets`（探査できる山札のコストと実効コスト。枚数 0 の山札は除く）、`additional`、`exploredCostSum` | `acquired` → 44 `AcquireDispatch`、`passed` → 48 `ExploreTurnEnd` |
-| 44 | `AcquireDispatch` | GAME | 獲得時効果の解決（獲得の都度ただちに。001 Q-17）。獲得したカードを獲得エリアへ置き、終了条件を判定（未確認帯域の獲得、コスト 8 の探査山札が 0 枚）。【獲得時】を持つカードで分岐: 004 → 45、034 → 46、055 → 47、040 → 帰還フェイズで山札の上に置く記録を残す（探査フェイズでの獲得のみ。自動）。連鎖（034 で獲得したカードの獲得時効果）はここへ戻って再処理。全て終わったら、012（有効かつ追加探査可能）なら 43 を `additional` で再入場、そうでなければ 48 | なし | なし | — | `exclude` → 45、`freeAcquire` → 46、`blackHole` → 47、`additional` → 43、`done` → 48 |
+| 42 | `ExploreOnExploreChoice` | ACTIVE_PLAYER | 探査時効果（011・013）の使用。プレイヤーが選んだ順に 1 つずつ（任意効果）。使い切るか「終了」で 43 へ | 手番のプレイヤー | `actUseOnExplore(int $cardId, int $deckCost)`（011 は `$deckCost` = 加える山札のコスト 2/4/6/8、013 は `0`）、`actSkipOnExplore()` | 【公開】`usable`（使える効果カード ID と、011 の選べる山札コスト） | `again` → 42（残りの効果があれば）、`done` → 43 |
+| 43 | `ExploreChoose` | ACTIVE_PLAYER | 探査対象の選択（009 §9.2）。サーバーが実効コスト（探査中効果・007 のロック・025/026 の制限を反映）を計算し、探査できる対象と**パス可否**を args で送る。探査できる対象が 1 つもなければ**状態に入らず自動パス**（ログに出す）。追加探査（012）のときは同じ状態を `additional=true` で再入場する。確認ステップ（選ぶ → [Explore]）はクライアント状態で行い、サーバーには確定時の 1 アクションだけが届く | 手番のプレイヤー | `actExplore(string $source, int $cardId, int $cost)`：`source` = `'row'`（`cardId` = カード ID）/ `'unknown'`（未確認帯域。`cardId` = そのカード ID）/ `'deck'`（`cost` = 山札のコスト）。使わない方は `0`。`actPass()` | 【公開】`output`（探査出力）、`rowTargets`（探査できる列のカード ID と実効コスト）、`unknownTarget`（探査できるか・実効コスト）、`deckTargets`（探査できる山札のコストと実効コスト。枚数 0 の山札は除く）、`additional`、`exploredCostSum`、`canPass`、`lockedCard`（007 のロック） | `acquired` → 44 `AcquireDispatch`、`passed` → 48 `ExploreTurnEnd` |
+| 44 | `AcquireDispatch` | GAME | 獲得時効果の解決（獲得の都度ただちに。001 Q-17）。獲得したカードを獲得エリアへ置き、終了条件を判定（未確認帯域の獲得、コスト 8 の探査山札が 0 枚）。【獲得時】を持つカードで分岐: 004 → 45、034 → 46、055 → 47、040 → 帰還フェイズで山札の上に置く記録を残す（探査フェイズでの獲得のみ。自動）。連鎖（034 で獲得したカードの獲得時効果）はここへ戻って再処理。全て終わったら、012（有効かつ追加探査可能）なら 43 を `additional` で再入場、そうでなければ 48 | なし | なし | — | `exclude` → 45、`freeAcquire` → 46、`blackHole` → 47、`additional` → 43、`done` → 48、`resume` → 30（探査フェイズ以外から来たとき。2.6） |
 | 45 | `AcquireExcludeChoice` | ACTIVE_PLAYER | 004 コロニーキャンプ：自分の準備場の表向きのカード（横向き含む）から**1 枚を選んで除外**（必須。対象なしなら状態に入らない。002 No.25）。除外しても探査出力は変わらない（A2） | 獲得したプレイヤー | `actExcludePrepCard(int $cardId)` | 【公開】`candidates`（準備場の表向き・横向きのカード ID。裏向きの別置き場のカードと 046 の付加カードは含まない。046 は本体のみ） | `done` → 44 |
-| 46 | `FreeAcquireChoice` | ACTIVE_PLAYER | 034 粉塵バキューマ：探査場（列、探査山札の上、未確認帯域）の[太陽系]または[天の川銀河]のみを持つカードを 1 枚選び、**無料で獲得**（必須。002 No.41・61）。裏向きの探査山札の上も対象。候補にできる探査山札の上は**コスト 2 とコスト 4 の山札の 2 つだけ**（コスト 2 の山札は全 15 枚が[太陽系]のみ、コスト 4 の山札は全 15 枚が[天の川銀河]のみ。コスト 6・8 の山札の上は条件を満たさない。002 §4）。このため、選んだ山札の上のカードが条件に合わないことは起こらず、山札の上を見る必要も、選び直しもない（未確定事項 No.7 の回答） | 獲得したプレイヤー | `actFreeAcquire(string $type, ?int $ref)`（`'row'` / `'deck'`） | 【公開】`rowCandidates`、`deckCandidates`（山札のコスト。コスト 2 とコスト 4 の山札のうち、1 枚以上残っているもの。上のカードの中身は送らない） | `acquired` → 44 |
-| 47 | `DeckExcludeChoice` | ACTIVE_PLAYER | 055 ブラックホール発生機：自分のデッキからカードを**最大 2 枚**選んで除外（0 枚可）。お守りは対象外。候補は、山札・準備場（横向き含む）・このラウンドの獲得カードに加えて、ストップ時に引いた裏向きのカード（別置き場）も含む（未確定事項 No.11 の回答「自分のデッキは山札も準備場も含むため」）。山札の内容を確認して選べる（002 No.19）。055 は「デッキ」を参照する効果なので、解決中は本人にデッキ全体（山札・準備場・獲得カード・別置き場の裏向きカード）の券面を見せる（未確定事項 No.13 の回答） | 獲得したプレイヤー | `actExcludeDeckCards(int[] $cardIds)`（0〜2 件） | 【本人】`deckCards`（選べるカード ID。山札・準備場・獲得カード・別置き場の裏向きカード。山札と別置き場の分も含め、券面は本人だけに見せる。003 §4。デッキを参照する効果の解決中の例外として、本人にだけ ID と券面を送る（007 参照）。未確定事項 No.13） | `done` → 44 |
+| 46 | `FreeAcquireChoice` | ACTIVE_PLAYER | 034 粉塵バキューマ：探査場（列、探査山札の上、未確認帯域）の[太陽系]または[天の川銀河]のみを持つカードを 1 枚選び、**無料で獲得**（必須。002 No.41・61）。裏向きの探査山札の上も対象。候補にできる探査山札の上は**コスト 2 とコスト 4 の山札の 2 つだけ**（コスト 2 の山札は全 15 枚が[太陽系]のみ、コスト 4 の山札は全 15 枚が[天の川銀河]のみ。コスト 6・8 の山札の上は条件を満たさない。002 §4）。このため、選んだ山札の上のカードが条件に合わないことは起こらず、山札の上を見る必要も、選び直しもない（未確定事項 No.7 の回答） | 獲得したプレイヤー | `actFreeAcquire(string $type, int $ref)`（`'row'`（`ref` = カード ID）/ `'deck'`（`ref` = 山札のコスト）） | 【公開】`rowCandidates`、`deckCandidates`（山札のコスト。コスト 2 とコスト 4 の山札のうち、1 枚以上残っているもの。上のカードの中身は送らない） | `acquired` → 44 |
+| 47 | `DeckExcludeChoice` | ACTIVE_PLAYER | 055 ブラックホール発生機：自分のデッキからカードを**最大 2 枚**選んで除外（0 枚可）。お守りは対象外。候補は、山札・準備場（横向き含む）・このラウンドの獲得カードに加えて、ストップ時に引いた裏向きのカード（別置き場）も含む（未確定事項 No.11 の回答「自分のデッキは山札も準備場も含むため」）。山札の内容を確認して選べる（002 No.19）。055 は「デッキ」を参照する効果なので、解決中は本人にデッキ全体（山札・準備場・獲得カード・別置き場の裏向きカード）の券面を見せる（未確定事項 No.13 の回答） | 獲得したプレイヤー | `actExcludeDeckCards(array $cardIds)`（カード ID の配列。0〜2 件） | 【本人】`deckCards`（選べるカード ID。山札・準備場・獲得カード・別置き場の裏向きカード。山札と別置き場の分も含め、券面は本人だけに見せる。003 §4。デッキを参照する効果の解決中の例外として、本人にだけ ID と券面を送る（007 参照）。未確定事項 No.13） | `done` → 44 |
 | 48 | `ExploreTurnEnd` | GAME | その手番を終了し、手番インデックスを進める。探査力に関係する一時データ（013 の使用済み、手番中のみの値）を消す | なし | なし | — | `next` → 41 |
 
 #### 2.5 帰還フェイズ・ゲーム終了
@@ -125,10 +125,42 @@ BGA のゲームはサーバー側の状態機械で進行する。この仕様�
 | ID | クラス名 | 種別 | 説明 | アクティブ | アクション（引数） | args | 遷移 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | 50 | `ReturnAmulet` | GAME | 帰還フェイズ①。探査出力が最小のプレイヤー（同点は探査手番が遅い方。001 §7-1）に所有権を移す（出力は探査手番決定に使った最終値。Q-20）。面が厄除け（058）なら新所有者の獲得時効果へ（所有者が変わらなくても発動。FAQ 10）。準備場の表向きのカードが 0 枚なら状態に入らず次へ | なし | なし | — | `exclude` → 51、`next` → 52 |
-| 51 | `AmuletExcludeChoice` | ACTIVE_PLAYER | 058 厄除けのお守り：新所有者が自分の準備場の表向きのカード（横向き含む）から**最大 1 枚**を除外（0 枚可。Q-21）。裏向きの別置き場のカードは対象外（Q-5・Q-32） | 新所有者 | `actExcludePrepCard(?int $cardId)`（`null` = 除外しない） | 【公開】`candidates` | `done` → 52 |
+| 51 | `AmuletExcludeChoice` | ACTIVE_PLAYER | 058 厄除けのお守り：新所有者が自分の準備場の表向きのカード（横向き含む）から**最大 1 枚**を除外（0 枚可。Q-21）。裏向きの別置き場のカードは対象外（Q-5・Q-32） | 新所有者 | `actExcludePrepCard(int $cardId)`（`0` = 除外しない） | 【公開】`candidates` | `done` → 52 |
 | 52 | `ReturnShuffle` | GAME | 帰還フェイズ②。各プレイヤーの準備場（046 の付加カードは別カードとして）、獲得カード、裏向きの別置き場、山札をまとめてシャッフル（`bga_rand` 系）。040 を探査フェイズで獲得していれば、シャッフル後に山札の上へ置く。枚数だけを通知 | なし | なし | — | `next` → 53 |
 | 53 | `ReturnRefill` | GAME | 帰還フェイズ③④。列を規定枚数まで補充（山札が足りなければあるだけ。Q-24）。コスト 8 の探査山札が 0 枚になったら終了フラグを立てる。`updateGameProgression: true`。終了フラグがあれば 60、なければ 10 | なし | なし | — | `nextRound` → 10 `RoundStart`、`end` → 60 `FinalScoring` |
 | 60 | `FinalScoring` | GAME | 名声計算（名声変動を反映、お守り所持者 +1。001 §9-2）、同点処理（未確認帯域の獲得 → ラニアケア少 → 乙女座少 → 天の川少 → 太陽系少。§9-3）。`playerScore` に名声、`playerScoreAux` に同点処理の値を保存。統計を確定 | なし | なし | — | `gameEnd` → 99（予約。U5） |
+
+#### 2.6 実装との対応（I-04〜I-11 で確定した点）
+
+実装（`src/modules/php/States/`、状態は 26 個）で決めた細部と、上の表に足した点をまとめる。作者の確定事項は変えていない。
+
+- **状態 ID**: 定数は `src/modules/php/Flow/StateId.php` に置く（`ROUND_START = 10` から `FINAL_SCORING = 60`、`GAME_END = 99`）。BGA は `States/` の中の全クラスを状態として読むため、この定数クラスは `States/` に置かない。
+- **遷移の表し方**: `transitions` の行き先は、状態クラス名ではなく**状態 ID（int）**（`StateId::DRAW_RESOLVE` など）で書く（B3）。
+- **追加した遷移**: 36 の入れ替えで山札に入った列のカードに【獲得時】効果があるとき、探査フェイズ以外でも 44 を使う（008 N-1）。
+  - `33 -acquire→ 44`: `WormholeChoice` が、獲得時効果の解決待ち（`acquire_queue`。007 §4.2）があれば `'acquire'` を返す。なければ従来どおり `'done'` → 30。
+  - `44 -resume→ 30`: `AcquireDispatch` は待ちが空になったとき、グローバル値 `phase` が探査（`explore`）でなければ `'resume'` を返して 30 へ戻る。探査フェイズなら従来どおり `additional` / `done`（012 の再入場と 48）。
+- **アクションの引数**: BGA の呼び出しは `null` を渡せないため、省略可能な値は `0` で表す。`ACTIVE_PLAYER` 状態のアクションには、フレームワークが `int $activePlayerId` を渡す（下表では省略）。
+- **アクション名と引数の形**（上の表を実装に合わせた。判定は `Flow/` の純粋なクラスに置き、状態クラスは入出力に専念する）:
+
+| 状態 | アクション |
+| --- | --- |
+| 21 | `actSelectPrep(string $choice)`（`#[CheckAction(false)]`。案 B） |
+| 23 | `actSelectPrepLate(string $choice)` |
+| 31 | `actDecideReturn(bool $doReturn)` |
+| 32 | `actChooseCopySource(int $cardId)` |
+| 33 | `actWormhole(int $rowCardId)`（`0` = 入れ替えない） |
+| 34 | `actChooseLockedCard(int $cardId)` |
+| 35 | `actArrangeTop(int $firstId, int $secondId)`、`actYesNo(bool $yes)`、`actTopOrBottom(string $position)`、`actPickFromDeck(int $cardId)`、`actPickOne(int $cardId)`（いずれも `#[CheckAction(false)]`） |
+| 42 | `actUseOnExplore(int $cardId, int $deckCost)`、`actSkipOnExplore()` |
+| 43 | `actExplore(string $source, int $cardId, int $cost)`、`actPass()` |
+| 45 | `actExcludePrepCard(int $cardId)` |
+| 46 | `actFreeAcquire(string $type, int $ref)` |
+| 47 | `actExcludeDeckCards(array $cardIds)` |
+| 51 | `actExcludePrepCard(int $cardId)`（`0` = 除外しない） |
+
+- **args**: 43 は表の項目に加えて `canPass`、`lockedCard` を返す。32 は `copyCardId`、34・33 は `ownerId`、31 は `podOwner`、35 は `effectCardNo`・`effectName` も返す。21 の `forced` は `{player_id, reason}` の配列。
+- **準備フェイズの内部値**: 20 は、この回に選択が確定した人の理由（`memoryAlbum` / `safetyDevice` / `bigBang` / `emptyDeck`）をグローバル値 `prep_reasons` に書き、N2 `choiceRevealed` の `reason` と 21 の `forced` に使う（007 §4.2）。
+- **U1〜U4・U6・U7 は未確認のまま**: 21 と 35 の変更・再選択は案 B（`#[CheckAction(false)]` と自前検証）で実装したが、Studio での実機確認はこれから（非アクティブな人のアクションを受け付けるか。U1）。確認の結果、案 A への切り替えが必要になる可能性は残る。U5 は I-04 で確認済み（上記）。
 
 ### 3. 状態遷移図
 
@@ -202,6 +234,7 @@ BGA のゲームはサーバー側の状態機械で進行する。この仕様�
 - **準備選択のループ**: 20 → 21/22/23 → 24 → 30 → 20。24 で `allStop` か `soloDraw` になるまで繰り返す（001 §5）。
 - **ドロー時効果の解決ループ**: 30 は割り込み状態（31〜35）から必ず 30 へ戻り、`resolve_level` を進める。31〜35 にはサーバー側のカーソルがあるので、再入場しても同じレベルを二重に実行しない。
 - **探査手番のループ**: 41 → 42 → 43 → 44 → 48 → 41。**追加探査**（012）は 44 から 43 への再入場（`additional=true`）。**効果の対象選択の割り込み**は 44 → 45/46/47 → 44。
+- **36 の入れ替えによる獲得時効果**: 33 → 44 → 30（`acquire` と `resume`。2.6）。
 - ゲーム終了条件が成立しても、ラウンドは最後まで進める（001 Q-18）。終了判定は 53 で行う。
 
 ### 4. 準備フェイズの詳細設計

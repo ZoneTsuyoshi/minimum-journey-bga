@@ -910,6 +910,59 @@ Studio で確認する項目。006 §10 のテスト T1〜T20 と合わせて実
 | 006（状態遷移） | 食い違いの反映（済み）: `next_choice_lock` を `next_choice_records` に統一、解決キューに効果なしのカードも入れる（§4.4）、`prepMarked` の追加（未確定事項 No.9、No.10）。006 は本 PR で反映済み（2026-10-14）。作者回答（2026-10-14）に合わせて、§11 の T-007 申し送りの `changeIds()` の記述、§9 の裏向きカードの ID の記述、状態 47 の `deckCards` の例外の明記を直した |
 | 009（UI・アセット） | §12 T-007 の「中身と無関係な ID を送る」を「裏向きカードの ID を送らない（枚数のみ）」に、009 を本 PR で更新済み（2026-10-14。未確定事項 No.13）。名声合計の本人表示（見せない）・終了時の扱い（最終得点を表示）は未確定事項 No.2 の了承で確定、裏向きカードの枚数を全員に見せることは No.3 の了承で確定。009 を反映済み（2026-10-14） |
 
+### 17. 実装との対応（I-02〜I-11 で確定した点）
+
+仕様の提案（【提案】）を実装した結果と、実装で加えた細部を記録する。作者の確定事項は変えていない。実装の事実は `src/modules/php/` を読んで確かめた。
+
+#### 17.1 カードの置き場所と自前 DAO
+
+- **ItemManager は使わない**（代替 B。§3.6）。`card` テーブルは `src/dbmodel.sql` に §3.1 の DDL で作り、`Data/CardRepository.php` が `Data/Database.php`（インターフェース）越しに読み書きする。本番は `Data/BgaDatabase.php`、テストは `tests/Support/PdoDatabase.php`。V1〜V6 の確認結果は 1.2 の各行に追記してある。
+- **置き場所**: `Data/Zone.php`（列挙）が §3.2 の 11 種（`deck`、`prep`、`attached`、`facedown`、`acquired`、`explore_deck`、`row`、`unknown`、`removed`、`setup_removed`、`charm`）をそのまま持つ。`isPile()` は `deck`・`explore_deck`・`facedown` で真。山の上は `card_order` が大きい側（`Data/DeckMath.php`）。
+- **`CardRepository` の主な操作**: `create`、`get`、`getMany`、`findByCardNo`、`count`、`list`、`peekTop`、`deckViewForOwner`（§3.5 の `DeckView::forOwner` に相当）、`rowFillSlots`、`attachedTo`、`move`、`drawTopToPrep`、`drawTopToFacedown`、`putOnTop`、`putOnBottom`、`moveToAcquired`、`removeFromGame`、`returnToDeck`、`attach`、`detach`、`setSideways`、`shuffleDeck`、`shuffleZone`、`hideIds`（`changeIds()` 相当の自前実装）。
+- **テーブル**: `card`、`resolve_entry`（§4.4 の DDL のとおり）、`player` の追加 4 列（§4.1 のとおり）。
+
+#### 17.2 グローバル値
+
+`Data/GlobalValues.php` が全キーのアクセサを持つ。§4.2 の 16 キーは全て同じ名前・型・初期値で実装した（`initialize()` が書くのは `pile8_initial`・`piles_initial_total` を除く分。この 2 つは `setupNewGame` が別に書く）。`resolve_level` の値は `Data/ResolveLevel.php` の列挙で、§4.2 の `INIT`、`P0`、`P1`、`P2`、`P2_WAIT`、`P2A`、`COPY`、`COPY_WAIT`、`P3`、`P4`、`P4_WAIT`、`P5_SEQ`、`P5_SIM`、`P6` と同じ。`end_reason` は `'unknown'` と `'pile8'`。
+
+実装で**追加した**キー（§4.2 の表に無い内部値）:
+
+| キー | 型 | 意味 | 書く状態 | 公開 |
+| --- | --- | --- | --- | --- |
+| `prep_reasons` | プレイヤー ID => 理由（`memoryAlbum`／`safetyDevice`／`bigBang`／`emptyDeck`）の連想配列 | この回に選択が確定した人の理由。N2 `choiceRevealed` の `reason` と、21 の args `forced` を作る。初期値は空 | 20 | 公開（強制の理由は公開情報） |
+| `acquire_queue` | `[{card_id, player_id}]` の配列 | 獲得時効果の解決待ち（008 §5.3）。先頭から 44 が解決する。36 の入れ替えで山札に入った列のカードの分も入る（006 2.6） | 43、33、44 | 内部 |
+| `top_after_shuffle` | `[{player_id, card_no}]` の配列 | 040 を探査フェイズで獲得した記録。帰還フェイズ②のシャッフル後に山札の上へ置く。帰還フェイズで ID が付け替わるため、カード番号で持つ | 44、52 | 内部 |
+
+#### 17.3 通知
+
+実装した通知は 35 種（`new Notification(` と `RoundStart` の `notify->all` で確かめた。N35 まで 35 種のうち `fameUpdate` を除く 34 種と、追加の `exploreStarted`）。§10.2 の N1〜N35 のうち、**N34 `fameUpdate` は未実装**（サーバーが送っていない。クライアントの `notif_fameUpdate` は用意済み。名声合計の表示と `getAllDatas` の `fame` は 17.4 のとおり未対応）。他は §10.2 の名前で実装した。仕様から**変わった・加わった**点:
+
+| 通知 | 変更 |
+| --- | --- |
+| 追加 `exploreStarted` | 全員宛て。args なし。ログ文言 `The exploration phase begins`。40 の先頭で、N22・N23 の前に送る（探査フェイズ開始の合図。クライアントは探査手番の添字を初期化して表示を更新する） |
+| `cardDrawn`（N6）、`cardAcquired`（N25） | args に `card_no`（カード番号）を追加。`cardSideways`（N8）も `card_no` を持つ |
+| `countersUpdate`（N33） | `players[pid]` に `outputNow` を含める（準備フェイズの 24 と、ドロー時効果の解決後。暫定探査出力）。他の送り方は、変わった項目だけを送る（獲得・探査は `acquiredCount` と `piles`、除外は `prepCount`・`deckCount`・`facedownCount`・`acquiredCount`、帰還フェイズ③は `piles`） |
+| `finalScore`（N35） | args に `modifier`（名声変動の合計）を追加。`fame` は `base`＋`modifier`＋`charm_bonus`（`Flow/FinalScorer.php`） |
+| `exploreOutputDecided`（N22）、`exploreOrderDecided`（N23） | 別々の通知として送る（全員分の N22 を席順に送った後に N23） |
+| `amuletMoved`（N28） | 通知名は `amuletMoved`（クライアントの `notif_amuletMoved`）。ログ文言と UI 文字列の「お守り」は `charm`／`Charm` と訳す。`card_name` は `Material/CardDefinitions.php` の英語名 |
+| `rowRefilled`（N31） | args は `cost`、`count`、`cards` |
+| `cardsGatheredToDecks`（N29） | args は `gathered` と `counts` |
+
+#### 17.4 `getAllDatas`
+
+`Data/BoardView.php` が §8.2 の骨格を返し、`Game.php` の `getAllDatas` が `players`（`id`、`score`）と合成する。返す項目:
+
+- 最上位: `round`、`phase`、`playerOrder`、`piles`、`rows`（`[{slot, card}]`）、`unknown`、`charm`（`{card, holder}`）、`lockedCard`（`{playerId, cardId}`）、`exploreOrder`、`exploreIndex`、`players`。
+- `players[pid]`: `prep`（`[{card, order, sideways, attached}]`）、`acquired`、`deckCount`、`facedownCount`、`prepFinished`、`prepCount`、`acquiredCount`、`isHalved`、`output`、`outputNow`。
+- 山札・`facedown`・探査山札・`setup_removed`・`prep_choice` は含めない（§8.1 のとおり）。
+
+§8.2 にあるが**まだ返していない**項目: `options`、`rowQuota`、`removed`、`exploreState`、`nextChoice`、`players[pid].fame`。名声表示（`fameUpdate`）とあわせて未対応で、足す時期は未定（ゲームオプションを扱う I-12 が候補。`BoardView` の注記では「除外・名声などは後で足す」）。
+
+#### 17.5 その他
+
+- 乱数は `bga_rand` 系をコンストラクタで差し替えられる形にし、テストでは `tests/Support/SeededRandom.php` で固定する。
+- 単体テスト（`tests/Unit/`）と結合テスト（`tests/Integration/`。`tests/run-integration.sh`）が既にある。CI への組み込みは未了（`docs/tasks.md` の I-13）。
+
 ## エッジケース
 
 | No. | 状況 | 挙動 |
