@@ -37,6 +37,7 @@ final class GlobalValues
         $this->setPhase(self::PHASE_PREP);
         $this->setPrepSelectors([]);
         $this->setPrepLatePlayer(null);
+        $this->setPrepReasons([]);
         $this->setNextChoiceRecords(self::emptyNextChoiceRecords());
         $this->setForceDrawTmp(false);
         $this->setResolveLevel(ResolveLevel::Init);
@@ -109,6 +110,30 @@ final class GlobalValues
     public function setPrepLatePlayer(?int $playerId): void
     {
         $this->globals->set('prep_late_player', $playerId);
+    }
+
+    /**
+     * この回に選択が確定したプレイヤーの理由（memoryAlbum／safetyDevice／bigBang／emptyDeck）。
+     * 007 §4.2 に無い内部値。N2 `choiceRevealed` の reason と、21 の args `forced` を作るために 20 が書く。
+     *
+     * @return array<int, string> プレイヤー ID => 理由
+     */
+    public function prepReasons(): array
+    {
+        $v = $this->globals->get('prep_reasons', []);
+        $result = [];
+        foreach (is_array($v) ? $v : [] as $playerId => $reason) {
+            $result[(int) $playerId] = (string) $reason;
+        }
+        return $result;
+    }
+
+    /**
+     * @param array<int, string> $value
+     */
+    public function setPrepReasons(array $value): void
+    {
+        $this->globals->set('prep_reasons', $value);
     }
 
     /**

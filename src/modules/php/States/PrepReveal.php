@@ -6,14 +6,13 @@ namespace Bga\Games\MinimumJourney\States;
 
 use Bga\GameFramework\StateType;
 use Bga\GameFramework\States\GameState;
-use Bga\Games\MinimumJourney\Data\PrepChoice;
-use Bga\Games\MinimumJourney\Flow\RoundFlow;
 use Bga\Games\MinimumJourney\Flow\StateId;
 use Bga\Games\MinimumJourney\Game;
 
 /**
- * 選択の開示と分岐（006 §2.2）。ストップした人を準備終了にし、ドロー人数で分岐する。
- * 骨格ではドローが起きないので、常に allStop で探査へ進む。カードを引く処理は I-05。
+ * 選択の開示と分岐（006 §2.2、001 §5 ②③）。
+ * ドローした人は山札の上から準備場へ、ストップした人は準備終了（ドローがあった回は裏向きで別置き場へ 1 枚）。
+ * 全員ストップ・1 人だけドロー（横向き・半減）は探査へ、2 人以上ドローは解決（30）へ。解決の中身は I-09。
  */
 class PrepReveal extends GameState
 {
@@ -34,22 +33,9 @@ class PrepReveal extends GameState
 
     public function onEnteringState(): string
     {
-        $values = $this->game->playerValues;
-        $choices = [];
-        foreach ($this->game->globalValues->prepSelectors() as $playerId) {
-            $choices[$playerId] = $values->prepChoice($playerId);
-        }
+        $result = $this->game->prepPhase->reveal($this->game->seatOrder());
+        $this->game->sendNotifications($result->notifications);
 
-        foreach ($choices as $playerId => $choice) {
-            if ($choice === PrepChoice::Stop) {
-                $values->setPrepFinished($playerId, true);
-            }
-        }
-
-        $this->bga->notify->all('prepRevealed', clienttranslate('Preparation choices are revealed'), [
-            'choices' => array_map(static fn(?PrepChoice $c): ?string => $c?->value, $choices),
-        ]);
-
-        return RoundFlow::revealTransition($choices);
+        return (string) $result->transition;
     }
 }

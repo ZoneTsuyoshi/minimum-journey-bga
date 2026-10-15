@@ -20,12 +20,16 @@ declare(strict_types=1);
 
 namespace Bga\Games\MinimumJourney;
 
+use Bga\GameFramework\UserException;
 use Bga\Games\MinimumJourney\Data\BgaDatabase;
 use Bga\Games\MinimumJourney\Data\BoardView;
 use Bga\Games\MinimumJourney\Data\CardRepository;
 use Bga\Games\MinimumJourney\Data\GlobalValues;
 use Bga\Games\MinimumJourney\Data\PlayerValues;
 use Bga\Games\MinimumJourney\Data\Zone;
+use Bga\Games\MinimumJourney\Flow\Notification;
+use Bga\Games\MinimumJourney\Flow\PrepPhase;
+use Bga\Games\MinimumJourney\Flow\PrepRuleViolation;
 use Bga\Games\MinimumJourney\Flow\RoundFlow;
 use Bga\Games\MinimumJourney\Flow\StateId;
 use Bga\Games\MinimumJourney\Setup\GameSetup;
@@ -36,6 +40,7 @@ class Game extends \Bga\GameFramework\Table
     public CardRepository $cards;
     public GlobalValues $globalValues;
     public PlayerValues $playerValues;
+    public PrepPhase $prepPhase;
 
     public function __construct()
     {
@@ -45,6 +50,39 @@ class Game extends \Bga\GameFramework\Table
         $this->cards = new CardRepository($database);
         $this->globalValues = new GlobalValues($this->bga->globals);
         $this->playerValues = new PlayerValues($database);
+        $this->prepPhase = new PrepPhase(
+            $this->cards,
+            $this->playerValues,
+            $this->globalValues,
+            fn(int $playerId): string => $this->getPlayerNameById($playerId),
+        );
+    }
+
+    /**
+     * 準備フェイズの処理が返した通知を送る（to が null なら全員、そうでなければ本人のみ）。
+     *
+     * @param list<Notification> $notifications
+     */
+    public function sendNotifications(array $notifications): void
+    {
+        foreach ($notifications as $n) {
+            if ($n->to === null) {
+                $this->bga->notify->all($n->name, $n->message, $n->args);
+            } else {
+                $this->bga->notify->player($n->to, $n->name, $n->message, $n->args);
+            }
+        }
+    }
+
+    /**
+     * 準備フェイズの規則違反を、翻訳つきのユーザー向けエラーにする。
+     */
+    public function prepError(PrepRuleViolation $violation): UserException
+    {
+        $message = $violation->reason === PrepRuleViolation::EMPTY_DECK
+            ? $this->_('You cannot draw because your deck is empty')
+            : $this->_('You cannot choose now');
+        return new UserException($message);
     }
 
     /**

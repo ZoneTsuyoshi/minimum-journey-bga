@@ -17,3 +17,13 @@ namespace Bga\GameFramework\Db {
         }
     }
 }
+
+namespace {
+    // BGA の翻訳マーク用の関数。本物は何もせず文字列を返す
+    if (!function_exists('clienttranslate')) {
+        function clienttranslate(string $text): string
+        {
+            return $text;
+        }
+    }
+}
