@@ -10,8 +10,9 @@ use Bga\Games\MinimumJourney\Flow\StateId;
 use Bga\Games\MinimumJourney\Game;
 
 /**
- * 獲得時効果の振り分け。骨格では獲得が起きない（探査はパスのみ）ので、何もせず手番の終了へ進む。
- * 骨格（I-04）では呼ばれても何もせず次へ進む差し込み口。中身は I-06 で実装する。
+ * 獲得時効果の振り分け。
+ * 獲得そのもの（獲得エリアへの移動と終了フラグ）は I-06 の ExplorePhase::explore が済ませている。
+ * 獲得時効果（004・034・055・040）は I-11 で実装する差し込み口で、いまは何もせず手番の終了へ進む。
  */
 class AcquireDispatch extends GameState
 {

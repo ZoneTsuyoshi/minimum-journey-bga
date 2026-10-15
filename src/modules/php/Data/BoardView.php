@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Bga\Games\MinimumJourney\Data;
 
+use Bga\Games\MinimumJourney\Flow\ExploreOutputCalculator;
 use Bga\Games\MinimumJourney\Setup\GameSetup;
 
 /**
@@ -17,6 +18,7 @@ final class BoardView
         private readonly CardRepository $cards,
         private readonly GlobalValues $globals,
         private readonly PlayerValues $players,
+        private readonly ?ExploreOutputCalculator $calculator = null,
     ) {
     }
 
@@ -46,7 +48,11 @@ final class BoardView
                 'deckCount' => $this->cards->count(Zone::Deck, $playerId),
                 'facedownCount' => $this->cards->count(Zone::Facedown, $playerId),
                 'prepFinished' => $finished[$playerId] ?? false,
+                'prepCount' => $this->cards->count(Zone::Prep, $playerId),
+                'acquiredCount' => $this->cards->count(Zone::Acquired, $playerId),
+                'isHalved' => $this->players->isHalved($playerId),
                 'output' => $this->players->exploreOutput($playerId),
+                'outputNow' => $this->calculator?->outputNow($playerId) ?? 0,
             ];
         }
 

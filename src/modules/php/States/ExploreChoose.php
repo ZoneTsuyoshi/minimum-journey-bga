@@ -7,11 +7,13 @@ namespace Bga\Games\MinimumJourney\States;
 use Bga\GameFramework\StateType;
 use Bga\GameFramework\States\GameState;
 use Bga\GameFramework\States\PossibleAction;
+use Bga\Games\MinimumJourney\Flow\ExploreRuleViolation;
 use Bga\Games\MinimumJourney\Flow\StateId;
 use Bga\Games\MinimumJourney\Game;
 
 /**
- * 探査対象の選択（006 §2.4）。骨格ではパスだけ受け付ける（探査・獲得は I-06）。
+ * 探査対象の選択（006 §2.4、§6.1）。探査できる対象がなければ入場時に自動パスする。
+ * 確認ステップ（選ぶ → [Explore]、[Cancel]）はクライアント状態で行い、サーバーには確定時の actExplore だけが届く。
  */
 class ExploreChoose extends GameState
 {
@@ -32,15 +34,54 @@ class ExploreChoose extends GameState
     }
 
     /**
+     * 探査できる対象がなければ自動パス（009 §9.2、ログに出す）。
+     */
+    public function onEnteringState(int $activePlayerId): ?string
+    {
+        $result = $this->game->explorePhase->enterChoose($activePlayerId);
+        $this->game->sendNotifications($result->notifications);
+
+        return $result->transition;
+    }
+
+    /**
+     * 探査できる対象と実効コストを送る（山札の上はコストと枚数だけで、カードの ID や券面は送らない。007 §9.3）。
+     *
      * @return array<string, mixed>
      */
     public function getArgs(int $activePlayerId): array
     {
+        $targets = $this->game->explorePhase->targets($activePlayerId);
+        $state = $this->game->globalValues->exploreState();
+
         return [
             'output' => $this->game->playerValues->exploreOutput($activePlayerId) ?? 0,
+            'rowTargets' => $targets['rowTargets'],
+            'unknownTarget' => $targets['unknownTarget'],
+            'deckTargets' => $targets['deckTargets'],
             'additional' => false,
+            'exploredCostSum' => $state['sum_cost'] ?? 0,
             'canPass' => true,
+            'lockedCard' => $this->game->globalValues->lockedCard(),
         ];
+    }
+
+    /**
+     * 探査する。source は row（列の表向きのカード）／unknown（未確認帯域）／deck（探査山札の上）。
+     * row・unknown は cardId、deck は cost を使う（使わない方は 0）。
+     */
+    #[PossibleAction]
+    public function actExplore(string $source, int $cardId, int $cost, int $activePlayerId): string
+    {
+        try {
+            $result = $this->game->explorePhase->explore($activePlayerId, $source, $cardId, $cost);
+        } catch (ExploreRuleViolation $violation) {
+            throw $this->game->exploreError($violation);
+        }
+        $this->game->giveExtraTime($activePlayerId);
+        $this->game->sendNotifications($result->notifications);
+
+        return (string) $result->transition;
     }
 
     #[PossibleAction]
@@ -60,10 +101,9 @@ class ExploreChoose extends GameState
 
     private function pass(int $playerId): string
     {
-        $this->bga->notify->all('explorePassed', clienttranslate('${player_name} passes'), [
-            'player_id' => $playerId,
-            'player_name' => $this->game->getPlayerNameById($playerId),
-        ]);
-        return 'passed';
+        $result = $this->game->explorePhase->pass($playerId);
+        $this->game->sendNotifications($result->notifications);
+
+        return (string) $result->transition;
     }
 }
