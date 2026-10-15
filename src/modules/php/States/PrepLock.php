@@ -10,7 +10,7 @@ use Bga\Games\MinimumJourney\Flow\StateId;
 use Bga\Games\MinimumJourney\Game;
 
 /**
- * 選択の確定（006 §2.2）。049 の後選びがいれば 23 へ、いなければ開示へ。骨格では後選びは起きない。
+ * 選択の確定（006 §2.2）。049 の後選びがいれば、他の全員の選択を公開して 23 へ。いなければ開示（24）へ。
  */
 class PrepLock extends GameState
 {
@@ -30,6 +30,13 @@ class PrepLock extends GameState
 
     public function onEnteringState(): string
     {
-        return $this->game->globalValues->prepLatePlayer() === null ? 'reveal' : 'lateChoice';
+        $result = $this->game->prepPhase->lock($this->game->seatOrder());
+        $this->game->sendNotifications($result->notifications);
+
+        $late = $this->game->globalValues->prepLatePlayer();
+        if ($result->transition === 'lateChoice' && $late !== null) {
+            $this->game->gamestate->changeActivePlayer($late);
+        }
+        return (string) $result->transition;
     }
 }

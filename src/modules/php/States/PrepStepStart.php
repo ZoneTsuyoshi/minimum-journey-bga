@@ -6,13 +6,13 @@ namespace Bga\Games\MinimumJourney\States;
 
 use Bga\GameFramework\StateType;
 use Bga\GameFramework\States\GameState;
-use Bga\Games\MinimumJourney\Flow\RoundFlow;
 use Bga\Games\MinimumJourney\Flow\StateId;
 use Bga\Games\MinimumJourney\Game;
 
 /**
  * 準備選択 1 回分の開始（006 §2.2）。
- * 骨格では「準備終了していない全員」を選択者にする。028・029・049・054・山札 0 枚の分類は I-05 で足す。
+ * 054 の打ち消し、028・029・山札 0 枚の自動確定、049 の後選びの分類と、記録（next_choice_records）の消費を行う。
+ * 記録を書くのはドロー時効果（I-09）。ここは読む側だけ。
  */
 class PrepStepStart extends GameState
 {
@@ -32,11 +32,9 @@ class PrepStepStart extends GameState
 
     public function onEnteringState(): string
     {
-        $values = $this->game->playerValues;
-        $selectors = RoundFlow::pendingSelectors($values->prepFinishedMap());
-        $values->clearPrepChoices();
-        $this->game->globalValues->setPrepSelectors($selectors);
+        $result = $this->game->prepPhase->begin($this->game->seatOrder());
+        $this->game->sendNotifications($result->notifications);
 
-        return $selectors === [] ? 'skipToLock' : 'needChoice';
+        return (string) $result->transition;
     }
 }

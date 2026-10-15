@@ -36,6 +36,7 @@ class RoundStart extends GameState
         $globals->setPhase(GlobalValues::PHASE_PREP);
         $globals->setPrepSelectors([]);
         $globals->setPrepLatePlayer(null);
+        $globals->setPrepReasons([]);
         $globals->setNextChoiceRecords(GlobalValues::emptyNextChoiceRecords());
         $globals->setForceDrawTmp(false);
         $globals->setExploreOrder([]);

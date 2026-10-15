@@ -10,13 +10,15 @@ use Bga\GameFramework\States\GameState;
 use Bga\GameFramework\States\PossibleAction;
 use Bga\GameFramework\UserException;
 use Bga\Games\MinimumJourney\Data\PrepChoice as Choice;
+use Bga\Games\MinimumJourney\Data\Zone;
+use Bga\Games\MinimumJourney\Flow\PrepRuleViolation;
 use Bga\Games\MinimumJourney\Flow\StateId;
 use Bga\Games\MinimumJourney\Game;
 
 /**
  * ドロー／ストップの同時・秘密選択（006 §2.2、§4 の案 B）。
- * 骨格ではストップだけ機能する（ドローは I-05）。選び終えた人は非アクティブになり、
- * 最後の 1 人が選ぶとフレームワークが allChosen で遷移する。
+ * 選び終えた人は非アクティブになるが、全員が選び終えるまで選択を変更できる。
+ * 最後の 1 人が初めて選ぶとフレームワークが allChosen で遷移する。
  */
 class PrepChoice extends GameState
 {
@@ -41,7 +43,8 @@ class PrepChoice extends GameState
     }
 
     /**
-     * 公開部分は選択内容を含めない（006 §4.3）。本人の選択は _private で返す。DB は書かない。
+     * 公開部分は選択内容を含めない（006 §4.3、§9.2）。本人の選択は _private で返す。DB は書かない。
+     * forced は自動で確定した人とその理由（028・029・054・山札 0 枚。公開情報）。
      *
      * @return array<string, mixed>
      */
@@ -56,37 +59,36 @@ class PrepChoice extends GameState
             $choice = $values->prepChoice($playerId);
             $private[$playerId] = [
                 'myChoice' => $choice?->value,
-                'canDraw' => false, // I-05 で山札の枚数から判定する
+                'canDraw' => $this->game->cards->count(Zone::Deck, $playerId) > 0,
             ];
+        }
+
+        $forced = [];
+        foreach ($this->game->globalValues->prepReasons() as $playerId => $reason) {
+            $forced[] = ['player_id' => $playerId, 'reason' => $reason];
         }
 
         return [
             'selectors' => $selectors,
             'chosen' => array_values(array_filter($selectors, static fn(int $id): bool => $chosenMap[$id] ?? false)),
+            'forced' => $forced,
             '_private' => $private,
         ];
     }
 
     /**
-     * 選択（'draw' / 'stop'）。全員が選び終えるまで変更できるが、骨格ではストップしか選べない。
+     * 選択（'draw' / 'stop'）。全員が選び終えるまで変更できる。
      * 選択済みの人は非アクティブなので、フレームワークのアクティブ検査は外し、選択者かどうかを自前で検証する。
      */
     #[PossibleAction]
     #[CheckAction(false)]
     public function actSelectPrep(string $choice): void
     {
-        $playerId = (int) $this->game->getCurrentPlayerId();
         $selected = Choice::tryFrom($choice);
         if ($selected === null) {
             throw new UserException($this->game->_('Invalid choice'));
         }
-        if (!in_array($playerId, $this->game->globalValues->prepSelectors(), true)) {
-            throw new UserException($this->game->_('You cannot choose now'));
-        }
-        if ($selected === Choice::Draw) {
-            throw new UserException($this->game->_('Drawing is not available yet'));
-        }
-        $this->record($playerId, $selected);
+        $this->record((int) $this->game->getCurrentPlayerId(), $selected);
     }
 
     /**
@@ -106,14 +108,13 @@ class PrepChoice extends GameState
 
     private function record(int $playerId, Choice $choice): void
     {
-        $values = $this->game->playerValues;
-        $first = $values->prepChoice($playerId) === null;
-        $values->setPrepChoice($playerId, $choice);
-
-        // 内容は本人にだけ送る。公開通知には選択済みの事実だけ（006 §9.2）
-        $this->bga->notify->player($playerId, 'prepChoiceRecorded', '', ['choice' => $choice->value]);
-        if ($first) {
-            $this->bga->notify->all('prepMarked', '', ['player_id' => $playerId]);
+        try {
+            $result = $this->game->prepPhase->select($playerId, $choice);
+        } catch (PrepRuleViolation $violation) {
+            throw $this->game->prepError($violation);
+        }
+        $this->game->sendNotifications($result->notifications);
+        if ($result->firstChoice) {
             $this->game->gamestate->setPlayerNonMultiactive($playerId, 'allChosen');
         }
     }

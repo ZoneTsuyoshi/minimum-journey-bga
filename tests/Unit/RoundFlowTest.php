@@ -14,13 +14,6 @@ use PHPUnit\Framework\TestCase;
  */
 final class RoundFlowTest extends TestCase
 {
-    public function testPendingSelectorsSkipsFinishedPlayersAndKeepsSeatOrder(): void
-    {
-        self::assertSame([11, 13], RoundFlow::pendingSelectors([11 => false, 12 => true, 13 => false]));
-        self::assertSame([], RoundFlow::pendingSelectors([11 => true, 12 => true]));
-        self::assertSame([], RoundFlow::pendingSelectors([]));
-    }
-
     public function testAllChosen(): void
     {
         self::assertFalse(RoundFlow::allChosen([1, 2], [1 => PrepChoice::Stop, 2 => null]));
