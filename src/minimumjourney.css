@@ -235,6 +235,18 @@
     outline-offset: -3px;
 }
 
+.mj-choice {
+    margin-bottom: 8px;
+    border: 3px solid var(--mj-accent);
+    box-shadow: 0 0 0 3px rgb(29 78 216 / 25%);
+}
+
+.mj-choice > .mj-label {
+    display: block;
+    font-weight: bold;
+    color: var(--mj-accent);
+}
+
 .mj-choice[hidden] {
     display: none;
 }
