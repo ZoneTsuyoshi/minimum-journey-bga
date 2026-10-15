@@ -43,7 +43,7 @@ class PrepChoiceLate extends GameState
     public function getArgs(int $activePlayerId): array
     {
         $revealed = [];
-        foreach ($this->game->seatOrder() as $playerId) {
+        foreach ($this->game->mjSeatOrder() as $playerId) {
             $choice = $this->game->playerValues->prepChoice($playerId);
             if ($playerId !== $activePlayerId && $choice !== null) {
                 $revealed[$playerId] = $choice->value;
@@ -59,7 +59,7 @@ class PrepChoiceLate extends GameState
     public function actSelectPrepLate(#[StringParam(enum: ['draw', 'stop'])] string $choice, int $activePlayerId): string
     {
         $this->game->giveExtraTime($activePlayerId);
-        return $this->choose($activePlayerId, PrepChoice::from($choice));
+        return $this->mjChoose($activePlayerId, PrepChoice::from($choice));
     }
 
     /**
@@ -67,17 +67,17 @@ class PrepChoiceLate extends GameState
      */
     public function zombie(int $playerId): string
     {
-        return $this->choose($playerId, PrepChoice::Stop);
+        return $this->mjChoose($playerId, PrepChoice::Stop);
     }
 
-    private function choose(int $playerId, PrepChoice $choice): string
+    private function mjChoose(int $playerId, PrepChoice $choice): string
     {
         try {
             $result = $this->game->prepPhase->selectLate($playerId, $choice);
         } catch (PrepRuleViolation $violation) {
-            throw $this->game->prepError($violation);
+            throw $this->game->mjPrepError($violation);
         }
-        $this->game->sendNotifications($result->notifications);
+        $this->game->mjSendNotifications($result->notifications);
         return (string) $result->transition;
     }
 }

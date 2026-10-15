@@ -78,7 +78,7 @@ class SimultaneousEffects extends GameState
     #[CheckAction(false)]
     public function actArrangeTop(int $firstId, int $secondId): void
     {
-        $this->act('actArrangeTop', [$firstId, $secondId]);
+        $this->mjAct('actArrangeTop', [$firstId, $secondId]);
     }
 
     /** 009・014: 戻す／戻さない。 */
@@ -86,7 +86,7 @@ class SimultaneousEffects extends GameState
     #[CheckAction(false)]
     public function actYesNo(bool $yes): void
     {
-        $this->act('actYesNo', $yes);
+        $this->mjAct('actYesNo', $yes);
     }
 
     /** 010: 見たカードを山札の上に戻すか、下に置くか。 */
@@ -94,7 +94,7 @@ class SimultaneousEffects extends GameState
     #[CheckAction(false)]
     public function actTopOrBottom(#[StringParam(enum: ['top', 'bottom'])] string $position): void
     {
-        $this->act('actTopOrBottom', $position);
+        $this->mjAct('actTopOrBottom', $position);
     }
 
     /** 020・035・050: 山札から選んで一番上に置く。0 は置かない（それでもシャッフルする）。 */
@@ -102,7 +102,7 @@ class SimultaneousEffects extends GameState
     #[CheckAction(false)]
     public function actPickFromDeck(int $cardId): void
     {
-        $this->act('actPickFromDeck', $cardId > 0 ? $cardId : null);
+        $this->mjAct('actPickFromDeck', $cardId > 0 ? $cardId : null);
     }
 
     /** 052: 見た 2 枚から山札の上に戻す 1 枚（残りは山札の下）。 */
@@ -110,7 +110,7 @@ class SimultaneousEffects extends GameState
     #[CheckAction(false)]
     public function actPickOne(int $cardId): void
     {
-        $this->act('actPickOne', $cardId);
+        $this->mjAct('actPickOne', $cardId);
     }
 
     /**
@@ -119,21 +119,21 @@ class SimultaneousEffects extends GameState
     public function zombie(int $playerId): void
     {
         if (isset($this->game->drawResolver->simulRequests()[$playerId])) {
-            $this->game->sendNotifications($this->game->drawResolver->simulZombie($playerId)->notifications);
+            $this->game->mjSendNotifications($this->game->drawResolver->simulZombie($playerId)->notifications);
         }
         $this->game->gamestate->setPlayerNonMultiactive($playerId, 'allDone');
     }
 
-    private function act(string $action, mixed $payload): void
+    private function mjAct(string $action, mixed $payload): void
     {
         $playerId = (int) $this->game->getCurrentPlayerId();
         try {
             $step = $this->game->drawResolver->simulAction($playerId, $action, $payload);
         } catch (DrawRuleViolation $violation) {
-            throw $this->game->drawError($violation);
+            throw $this->game->mjDrawError($violation);
         }
         $this->game->giveExtraTime($playerId);
-        $this->game->sendNotifications($step->notifications);
+        $this->game->mjSendNotifications($step->notifications);
         $this->game->gamestate->setPlayerNonMultiactive($playerId, 'allDone');
     }
 }

@@ -40,7 +40,7 @@ class DrawResolve extends GameState
         if ($step->activePlayer !== null) {
             $this->game->gamestate->changeActivePlayer($step->activePlayer);
         }
-        $this->game->sendNotifications($step->notifications);
+        $this->game->mjSendNotifications($step->notifications);
 
         return (string) $step->transition;
     }

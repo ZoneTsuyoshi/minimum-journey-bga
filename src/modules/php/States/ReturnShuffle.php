@@ -29,7 +29,7 @@ class ReturnShuffle extends GameState
 
     public function onEnteringState(): string
     {
-        $this->game->sendNotifications($this->game->returnPhase->shuffle($this->game->seatOrder()));
+        $this->game->mjSendNotifications($this->game->returnPhase->shuffle($this->game->mjSeatOrder()));
 
         return 'next';
     }

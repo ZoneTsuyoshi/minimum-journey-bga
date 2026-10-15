@@ -30,8 +30,8 @@ class PrepLock extends GameState
 
     public function onEnteringState(): string
     {
-        $result = $this->game->prepPhase->lock($this->game->seatOrder());
-        $this->game->sendNotifications($result->notifications);
+        $result = $this->game->prepPhase->lock($this->game->mjSeatOrder());
+        $this->game->mjSendNotifications($result->notifications);
 
         $late = $this->game->globalValues->prepLatePlayer();
         if ($result->transition === 'lateChoice' && $late !== null) {

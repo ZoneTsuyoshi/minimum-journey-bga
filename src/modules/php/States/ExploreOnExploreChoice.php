@@ -59,10 +59,10 @@ class ExploreOnExploreChoice extends GameState
         try {
             $result = $this->game->explorePhase->useOnExplore($activePlayerId, $cardId, $deckCost > 0 ? $deckCost : null);
         } catch (ExploreRuleViolation $violation) {
-            throw $this->game->exploreError($violation);
+            throw $this->game->mjExploreError($violation);
         }
         $this->game->giveExtraTime($activePlayerId);
-        $this->game->sendNotifications($result->notifications);
+        $this->game->mjSendNotifications($result->notifications);
 
         return (string) $result->transition;
     }

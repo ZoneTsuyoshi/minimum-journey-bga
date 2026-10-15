@@ -88,6 +88,7 @@ git fetch --prune && git pull --ff-only origin main
 - BGA フレームワークの構成（ファイル構成、状態クラス、通知、PHP バージョンなど）は更新が速い。記憶に頼らず、仕様書作成時に [BGA Studio の公式ドキュメント](https://en.doc.boardgamearena.com/Studio) で最新を確認する。
 - BGA Studio のプロジェクト名は **`minimumjourney`**（作成済み・変更不可）。BGA のファイル名・クラス名・名前空間はこの名前に従う。
 - UI 文言は英語を原文とし、BGA の翻訳機構で日本語化する（BGA の標準作法）。
+- BGA のフレームワークのクラス（`Table`、`GameState` など）を継承するクラスに独自のメソッドを足すときは、名前に `mj` の接頭辞を付ける（例: `mjSendNotifications`）。フレームワークに同名のメソッドがあると Studio で致命的エラーになり、開発用スタブ（`_ide_helper.php`）が古いため PHPStan では検出できない（2026-10-15 に `sendNotifications` で発生）。
 
 ## CI/CD
 

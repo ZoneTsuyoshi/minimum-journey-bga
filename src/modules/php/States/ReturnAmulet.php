@@ -32,8 +32,8 @@ class ReturnAmulet extends GameState
 
     public function onEnteringState(): string
     {
-        $result = $this->game->returnPhase->moveCharmStep($this->game->seatOrder());
-        $this->game->sendNotifications($result->notifications);
+        $result = $this->game->returnPhase->moveCharmStep($this->game->mjSeatOrder());
+        $this->game->mjSendNotifications($result->notifications);
         $charm = $this->game->cards->list(Zone::Charm)[0] ?? null;
         if ($charm !== null) {
             $this->game->stats->recordCharmHolder($charm->locationArg);

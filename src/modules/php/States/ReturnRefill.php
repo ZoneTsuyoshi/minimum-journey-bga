@@ -32,8 +32,8 @@ class ReturnRefill extends GameState
 
     public function onEnteringState(): string
     {
-        $result = $this->game->returnPhase->refill($this->game->seatOrder());
-        $this->game->sendNotifications($result->notifications);
+        $result = $this->game->returnPhase->refill($this->game->mjSeatOrder());
+        $this->game->mjSendNotifications($result->notifications);
         $this->game->stats->recordRoundFinished();
 
         return (string) $result->transition;

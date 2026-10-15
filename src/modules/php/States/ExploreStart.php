@@ -30,8 +30,8 @@ class ExploreStart extends GameState
 
     public function onEnteringState(): string
     {
-        $result = $this->game->explorePhase->start($this->game->seatOrder());
-        $this->game->sendNotifications($result->notifications);
+        $result = $this->game->explorePhase->start($this->game->mjSeatOrder());
+        $this->game->mjSendNotifications($result->notifications);
 
         return (string) $result->transition;
     }

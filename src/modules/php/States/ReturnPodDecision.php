@@ -72,7 +72,7 @@ class ReturnPodDecision extends GameState
     #[CheckAction(false)]
     public function actDecideReturn(bool $doReturn): void
     {
-        $this->decide((int) $this->game->getCurrentPlayerId(), $doReturn);
+        $this->mjDecide((int) $this->game->getCurrentPlayerId(), $doReturn);
     }
 
     /**
@@ -81,20 +81,20 @@ class ReturnPodDecision extends GameState
     public function zombie(int $playerId): void
     {
         if ($this->game->drawResolver->podDecisionOf($playerId) === null) {
-            $this->decide($playerId, false);
+            $this->mjDecide($playerId, false);
             return;
         }
         $this->game->gamestate->setPlayerNonMultiactive($playerId, 'allDecided');
     }
 
-    private function decide(int $playerId, bool $doReturn): void
+    private function mjDecide(int $playerId, bool $doReturn): void
     {
         try {
             $step = $this->game->drawResolver->decideReturn($playerId, $doReturn);
         } catch (DrawRuleViolation $violation) {
-            throw $this->game->drawError($violation);
+            throw $this->game->mjDrawError($violation);
         }
-        $this->game->sendNotifications($step->notifications);
+        $this->game->mjSendNotifications($step->notifications);
         $this->game->gamestate->setPlayerNonMultiactive($playerId, 'allDecided');
     }
 }

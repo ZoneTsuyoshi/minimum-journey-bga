@@ -36,7 +36,7 @@ class ExploreTurnStart extends GameState
         if ($result->playerId !== null) {
             $this->game->gamestate->changeActivePlayer($result->playerId);
         }
-        $this->game->sendNotifications($result->notifications);
+        $this->game->mjSendNotifications($result->notifications);
 
         return (string) $result->transition;
     }

@@ -88,7 +88,7 @@ class PrepChoice extends GameState
         if ($selected === null) {
             throw new UserException($this->game->_('Invalid choice'));
         }
-        $this->record((int) $this->game->getCurrentPlayerId(), $selected);
+        $this->mjRecord((int) $this->game->getCurrentPlayerId(), $selected);
     }
 
     /**
@@ -100,20 +100,20 @@ class PrepChoice extends GameState
             return;
         }
         if ($this->game->playerValues->prepChoice($playerId) === null) {
-            $this->record($playerId, Choice::Stop);
+            $this->mjRecord($playerId, Choice::Stop);
             return;
         }
         $this->game->gamestate->setPlayerNonMultiactive($playerId, 'allChosen');
     }
 
-    private function record(int $playerId, Choice $choice): void
+    private function mjRecord(int $playerId, Choice $choice): void
     {
         try {
             $result = $this->game->prepPhase->select($playerId, $choice);
         } catch (PrepRuleViolation $violation) {
-            throw $this->game->prepError($violation);
+            throw $this->game->mjPrepError($violation);
         }
-        $this->game->sendNotifications($result->notifications);
+        $this->game->mjSendNotifications($result->notifications);
         if ($result->firstChoice) {
             $this->game->gamestate->setPlayerNonMultiactive($playerId, 'allChosen');
         }

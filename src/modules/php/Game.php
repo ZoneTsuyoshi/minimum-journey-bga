@@ -68,7 +68,7 @@ class Game extends \Bga\GameFramework\Table
         $this->cards = new CardRepository($database);
         $this->globalValues = new GlobalValues($this->bga->globals);
         $this->playerValues = new PlayerValues($database);
-        $this->outputCalculator = new ExploreOutputCalculator($this->cards, $this->globalValues, fn(): array => $this->seatOrder());
+        $this->outputCalculator = new ExploreOutputCalculator($this->cards, $this->globalValues, fn(): array => $this->mjSeatOrder());
         $this->prepPhase = new PrepPhase(
             $this->cards,
             $this->playerValues,
@@ -90,7 +90,7 @@ class Game extends \Bga\GameFramework\Table
             new ResolveEntryRepository($database),
             $this->outputCalculator,
             fn(int $playerId): string => $this->getPlayerNameById($playerId),
-            fn(): array => $this->seatOrder(),
+            fn(): array => $this->mjSeatOrder(),
         );
         $this->returnPhase = new ReturnPhase(
             $this->cards,
@@ -105,7 +105,7 @@ class Game extends \Bga\GameFramework\Table
      *
      * @param list<Notification> $notifications
      */
-    public function sendNotifications(array $notifications): void
+    public function mjSendNotifications(array $notifications): void
     {
         $this->stats->recordNotifications($notifications, $this->globalValues->roundNo());
         foreach ($notifications as $n) {
@@ -115,15 +115,15 @@ class Game extends \Bga\GameFramework\Table
                 $this->bga->notify->player($n->to, $n->name, $n->message, $n->args);
             }
         }
-        if ($this->isFameShown() && FameTotals::affectedBy($notifications)) {
-            $this->sendFameUpdate();
+        if ($this->mjIsFameShown() && FameTotals::affectedBy($notifications)) {
+            $this->mjSendFameUpdate();
         }
     }
 
     /**
      * ゲームオプション 101（名声合計の表示）が有効か（007 §13.1）。
      */
-    public function isFameShown(): bool
+    public function mjIsFameShown(): bool
     {
         return $this->bga->tableOptions->get(GameSetup::OPTION_SHOW_FAME) === 2;
     }
@@ -131,9 +131,9 @@ class Game extends \Bga\GameFramework\Table
     /**
      * N34 fameUpdate: 現在の名声合計を、卓の各プレイヤーにだけ送る。notify->all は観戦者に届くので使わない（007 §11.3）。
      */
-    public function sendFameUpdate(): void
+    public function mjSendFameUpdate(): void
     {
-        $seatOrder = $this->seatOrder();
+        $seatOrder = $this->mjSeatOrder();
         $fame = (new FameTotals($this->cards, $this->globalValues))->totals($seatOrder);
         foreach ($seatOrder as $playerId) {
             $this->bga->notify->player($playerId, 'fameUpdate', '', ['fame' => $fame]);
@@ -143,7 +143,7 @@ class Game extends \Bga\GameFramework\Table
     /**
      * 準備フェイズの規則違反を、翻訳つきのユーザー向けエラーにする。
      */
-    public function prepError(PrepRuleViolation $violation): UserException
+    public function mjPrepError(PrepRuleViolation $violation): UserException
     {
         $message = $violation->reason === PrepRuleViolation::EMPTY_DECK
             ? $this->_('You cannot draw because your deck is empty')
@@ -154,7 +154,7 @@ class Game extends \Bga\GameFramework\Table
     /**
      * 探査フェイズの規則違反を、翻訳つきのユーザー向けエラーにする。
      */
-    public function exploreError(ExploreRuleViolation $violation): UserException
+    public function mjExploreError(ExploreRuleViolation $violation): UserException
     {
         $message = match ($violation->reason) {
             ExploreRuleViolation::NOT_A_TARGET => $this->_('You cannot explore that card'),
@@ -167,7 +167,7 @@ class Game extends \Bga\GameFramework\Table
     /**
      * ドロー時効果の選択の規則違反を、翻訳つきのユーザー向けエラーにする。
      */
-    public function drawError(DrawRuleViolation $violation): UserException
+    public function mjDrawError(DrawRuleViolation $violation): UserException
     {
         $message = match ($violation->reason) {
             DrawRuleViolation::INVALID_TARGET => $this->_('You cannot choose that'),
@@ -182,7 +182,7 @@ class Game extends \Bga\GameFramework\Table
      *
      * @return list<int>
      */
-    public function seatOrder(): array
+    public function mjSeatOrder(): array
     {
         $ids = $this->getObjectListFromDB('SELECT `player_id` FROM `player` ORDER BY `player_no`', true);
         return array_map(static fn(mixed $id): int => (int) $id, array_values($ids));
@@ -261,11 +261,11 @@ class Game extends \Bga\GameFramework\Table
             "SELECT `player_id` AS `id`, `player_score` AS `score` FROM `player`"
         );
 
-        $board = (new BoardView($this->cards, $this->globalValues, $this->playerValues, $this->outputCalculator))->build($this->seatOrder());
+        $board = (new BoardView($this->cards, $this->globalValues, $this->playerValues, $this->outputCalculator))->build($this->mjSeatOrder());
 
         // 名声合計は 101 が有効なときだけ、卓のプレイヤーにだけ返す（観戦者には返さない。007 §11.3）
-        $seatOrder = $this->seatOrder();
-        if ($this->isFameShown() && in_array($currentPlayerId, $seatOrder, true)) {
+        $seatOrder = $this->mjSeatOrder();
+        if ($this->mjIsFameShown() && in_array($currentPlayerId, $seatOrder, true)) {
             $fame = (new FameTotals($this->cards, $this->globalValues))->totals($seatOrder);
             foreach ($fame as $playerId => $total) {
                 $board['players'][$playerId]['fame'] = $total;
