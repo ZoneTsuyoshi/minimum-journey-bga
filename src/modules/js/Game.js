@@ -1141,6 +1141,8 @@ export class Game {
         /** @type {number[]} */
         this.exploreOrder = [];
         this.exploreIndex = -1;
+        /** 準備フェイズが終わっている間は「準備終了」の印を出さない */
+        this.prepOver = false;
         this.gameEnded = false;
         /** @type {number | null} */
         this.charmHolder = null;
@@ -1240,6 +1242,7 @@ export class Game {
         const playerOrder = /** @type {number[]} */ (gamedatas.playerOrder.map(int));
         const isSpectator = this.bga.players.isCurrentPlayerSpectator();
         const me = int(this.bga.players.getCurrentPlayerId());
+        this.prepOver = gamedatas.phase !== 'prep';
         this.gameEnded = gamedatas.phase === 'end' || (typeof g_archive_mode !== 'undefined' && g_archive_mode);
 
         // 領域の並び: 自分を先頭に、席順で続ける。観戦者は席順のまま全員を縮小表示（009 §7.2・§11）
@@ -1507,6 +1510,7 @@ export class Game {
             + stat('charm', _('Holds the charm'), `${icon('charm', _('Charm'))}`, true)
             + stat('fame', _('Total fame'), `${icon('fame', _('Fame'))}<b data-mj-val></b>`, true)
             + stat('chosen', _('Has chosen'), `<span aria-hidden="true">✓</span> ${_('Chosen')}`, true)
+            + stat('prepDone', _('Preparation finished'), `<span aria-hidden="true" data-mj-mark>■</span> <span data-mj-text></span>`, true)
             + stat('turn', _('Exploration turn order'), `<span class="mj-stat-label">${_('Turn')}</span><b data-mj-val></b>`, true)
             + `</span>`;
     }
@@ -1539,6 +1543,7 @@ export class Game {
             charm: [this.charmHolder === playerId, ''],
             fame: [showFame, String(s.fame ?? '')],
             chosen: [this.chosen.has(playerId), ''],
+            prepDone: [!this.prepOver && (s.prepFinished || s.isHalved), s.prepFinished ? _('Stopped') : _('Drew alone')],
             turn: [turnIndex >= 0, String(turnIndex + 1)],
         };
         for (const node of document.querySelectorAll(`[data-mj-pid="${playerId}"][data-mj-stat]`)) {
@@ -1551,6 +1556,10 @@ export class Game {
             const val = element.querySelector('[data-mj-val]');
             if (val !== null) {
                 val.textContent = entry[1];
+            }
+            const text = element.querySelector('[data-mj-text]');
+            if (text !== null) {
+                text.textContent = entry[1];
             }
         }
         this.areas[playerId]?.root.classList.toggle('mj-active-turn', this.exploreIndex >= 0 && this.exploreOrder[this.exploreIndex] === playerId);
@@ -2043,6 +2052,7 @@ export class Game {
     async notif_roundStarted(args) {
         this.gamedatas.round = args.round;
         this.chosen.clear();
+        this.prepOver = false;
         this.exploreOrder = [];
         this.exploreIndex = -1;
         if (this.lockedCardId !== null) {
@@ -2052,6 +2062,7 @@ export class Game {
         }
         for (const s of Object.values(this.stats)) {
             s.isHalved = false;
+            s.prepFinished = false;
             s.output = null;
         }
         this.refreshAllStats();
@@ -2067,8 +2078,12 @@ export class Game {
     async notif_prepChoiceRecorded() {}
 
     /** 開示された選択。盤面は cardDrawn などで更新し、ここでは「選択済み」の印だけ外す */
-    async notif_choiceRevealed(/** @type {{ player_id: number }} */ args) {
+    async notif_choiceRevealed(/** @type {{ player_id: number, choice?: string }} */ args) {
         this.chosen.delete(int(args.player_id));
+        // ストップした人は準備終了になる（山札 0 枚の強制ストップも同じ通知）
+        if (args.choice === 'stop' && this.stats[int(args.player_id)] !== undefined) {
+            this.stats[int(args.player_id)].prepFinished = true;
+        }
         this.refreshStats(int(args.player_id));
     }
 
@@ -2128,6 +2143,7 @@ export class Game {
         const s = this.stats[int(args.player_id)];
         if (s !== undefined) {
             s.isHalved = true;
+            this.refreshStats(int(args.player_id));
         }
         await this.updateCard(int(args.card_id), { sideways: true });
     }
@@ -2338,6 +2354,7 @@ export class Game {
     }
 
     async notif_exploreStarted() {
+        this.prepOver = true;
         this.exploreIndex = -1;
         this.refreshAllStats();
     }
