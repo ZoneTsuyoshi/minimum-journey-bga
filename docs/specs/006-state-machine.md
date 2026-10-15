@@ -62,7 +62,7 @@ BGA のゲームはサーバー側の状態機械で進行する。この仕様�
 | U2 | 複数アクティブ状態で、選び終えてもアクティブのまま待つプレイヤーの持ち時間が、待っている間も減るか | §4 の比較材料。減ると仮定して設計する |
 | U3 | 同一テーブルへのリクエストが直列化されるか（最後の 1 人の選択と他プレイヤーの変更が同時に届いたとき） | サーバーが先に処理した方を有効とし、後続は状態チェックで弾く（§4.4）。直列化されない場合の対策は実機で確認 |
 | U4 | private 状態に入った後、`initialPrivate` から別の private 状態へ `nextPrivateState` で飛ばせるか、private 状態の `onEnteringState` の戻り値で遷移できるか | private parallel states を採用しない推奨のため影響は小さい（§5.3） |
-| U5 | クラス方式で終了状態（ID 99）へ遷移する書き方（`return 99;` で足りるか） | §2 では「99 へ遷移」と書く。実装時に Hearts チュートリアル（https://en.doc.boardgamearena.com/Tutorial_hearts ）で確認 |
+| U5 | クラス方式で終了状態（ID 99）へ遷移する書き方（`return 99;` で足りるか） | §2 では「99 へ遷移」と書く。実装時に Hearts チュートリアル（https://en.doc.boardgamearena.com/Tutorial_hearts ）で確認**確認済み（I-04）**: State_classes: State directory（https://en.doc.boardgamearena.com/State_classes:_State_directory ）に「`return 99;`（int。文字列は不可）またはクラス名」で遷移できると明記。 |
 | U6 | GAME 状態を連鎖させたときの 1 リクエスト内の再帰上限 | 本設計の GAME 連鎖は最長でも十数段。実機で確認 |
 | U7 | クライアント状態（サーバーを進めない選択状態）の JS API 名 | 探査の確認ステップ（009 §9.2）に使う。T-009 で確認 |
 
