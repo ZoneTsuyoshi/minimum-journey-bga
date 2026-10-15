@@ -971,18 +971,17 @@ export class Game {
     /** 自分の他のタブの同期用（I-04 の状態ハンドラが表示する）。盤面には出さない */
     async notif_prepChoiceRecorded() {}
 
-    async notif_prepRevealed() {
-        this.chosen.clear();
-        this.refreshAllStats();
+    /** 開示された選択。盤面は cardDrawn などで更新し、ここでは「選択済み」の印だけ外す */
+    async notif_choiceRevealed(/** @type {{ player_id: number }} */ args) {
+        this.chosen.delete(int(args.player_id));
+        this.refreshStats(int(args.player_id));
     }
-
-    /** 開示された選択。ログに出るだけで、盤面は cardDrawn などで更新する */
-    async notif_choiceRevealed() {}
 
     async notif_prepFinishedCleared(/** @type {{ player_ids: number[] }} */ args) {
         for (const id of args.player_ids.map(int)) {
             if (this.stats[id] !== undefined) {
                 this.stats[id].prepFinished = false;
+                this.refreshStats(id);
             }
         }
     }
