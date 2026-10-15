@@ -12,11 +12,13 @@ final class PrepStepResult
     /**
      * @param list<Notification> $notifications
      * @param bool $firstChoice 選択が null から値に変わった最初の 1 回か（アクション用）
+     * @param array<int, \Bga\Games\MinimumJourney\Data\Card> $drawn 開示でドローしたカード（プレイヤー ID => カード）。解決（30）のキューの元
      */
     public function __construct(
         public readonly ?string $transition,
         public readonly array $notifications,
         public readonly bool $firstChoice = false,
+        public readonly array $drawn = [],
     ) {
     }
 }

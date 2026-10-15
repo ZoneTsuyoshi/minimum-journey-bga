@@ -195,7 +195,7 @@ final class PrepPhase
 
         $notifications[] = $this->counters($plan->drawers, $plan->stoppers);
 
-        return new PrepStepResult($plan->transition, $notifications);
+        return new PrepStepResult($plan->transition, $notifications, false, $drawn);
     }
 
     /**
