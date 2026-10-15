@@ -9,6 +9,7 @@ use Bga\Games\MinimumJourney\Data\PrepChoice;
 use Bga\Games\MinimumJourney\Data\ResolveEntryRepository;
 use Bga\Games\MinimumJourney\Data\Zone;
 use Bga\Games\MinimumJourney\Flow\DrawResolver;
+use Bga\Games\MinimumJourney\Flow\DrawRuleViolation;
 use Bga\Games\MinimumJourney\Flow\ExploreOutputCalculator;
 use Bga\Games\MinimumJourney\Flow\ExplorePhase;
 use Bga\Games\MinimumJourney\Flow\Notification;
@@ -883,6 +884,48 @@ final class DrawResolverTest extends DatabaseTestCase
         self::assertSame(1, $this->cards->get($a[0]->id)->order);
         self::assertSame(6, $this->cards->count(Zone::Deck, self::A)); // 山札の上の 1 枚が列へ、列のカードが山札へ
         self::assertNotContains($row->id, $this->ids(Zone::Deck, self::A)); // 山札に入ったカードの ID は付け替わる（007 §7.4）
+    }
+
+    /** N-8 (b): 前の回で 007 が保持した列のカードは、他プレイヤーの 036 の入れ替え候補から除く */
+    public function testWormholeExcludesCardLockedByOtherPlayer(): void
+    {
+        $this->table(2);
+        $a = $this->deck(self::A, [self::COST4, 1, 1, 1, 1, 1]);
+        $this->deck(self::B);
+        $locked = $this->row(self::COST4B, 4, 1);
+        $this->globals->setLockedCard(['player_id' => self::B, 'card_id' => $locked->id]);
+
+        $revealed = $this->cards->get($a[0]->id);
+        self::assertSame([], $this->resolver->wormholeCandidates($revealed, self::A));
+
+        // 候補が無いので選択は発生せず、表にしたカードは山札へ戻る。列のカードはそのまま
+        $result = $this->resolve([self::A => $this->drawn(self::A, self::WORMHOLE), self::B => $this->drawn(self::B, self::ALBUM)]);
+
+        self::assertSame(['done'], $result['transitions']);
+        self::assertNotContains('wormholeSwapped', self::names($result['notes']));
+        self::assertSame(Zone::Row, $this->cards->get($locked->id)->zone);
+    }
+
+    /** 保持した本人の 036 では、保持したカードも候補に残る。他の候補は他プレイヤーの保持でも残る */
+    public function testWormholeKeepsOwnLockedCardAndOtherRowCards(): void
+    {
+        $this->table(2);
+        $a = $this->deck(self::A, [self::COST4, 1, 1, 1, 1, 1]);
+        $this->deck(self::B);
+        $locked = $this->row(self::COST4B, 4, 1);
+        $other = $this->row(self::COST4B, 4, 2);
+        $revealed = $this->cards->get($a[0]->id);
+
+        $this->globals->setLockedCard(['player_id' => self::A, 'card_id' => $locked->id]);
+        self::assertEqualsCanonicalizing([$locked->id, $other->id], array_map(static fn($c) => $c->id, $this->resolver->wormholeCandidates($revealed, self::A)));
+
+        $this->globals->setLockedCard(['player_id' => self::B, 'card_id' => $locked->id]);
+        self::assertSame([$other->id], array_map(static fn($c) => $c->id, $this->resolver->wormholeCandidates($revealed, self::A)));
+
+        $this->expectException(DrawRuleViolation::class);
+        $this->resolver->enqueue([self::A => $this->drawn(self::A, self::WORMHOLE), self::B => $this->drawn(self::B, self::ALBUM)]);
+        $this->resolver->advance();
+        $this->resolver->wormhole(self::A, $locked->id);
     }
 
     public function testWormholeKeepShufflesAndReturnsRevealedCard(): void

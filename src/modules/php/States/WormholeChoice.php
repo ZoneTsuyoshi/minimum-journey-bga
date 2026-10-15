@@ -45,7 +45,7 @@ class WormholeChoice extends GameState
         $revealed = $resolver->wormholeRevealed();
         return [
             'revealedCard' => $revealed === null ? null : BoardView::cardView($revealed),
-            'candidates' => $revealed === null ? [] : array_map(BoardView::cardView(...), $resolver->wormholeCandidates($revealed)),
+            'candidates' => $revealed === null ? [] : array_map(BoardView::cardView(...), $resolver->wormholeCandidates($revealed, (int) $resolver->wormholeOwner())),
             'ownerId' => $resolver->wormholeOwner(),
         ];
     }
