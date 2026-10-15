@@ -413,6 +413,14 @@
     align-items: center;
 }
 
+.mj-stat[data-mj-stat="prepDone"] {
+    padding: 0 6px;
+    border: 1px solid currentcolor;
+    border-radius: 10px;
+    font-weight: bold;
+    white-space: nowrap;
+}
+
 .mj-stat-label {
     opacity: 0.85;
 }
