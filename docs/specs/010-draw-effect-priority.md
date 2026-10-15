@@ -628,6 +628,30 @@ A が 046、B が 005、C が 036、D が 028 を引いた。A が 046 で山札
 8. **002 の更新（別途）**: 002 の No.49 は F3 に合わせて更新済み。**002 No.48 の暫定案（043 で戻した後に準備したカードの効果は「発動する」）は、D7（発動しない）と食い違う**ので、002 側で更新が必要（002 は別途更新される）。優先度をカード定義の項目として追加する場合も、本仕様書の確定後に 002 を別途更新する。また、002 No.38 への回答（N38）は 024 のカード定義の注記に関係する。H1（053 も戻されても残る）と H2（054 は戻されると残らない）は、002 の 039・043・053・054 の記述、および 002 側の Q-62 相当の論点（戻された場合の扱い）と整合させる。
 9. **001 への影響**: D4 の順序規則（お守りから遠い順）は、001 Q-8 の暫定案（所持者から時計回り）と向きが逆。001 側で同優先度の処理順に関する記述がある場合は、D4 に合わせて見直す必要がある。D12 は 001 Q-33 への回答。
 
+### 9. 実装結果（I-09）
+
+解決エンジンは `src/modules/php/Flow/DrawResolver.php`（DB を使う部分）と `Flow/DrawRules.php`（純粋な規則）、`Flow/DrawEffects.php`（P5-同時の効果）。状態は 30〜35（006 §2.3）。作者の確定事項は変えていない。
+
+§7 の検証例 14 件は、結合テスト `tests/Integration/DrawResolverTest.php` が実 DB で再現する。起こりうる 11 件は §7 の期待と**一致した**。起こりえない 3 件（例 7・9・12。各カードが 1 枚しかない。D8）はテストにせず、閉じたままにした。
+
+| 例 | テスト | 結果 |
+| --- | --- | --- |
+| 1（039 + 043） | `testExample1JammerAndPod` | 一致 |
+| 2（039 + 053 + 043） | `testExample2JammerSuperflareAndPod` | 一致 |
+| 3（053 + 043） | `testExample3SuperflareStopsPod` | 一致 |
+| 4（039 + 乙女座銀河団の他カード） | `testExample4JammerAllowsVirgoCards`、`testExample4SatelliteIsStoppedByJammer` | 一致 |
+| 5（024 と他のカード。派生 a・b・c） | `testExample5FuelPreparesForFinishedPlayers`、`testExample5aFuelStoppedBySuperflare`、`testExample5bFuelReturnedByPod`、`testExample5cFuelWithoutFinishedPlayers` | 一致 |
+| 6（028・029・054。派生・派生 2） | `testExample6NextChoiceRecordsAndPrepStep`、`testExample6VariantWithTimeStopper`、`testExample6Variant2BigBangFixesTimeStopper` | 一致 |
+| 7、9、12 | なし | 起こりえない（閉じたまま） |
+| 8（036 + 007） | `testExample8WormholeBeforeLaser` | 一致 |
+| 10（054 + 039） | `testExample10BigBangIsNotSuppressed` | 一致 |
+| 11（008 のコピー。派生・派生 2） | `testExample11SatelliteCopiesFuel`、`testExample11VariantCopyIsChosenBeforeWormhole`、`testExample11Variant2AttachedSatellite` | 一致 |
+| 13（054 + 053 + 043。派生 a・b） | `testExample13BigBangSurvivesSuperflare`、`testExample13aBigBangReturnedByPod`、`testExample13bJammerReturnedKeepsEffect` | 一致 |
+| 14（046 の付加カードが 039。派生） | `testExample14AttachedJammer`、`testExample14VariantAttachedFuel` | 一致 |
+
+- 実装に関する補足: 優先度の数値は `Material/DrawLevel.php` の `order()`（P2a = 25。008 §1.9）。
+- 未確定事項 Q-1(a)、Q-8、Q-17、Q-22（P0 相当）の暫定案どおりに実装したかは、この更新では個別に確かめていない（コードにこれらの番号を明記したコメントがない）。
+
 ## エッジケース
 
 | No. | 状況 | 挙動 | 根拠 |
