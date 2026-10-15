@@ -1352,7 +1352,7 @@ export class Game {
     }
 
     /**
-     * 盤面の幅（px）を CSS 変数 --mj-bw に入れる。カードの大きさ（--mj-w）は cqw ではなくこの値から決める。
+     * 盤面の幅（px）を <html> の CSS 変数 --mj-bw に入れる（移動中のカードは .mj-scope の外へ出るため）。カードの大きさ（--mj-w）は cqw ではなくこの値から決める。
      * cqw は使う要素ごとに基準のコンテナを探すため、環境によって枠・カード・スプライトで値が食い違うことがある。
      */
     setupBoardWidth() {
@@ -1363,7 +1363,7 @@ export class Game {
         const update = () => {
             const width = board.clientWidth;
             if (width > 0) {
-                board.style.setProperty('--mj-bw', `${width}px`);
+                document.documentElement.style.setProperty('--mj-bw', `${width}px`);
             }
         };
         update();
