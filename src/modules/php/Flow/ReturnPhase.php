@@ -263,6 +263,7 @@ final class ReturnPhase
                     'charm_bonus' => $score->charmBonus,
                     'unknown_acquired' => $score->unknownAcquired,
                     'symbols' => $score->symbols,
+                    'deck_size' => count($this->deckCardNos($playerId)),
                 ],
             );
         }
@@ -271,22 +272,11 @@ final class ReturnPhase
     }
 
     /**
-     * デッキ（山札・準備場・獲得・裏向き。付加カードも別の 1 枚として）のカード番号。除外されたカードとお守りは含まない。
-     *
      * @return list<int>
      */
     private function deckCardNos(int $playerId): array
     {
-        $nos = [];
-        foreach ([Zone::Deck, Zone::Prep, Zone::Acquired, Zone::Facedown] as $zone) {
-            foreach ($this->cards->list($zone, $playerId) as $card) {
-                $nos[] = $card->cardNo;
-                foreach ($this->cards->attachedTo($card) as $attached) {
-                    $nos[] = $attached->cardNo;
-                }
-            }
-        }
-        return $nos;
+        return (new FameTotals($this->cards, $this->globals))->deckCardNos($playerId);
     }
 
     /**

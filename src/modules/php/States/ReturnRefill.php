@@ -34,6 +34,7 @@ class ReturnRefill extends GameState
     {
         $result = $this->game->returnPhase->refill($this->game->seatOrder());
         $this->game->sendNotifications($result->notifications);
+        $this->game->stats->recordRoundFinished();
 
         return (string) $result->transition;
     }

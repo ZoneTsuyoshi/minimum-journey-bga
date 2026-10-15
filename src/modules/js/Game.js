@@ -971,6 +971,91 @@ const START_KEYS = [
 /** 探査山札・列のコスト */
 const COSTS = [2, 4, 6, 8];
 
+/**
+ * 効果テキストの {key} に対応するアイコンの CSS 名（icons.webp のセル。minimumjourney.css の mj-icon-*）。
+ * 本文のキーはサーバーの CardTexts.php と一致させる。
+ */
+const TEXT_ICONS = /** @type {Record<string, string>} */ ({
+    power: 'power', fame: 'fame', cost: 'cost', earth: 'earth', solar: 'solar', milky: 'galaxy',
+    virgo: 'virgo', laniakea: 'laniakea', unknown: 'unknown', charm: 'charm', flag: 'flag', crew: 'crew',
+});
+
+/** サーバーのシンボル ID（Symbol enum）→ テキストのキー */
+const SYMBOL_KEYS = /** @type {Record<string, string>} */ ({
+    EARTH: 'earth', SOLAR_SYSTEM: 'solar', MILKY_WAY: 'milky', VIRGO_CLUSTER: 'virgo',
+    LANIAKEA: 'laniakea', UNKNOWN: 'unknown', CHARM: 'charm',
+});
+
+/**
+ * 用語の翻訳（呼ぶたびに _() を通す。翻訳の読み込み後に使うため関数にしている）。
+ * 用語は docs/publishing/game-description.md と合わせる。
+ *
+ * @returns {Record<string, string>}
+ */
+function termLabels() {
+    return {
+        power: _('Exploration power'),
+        fame: _('Fame'),
+        cost: _('Exploration cost'),
+        earth: _('Earth'),
+        solar: _('Solar System'),
+        milky: _('Milky Way'),
+        virgo: _('Virgo Cluster'),
+        laniakea: _('Laniakea'),
+        unknown: _('Unknown Region'),
+        charm: _('Charm'),
+        flag: _('Flag'),
+        crew: _('Crew'),
+    };
+}
+
+/**
+ * 効果タイミングのラベル（ON_DRAW など → 翻訳した文字列と CSS 名）。
+ *
+ * @returns {Record<string, { label: string, css: string }>}
+ */
+function timingLabels() {
+    return {
+        ON_DRAW: { label: _('When Drawn'), css: 'draw' },
+        ON_EXPLORE: { label: _('On Exploring'), css: 'explore' },
+        DURING_EXPLORE: { label: _('While Exploring'), css: 'during' },
+        POWER_MOD: { label: _('Exploration Power Change'), css: 'power' },
+        FAME_MOD: { label: _('Fame Change'), css: 'fame' },
+        ON_ACQUIRE: { label: _('When Acquired'), css: 'acquire' },
+    };
+}
+
+/**
+ * @param {string} text
+ * @returns {string}
+ */
+function escapeHtml(text) {
+    return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+/**
+ * アイコン付きの用語（アイコンにはアクセシブルな名前を付け、用語の文字も並べる）。
+ *
+ * @param {string} key TEXT_ICONS のキー
+ * @param {boolean} [withLabel]
+ * @returns {string}
+ */
+function termHtml(key, withLabel = true) {
+    const label = escapeHtml(termLabels()[key] ?? key);
+    const icon = `<span class="mj-icon mj-icon-${TEXT_ICONS[key] ?? key}" role="img" aria-label="${label}" title="${label}"></span>`;
+    return withLabel ? `<span class="mj-term">${icon}${label}</span>` : icon;
+}
+
+/**
+ * 効果テキストを HTML にする。{key} をアイコン付きの用語に置き換える（他の文字は全て無害化する）。
+ *
+ * @param {string} text
+ * @returns {string}
+ */
+function effectTextHtml(text) {
+    return escapeHtml(text).replace(/\{(\w+)\}/g, (whole, key) => (key in TEXT_ICONS ? termHtml(key) : whole));
+}
+
 /** 通知で受ける値を整数にそろえる（PHP から文字列で来ることがある。009 §10） */
 const int = (/** @type {unknown} */ v) => Number(v);
 
@@ -1073,6 +1158,8 @@ export class Game {
         this.pileCounts = {};
         /** @type {Record<string, boolean>} 拡大用シートの読み込み済みフラグ */
         this.zoomReady = {};
+        /** @type {Record<number, any>} カード番号 => ツールチップ用の内容（サーバーの CardInfoView） */
+        this.cardInfo = {};
         this.lastPointerType = 'mouse';
         /** @type {ReturnType<typeof setTimeout> | null} */
         this.zoomTimer = null;
@@ -1127,6 +1214,7 @@ export class Game {
      */
     setup(gamedatas) {
         this.gamedatas = gamedatas;
+        this.cardInfo = gamedatas.cardInfo ?? {};
         // 拡大用のシートは使うまで読み込まない（009 §3.3）
         this.bga.images.dontPreloadImages(Object.values(SHEETS.zoom.sheets).map((s) => s.file));
 
@@ -1213,7 +1301,7 @@ export class Game {
             <h2 class="mj-heading">${_('Exploration field')}</h2>
             <div class="mj-unknown-wrap">
                 <div id="mj-unknown" class="mj-unknown"></div>
-                <span class="mj-cost-tag"><span class="mj-icon mj-icon-unknown" role="img" aria-label="${_('Unknown band')}"></span>10</span>
+                <span class="mj-cost-tag"><span class="mj-icon mj-icon-unknown" role="img" aria-label="${_('Unknown Region')}"></span>10</span>
             </div>
             <p id="mj-end-warning" class="mj-warning" hidden>${_('The 8-cost pile is empty: the game ends at the end of this round')}</p>
             ${rowsHtml}`;
@@ -1513,8 +1601,9 @@ export class Game {
         div.classList.add('mj-card');
         if (card.cardNo > 0) {
             div.dataset.mjKey = spriteKey(card.cardNo, card.art);
-            // カード名は I-12 で英語名を入れる。それまでは番号で示す（009 §6、§11）
-            div.setAttribute('aria-label', `${_('Card')} ${String(card.cardNo).padStart(3, '0')}`);
+            // 英語名を代替テキストにする（009 §6、§11）
+            const info = this.cardInfo[card.cardNo];
+            div.setAttribute('aria-label', info === undefined ? `${_('Card')} ${String(card.cardNo).padStart(3, '0')}` : info.name);
             div.setAttribute('role', 'img');
         }
         div.classList.toggle('mj-sideways', card.sideways === true);
@@ -1565,13 +1654,38 @@ export class Game {
     // ---- 拡大表示（009 §9.5） ---------------------------------------------
 
     /**
-     * 英語の効果テキストなどのツールチップの中身。I-12 で実装する口（空なら画像だけを拡大する）。
+     * 英語の効果テキストなどのツールチップの中身（009 §6）。拡大画像の横（下）に出す。
+     * 英語名・日本語名・コスト・探査力・名声・シンボル・効果タイミング・英語の効果テキスト。
      *
-     * @param {number} _cardNo
+     * @param {number} cardNo
      * @returns {string} HTML
      */
-    getCardTooltipHtml(_cardNo) {
-        return '';
+    getCardTooltipHtml(cardNo) {
+        const info = this.cardInfo[cardNo];
+        if (info === undefined) {
+            return '';
+        }
+        const stat = (/** @type {string} */ key, /** @type {number} */ value) => `<span class="mj-tip-stat">${termHtml(key, false)}<b>${value}</b></span>`;
+        const stats = [
+            info.cost === null ? '' : stat('cost', info.cost),
+            stat('power', info.power),
+            stat('fame', info.fame),
+        ].join('');
+        const symbols = info.symbols.map((/** @type {string} */ id) => termHtml(SYMBOL_KEYS[id] ?? 'earth')).join('');
+        const timings = timingLabels();
+        const effects = info.effects.map((/** @type {{ timings: string[], text: string }} */ effect) => {
+            const labels = effect.timings.map((id) => {
+                const t = timings[id];
+                return t === undefined ? '' : `<span class="mj-timing mj-timing-${t.css}">${escapeHtml(t.label)}</span>`;
+            }).join('');
+            return `<p class="mj-tip-effect">${labels} ${effectTextHtml(effect.text)}</p>`;
+        }).join('');
+        return `
+            <div class="mj-tip-head"><b>${escapeHtml(info.name)}</b><span class="mj-tip-ja" lang="ja">${escapeHtml(info.nameJa)}</span></div>
+            <div class="mj-tip-stats">${stats}</div>
+            <div class="mj-tip-symbols">${symbols}</div>
+            ${effects === '' ? `<p class="mj-tip-effect mj-tip-none">${escapeHtml(_('No effect'))}</p>` : effects}
+        `;
     }
 
     setupZoom() {

@@ -36,7 +36,7 @@ final class GameEndTrigger
             [
                 'reason' => $reason,
                 'reason_label' => $reason === GlobalValues::END_UNKNOWN
-                    ? clienttranslate('the Unknown Band was acquired')
+                    ? clienttranslate('the Unknown Region was acquired')
                     : clienttranslate('the 8-cost pile is empty'),
                 'player_id' => $playerId,
                 'player_name' => $playerId === 0 ? '' : $playerName($playerId),

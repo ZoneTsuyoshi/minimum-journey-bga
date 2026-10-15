@@ -6,6 +6,7 @@ namespace Bga\Games\MinimumJourney\States;
 
 use Bga\GameFramework\StateType;
 use Bga\GameFramework\States\GameState;
+use Bga\Games\MinimumJourney\Data\Zone;
 use Bga\Games\MinimumJourney\Flow\StateId;
 use Bga\Games\MinimumJourney\Game;
 
@@ -33,6 +34,10 @@ class ReturnAmulet extends GameState
     {
         $result = $this->game->returnPhase->moveCharmStep($this->game->seatOrder());
         $this->game->sendNotifications($result->notifications);
+        $charm = $this->game->cards->list(Zone::Charm)[0] ?? null;
+        if ($charm !== null) {
+            $this->game->stats->recordCharmHolder($charm->locationArg);
+        }
         if ($result->transition === 'exclude') {
             $this->game->gamestate->changeActivePlayer((int) $result->playerId);
         }
