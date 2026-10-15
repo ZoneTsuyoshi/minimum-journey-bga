@@ -1,0 +1,48 @@
+# テスト
+
+## 結合テスト（MariaDB）
+
+データ層（`CardRepository`・`PlayerValues`・`GlobalValues`）とセットアップ（`GameSetup`）を、実際の MariaDB で動かして確かめる。
+BGA のフレームワーク（`Table`）は使わない。
+
+```bash
+npm run test:integration
+```
+
+必要なもの: Docker だけ。`tests/run-integration.sh` が次を行う。
+
+1. `tests/Dockerfile` から PHP 8.4（`pdo_mysql` と Composer 入り）のイメージ `mj-test-php` を作る。
+2. 使い捨てのネットワークと MariaDB（`mariadb:11`）のコンテナを作り、起動を待つ。
+3. リポジトリを PHP コンテナにマウントし、`composer install` の後に `composer test:integration`（PHPUnit）を実行する。
+4. 終わったらコンテナとネットワークを消す。
+
+`vendor/` はリポジトリ直下に作られる（`.gitignore` 済み）。
+
+## 構成
+
+| パス | 内容 |
+| --- | --- |
+| `Integration/` | テスト本体。`SetupNewGameTest`（3 人・4 人のセットアップ）、`CardRepositoryTest`（SQL の動作） |
+| `Support/PdoDatabase.php` | データ層の `Database` interface を PDO で実装したテスト用クラス |
+| `Support/Schema.php` | `src/dbmodel.sql` を流し、BGA が先に作る `player` テーブルを最小限で代用する |
+| `Support/ArrayGlobals.php` | BGA の `globals` の代わり（値を JSON にして配列に持つ） |
+| `Support/SeededRandom.php` | `bga_rand` の代わりの、種を指定できる乱数 |
+| `Support/BgaStubs.php` | BGA の `Globals` クラスの最小のスタブ（`tests/` の中だけで使う） |
+
+## 環境変数
+
+`composer test:integration` を直接実行する場合は、DB への接続を環境変数で渡す。
+
+| 変数 | 既定 |
+| --- | --- |
+| `DB_HOST` | `127.0.0.1` |
+| `DB_PORT` | `3306` |
+| `DB_NAME` | `minimumjourney_test` |
+| `DB_USER` | `root` |
+| `DB_PASSWORD` | 空 |
+
+テストごとに `card`・`resolve_entry`・`player` テーブルを作り直すので、専用のデータベースを指定すること。
+
+## CI
+
+結合テストは CI に組み込んでいない（組み込むかどうかは I-13 で決める）。

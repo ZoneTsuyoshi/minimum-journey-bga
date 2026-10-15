@@ -1,23 +1,27 @@
 {
   // option ids should be between 100 and 199
   // See https://en.doc.boardgamearena.com/Options_and_preferences:_gameoptions.json,_gamepreferences.json for more details
-  /*
-  EXAMPLE:
+  // MINIMUM JOURNEY のゲームオプション（docs/specs/007-data-model.md §13.1）。ゲーム作成後は変更できない
 
-  "101": {
-    "name": "Draft variant",
+  // お守りカードの使う面（001 §3-5）。値は GameSetup::CHARM_* と一致させる
+  "100": {
+    "name": "Charm side",
     "values": {
-      "0": {
-        "name": "No draft"
-      },
-      "1": {
-        "name": "Draft",
-        "description": "Add a draft at the beginning of the game"
-        "tmdisplay": "Draft",
-        "nobeginner": true
-      }
+      "1": { "name": "Safe Passage Charm", "tmdisplay": "Safe Passage Charm" },
+      "2": { "name": "Misfortune-Warding Charm", "tmdisplay": "Misfortune-Warding Charm" }
     },
-    "default": 0
+    "default": 1,
+    "level": "base"
+  },
+
+  // 名声の合計をゲーム中に表示するか（009 No.5・No.15）。観戦者には常に非表示
+  "101": {
+    "name": "Show total fame during the game",
+    "values": {
+      "1": { "name": "No" },
+      "2": { "name": "Yes", "tmdisplay": "Total fame shown" }
+    },
+    "default": 1,
+    "level": "additional"
   }
-  */
 }
