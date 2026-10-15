@@ -255,6 +255,18 @@
     flex: 0 0 auto;
 }
 
+/*
+ * bga-cards の Deck / AllVisibleDeck は CardManager の cardWidth・cardHeight（120×168）を
+ * インラインの --width / --height に入れ、枠の大きさと重なりの計算に使う。
+ * カードの実寸は --mj-w / --mj-h（縮小表示や狭い画面では小さい）なので、
+ * 食い違わないようインラインより強い !important で合わせる。
+ */
+.mj-pile,
+.mj-acquired {
+    --width: var(--mj-w) !important;
+    --height: var(--mj-h) !important;
+}
+
 /* カードが入っているときは枠をカードに任せる */
 .mj-pile:not(.mj-empty),
 .mj-slot:has(.mj-card),
