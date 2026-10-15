@@ -1,4 +1,4 @@
-# CI（lint）第 1 段階。仕様書: docs/specs/004-ci-lint.md
+# CI（lint）第 1・2 段階。仕様書: docs/specs/004-ci-lint.md
 # 必須チェックは gate（表示名 "Lint gate"）のみ。段階が進んだら gate の needs にジョブを足す。
 name: Lint
 
@@ -80,11 +80,189 @@ jobs:
       - name: Forbidden files and src/ hygiene
         run: npm run lint:repo
 
+  php:
+    name: PHP
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
+        with:
+          php-version: '8.4'
+          coverage: none
+          tools: composer
+
+      # vendor/ はキャッシュしない（setup-php の注意）。Composer のダウンロードキャッシュのみ
+      - name: Get Composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Composer downloads
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: composer-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-
+
+      - name: Install dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist
+
+      # php-parallel-lint（構文）と PHP_CodeSniffer（規約）。静的解析は static ジョブ
+      - name: composer lint
+        run: composer lint
+
+  node:
+    name: JS / CSS / JSONC
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # 先行ステップが失敗しても続けて、1 回の実行で全エラーを見えるようにする
+      - name: ESLint (JS and JSONC)
+        if: ${{ !cancelled() }}
+        run: npm run lint:js
+
+      - name: declare(strict_types=1) in PHP
+        if: ${{ !cancelled() }}
+        run: npm run lint:strict
+
+      - name: Stylelint
+        if: ${{ !cancelled() }}
+        run: npm run lint:css
+
+  # PHPStan と tsc は BGA の開発用スタブ（再配布不可でコミットしない）が必要。
+  # Studio から SFTP で取得して実行する。Secrets / Variables が無いとき（フォークの PR、
+  # Dependabot の PR、Secrets を渡さない workflow_call 経由）は警告つきでスキップして成功する。
+  # 仕様書 004 第 2.4 節・005 第 6 節
+  static:
+    name: Static analysis (BGA stubs)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check configuration
+        id: config
+        env:
+          HAS_KEY: ${{ secrets.BGA_SSH_PRIVATE_KEY != '' }}
+          HAS_USER: ${{ secrets.BGA_SFTP_USER != '' }}
+          HAS_HOST: ${{ vars.BGA_SFTP_HOST != '' }}
+          HAS_PORT: ${{ vars.BGA_SFTP_PORT != '' }}
+          HAS_DIR: ${{ vars.BGA_REMOTE_DIR != '' }}
+          HAS_KNOWN_HOSTS: ${{ vars.BGA_SSH_KNOWN_HOSTS != '' }}
+        run: |
+          missing=""
+          [ "$HAS_KEY" = true ] || missing="$missing BGA_SSH_PRIVATE_KEY(Secret)"
+          [ "$HAS_USER" = true ] || missing="$missing BGA_SFTP_USER(Secret)"
+          [ "$HAS_HOST" = true ] || missing="$missing BGA_SFTP_HOST(Variable)"
+          [ "$HAS_PORT" = true ] || missing="$missing BGA_SFTP_PORT(Variable)"
+          [ "$HAS_DIR" = true ] || missing="$missing BGA_REMOTE_DIR(Variable)"
+          [ "$HAS_KNOWN_HOSTS" = true ] || missing="$missing BGA_SSH_KNOWN_HOSTS(Variable)"
+          if [ -n "$missing" ]; then
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::warning title=PHPStan / tsc skipped::Secrets / Variables が無いためスキップ:$missing"
+            {
+              echo "## PHPStan と tsc をスキップしました"
+              echo
+              echo "BGA Studio からスタブを取得できないため実行していません（フォーク・Dependabot の PR などでは正常）。未設定:$missing"
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout
+        if: steps.config.outputs.ready == 'true'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup PHP
+        if: steps.config.outputs.ready == 'true'
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
+        with:
+          php-version: '8.4'
+          coverage: none
+          tools: composer
+
+      - name: Setup Node
+        if: steps.config.outputs.ready == 'true'
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      # 依存のインストール（スクリプトが走る）は、秘密鍵を書き出す前に済ませる
+      - name: Install dependencies
+        if: steps.config.outputs.ready == 'true'
+        run: |
+          composer install --no-interaction --no-progress --prefer-dist
+          npm ci
+
+      - name: Install lftp
+        if: steps.config.outputs.ready == 'true'
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq lftp
+
+      # 秘密鍵は printf でファイルに書く（echo しない・set -x しない）。権限 600
+      - name: Prepare SSH key
+        if: steps.config.outputs.ready == 'true'
+        env:
+          BGA_SSH_PRIVATE_KEY: ${{ secrets.BGA_SSH_PRIVATE_KEY }}
+          BGA_SSH_KNOWN_HOSTS: ${{ vars.BGA_SSH_KNOWN_HOSTS }}
+        run: |
+          umask 077
+          install -m 600 /dev/null "$RUNNER_TEMP/bga_key"
+          printf '%s\n' "$BGA_SSH_PRIVATE_KEY" > "$RUNNER_TEMP/bga_key"
+          printf '%s\n' "$BGA_SSH_KNOWN_HOSTS" > "$RUNNER_TEMP/bga_known_hosts"
+          ssh-keygen -y -f "$RUNNER_TEMP/bga_key" > /dev/null 2>&1 \
+            || { echo "::error::BGA_SSH_PRIVATE_KEY の形式が不正です（改行が壊れていないか確認）"; exit 1; }
+
+      - name: Fetch BGA stubs
+        if: steps.config.outputs.ready == 'true'
+        env:
+          BGA_KEY_FILE: ${{ runner.temp }}/bga_key
+          BGA_KNOWN_HOSTS_FILE: ${{ runner.temp }}/bga_known_hosts
+          BGA_SFTP_USER: ${{ secrets.BGA_SFTP_USER }}
+          BGA_SFTP_HOST: ${{ vars.BGA_SFTP_HOST }}
+          BGA_SFTP_PORT: ${{ vars.BGA_SFTP_PORT }}
+          BGA_REMOTE_DIR: ${{ vars.BGA_REMOTE_DIR }}
+        run: scripts/lint/fetch-bga-stubs.sh
+
+      - name: Remove SSH key
+        if: always() && steps.config.outputs.ready == 'true'
+        run: rm -f "$RUNNER_TEMP/bga_key" "$RUNNER_TEMP/bga_known_hosts"
+
+      # 先行ステップが失敗しても続けて、1 回の実行で全エラーを見えるようにする
+      - name: PHPStan
+        if: ${{ !cancelled() && steps.config.outputs.ready == 'true' }}
+        run: composer lint:stan
+
+      - name: tsc
+        if: ${{ !cancelled() && steps.config.outputs.ready == 'true' }}
+        run: npm run lint:types -- --require
+
   gate:
     name: Lint gate
     if: ${{ always() }}
-    # 段階が進むたびに php, node, assets を追加する
-    needs: [markdown, secrets]
+    # 段階が進むたびにジョブを追加する（第 3 段階: assets）
+    needs: [markdown, secrets, php, node, static]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:

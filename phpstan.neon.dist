@@ -1,0 +1,14 @@
+# P3: PHP の静的解析（仕様書 004 第 2.4 節）。実行: composer lint:stan
+# tools/bga/_ide_helper.php は BGA の配布物でコミットしない（.gitignore 済み）。CI は Studio から取得する
+includes:
+    - phpstan-baseline.neon
+
+parameters:
+    level: 5
+    phpVersion: 80400
+    paths:
+        - src/modules/php
+    scanDirectories:
+        - src/modules/php
+    scanFiles:
+        - tools/bga/_ide_helper.php

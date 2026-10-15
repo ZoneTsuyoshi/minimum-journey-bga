@@ -271,6 +271,19 @@ CLAUDE.md の絶対ルール 7（認証情報をコミットしない）を機�
 - **段階内のガード【提案】**: 第 2・3 段階のジョブは、対象が揃っていない間もステップを成功扱いでスキップする。具体的には、各検査ステップに `if: ${{ hashFiles('src/**/*.php') != '' }}` のような条件を付ける（PHP は `src/**/*.php`、JS・型は `src/modules/js/**/*.js`、CSS は `src/**/*.css`、アセットは `src/img/**`）。`hashFiles` は対象が無いと空文字列を返し、条件が偽になる。**ジョブ全体を `if` でスキップせず、ステップで制御する**のは、スキップされたジョブが必須チェックの扱いでどう見えるかを避けるためと、`hashFiles` がジョブレベルの `if` では使えない**【未確認】**ためである。ローカルのコマンドは、`--allow-empty-input`（Stylelint）、ESLint が常に設定ファイル自身を対象に持つこと、で失敗しない。`tsc` のみ、`include` 一致が 0 件だと失敗するため、第 2 段階で `Game.js` の雛形が入ってから `lint:types` を追加する。
 - **移行時の見直し**: `src/` の雛形は Studio の初期生成物として取り込み済み（2026-10-14）。非推奨ファイル（`states.inc.php` など）は含まれていなかったので整理は不要。ただし雛形の `Game.php` 等は Studio のサンプルコードなので、PHPCS・PHPStan が大量にエラーを出す可能性がある。その場合は、規則側を調整するか、雛形を整理する PR を先に入れる。
 
+#### 3.1 第 2 段階の実装記録（2026-10-15）
+
+第 2 段階を `ci/lint-stage2` で実装した。仕様書の本文からの差分と判断を記録する（本文は変更していない）。
+
+- **スタブの扱い（第 2.4・2.6 節の案 C・D の代わり）**: 手書きスタブ（案 C）は採らず、PHPStan と `tsc` は **CI が Studio から SFTP でスタブ（`_ide_helper.php`、`bga-framework.d.ts`）を取得して実行**する。スタブはコミットせず、取得はジョブ内で完結する（成果物としてアップロードしない）。取得は専用ジョブ `static`（表示名 `Static analysis (BGA stubs)`）で行い、`php` と `node` のジョブは Secrets を使わない。接続方法は `scripts/bga-sync/sync.sh` と同じで、Secrets / Variables も 005 第 6 節と共通（`scripts/lint/fetch-bga-stubs.sh`）。Secrets / Variables が無いとき（フォークや Dependabot の PR、Secrets を渡さない `workflow_call` 経由）は警告つきでスキップして成功する。このとき PHPStan と `tsc` は実行されない。
+- **`types/bga-globals.d.ts` は作らない**: `bga-framework.d.ts` が同じグローバルを宣言するため、併置すると二重宣言になる。スタブ無しでは `tsc` を実行しない（`npm run lint:types` はスタブが無ければ警告してスキップ。`--require` を付けると失敗にする。CI の `static` は `--require`）。
+- **`lint:strict` は Node スクリプト**（`scripts/lint/check-strict-types.mjs`）にして `node` ジョブで実行する（Composer の `lint` には含めない）。PHP が無いローカルでも実行できるため。
+- **`composer lint` は構文（`lint:syntax`）と規約（`lint:cs`）のみ**。`lint:stan` は別スクリプトで、スタブが必要なため `static` ジョブで実行する。
+- **雛形の扱い**: 書式の機械的な修正（`phpcbf` の整形、メソッドへの `public` の明示、`Game.php` の CRLF から LF への変換、`Game.js` の未使用引数への `_` 接頭辞）のみ行い、動作は変えていない。中身の書き換えが要るものは次のとおり一時的に除外した。雛形の置き換え（実装タスク）で外すこと。
+  - `tsconfig.json` の `exclude` に `src/modules/js/Game.js`（JSDoc が無く、`strict` で 12 件の暗黙 any と 1 件の null 参照が出る）
+  - `phpstan-baseline.neon`（`Game.php` の `$query_values` 未定義、`NextPlayer.php` の常に偽の条件）
+- ESLint は Node 23.11.0 のローカルでも動作した（警告なし）。CI の Node は `.nvmrc` の 24。
+
 ### 4. ワークフロー構成
 
 #### 4.1 ファイルとトリガー

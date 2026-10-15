@@ -1,0 +1,31 @@
+<?xml version="1.0"?>
+<!-- P2: PHP のコーディング規約（仕様書 004 第 2.4 節）。実行: composer lint:cs -->
+<ruleset name="MinimumJourney">
+    <description>MINIMUM JOURNEY の PHP コーディング規約（PSR-12 ベース）</description>
+
+    <file>src</file>
+    <arg name="extensions" value="php"/>
+    <arg name="colors"/>
+    <arg value="sp"/>
+
+    <rule ref="PSR12">
+        <!-- 行長は下で警告ではなくエラーにして 140 文字に緩める -->
+        <exclude name="Generic.Files.LineLength"/>
+    </rule>
+
+    <rule ref="Generic.Files.LineLength">
+        <properties>
+            <property name="lineLimit" value="140"/>
+            <property name="absoluteLineLimit" value="0"/>
+        </properties>
+    </rule>
+    <!-- 行長を警告からエラーに引き上げる -->
+    <rule ref="Generic.Files.LineLength.TooLong">
+        <type>error</type>
+    </rule>
+
+    <!-- BGA の debug_ で始まるデバッグ用メソッドは Studio のデバッグメニューに出る仕様（仕様書 003 第 7.1 節） -->
+    <rule ref="PSR1.Methods.CamelCapsMethodName">
+        <exclude-pattern>src/modules/php/Game\.php</exclude-pattern>
+    </rule>
+</ruleset>
