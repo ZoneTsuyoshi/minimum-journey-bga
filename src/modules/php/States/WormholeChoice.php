@@ -6,12 +6,15 @@ namespace Bga\Games\MinimumJourney\States;
 
 use Bga\GameFramework\StateType;
 use Bga\GameFramework\States\GameState;
+use Bga\GameFramework\States\PossibleAction;
+use Bga\Games\MinimumJourney\Data\BoardView;
+use Bga\Games\MinimumJourney\Flow\DrawRuleViolation;
 use Bga\Games\MinimumJourney\Flow\StateId;
 use Bga\Games\MinimumJourney\Game;
 
 /**
- * 036 ワームホールの入れ替えの選択。
- * 骨格（I-04）では呼ばれても何もせず次へ進む差し込み口。中身は I-09 で実装する。
+ * 036 簡易ワームホール（P4）：表にした山札の上のカードを、列の同じ探査コストのカードと入れ替えるか選ぶ。
+ * 入れ替えなくても山札をシャッフルする（002 No.42 (e)）。
  */
 class WormholeChoice extends GameState
 {
@@ -30,13 +33,49 @@ class WormholeChoice extends GameState
         );
     }
 
-    public function onEnteringState(): string
+    /**
+     * 表にしたカードは公開情報。
+     *
+     * @return array<string, mixed>
+     */
+    public function getArgs(): array
     {
-        return 'done';
+        $resolver = $this->game->drawResolver;
+        $revealed = $resolver->wormholeRevealed();
+        return [
+            'revealedCard' => $revealed === null ? null : BoardView::cardView($revealed),
+            'candidates' => $revealed === null ? [] : array_map(BoardView::cardView(...), $resolver->wormholeCandidates($revealed)),
+            'ownerId' => $resolver->wormholeOwner(),
+        ];
     }
 
+    /**
+     * 列のカードの ID。0 は入れ替えない。
+     */
+    #[PossibleAction]
+    public function actWormhole(int $rowCardId, int $activePlayerId): string
+    {
+        $this->game->giveExtraTime($activePlayerId);
+        return $this->swap($activePlayerId, $rowCardId > 0 ? $rowCardId : null);
+    }
+
+    /**
+     * 離脱したプレイヤーは入れ替えない（006 §7）。
+     */
     public function zombie(int $playerId): string
     {
+        return $this->swap($playerId, null);
+    }
+
+    private function swap(int $playerId, ?int $rowCardId): string
+    {
+        try {
+            $step = $this->game->drawResolver->wormhole($playerId, $rowCardId);
+        } catch (DrawRuleViolation $violation) {
+            throw $this->game->drawError($violation);
+        }
+        $this->game->sendNotifications($step->notifications);
+
         return 'done';
     }
 }

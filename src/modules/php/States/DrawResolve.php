@@ -10,8 +10,9 @@ use Bga\Games\MinimumJourney\Flow\StateId;
 use Bga\Games\MinimumJourney\Game;
 
 /**
- * ドロー時効果の解決エンジン（010 §6）。骨格ではドロー時効果が起きないので、何もせず次の準備選択へ進む。
- * 骨格（I-04）では呼ばれても何もせず次へ進む差し込み口。中身は I-09 で実装する。
+ * ドロー時効果の解決エンジン（010 §6.1、006 §5.2）。resolve_level と resolve_entry で、優先度の順（P0 → P1 → P2 → P2a →
+ * 008 のコピー元 → P3 → P4 → P5-順番 → P5-同時 → P6）に進める。自動で解決できるレベルは状態を出ずに実行し、
+ * プレイヤーの選択が要るレベルだけ割り込み状態（31〜35）へ出る。割り込み状態は終わるとここに戻る。
  */
 class DrawResolve extends GameState
 {
@@ -35,6 +36,12 @@ class DrawResolve extends GameState
 
     public function onEnteringState(): string
     {
-        return 'done';
+        $step = $this->game->drawResolver->advance();
+        if ($step->activePlayer !== null) {
+            $this->game->gamestate->changeActivePlayer($step->activePlayer);
+        }
+        $this->game->sendNotifications($step->notifications);
+
+        return (string) $step->transition;
     }
 }
