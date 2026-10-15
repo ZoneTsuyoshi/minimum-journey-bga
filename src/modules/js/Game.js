@@ -138,16 +138,19 @@ class ExploreChoose {
         this.selection = null;
         /** @type {{ element: HTMLElement, handler: () => void }[]} 山札に付けたクリック処理（状態を出るときに外す） */
         this.deckHandlers = [];
+        /** 012 の追加探査（探査するかパスするかを選ぶ） */
+        this.additional = false;
     }
 
     /**
-     * @param {{ rowTargets?: { cardId: number }[], unknownTarget?: { cardId: number } | null, deckTargets?: { cost: number }[] }} args
+     * @param {{ rowTargets?: { cardId: number }[], unknownTarget?: { cardId: number } | null, deckTargets?: { cost: number }[], additional?: boolean }} args
      * @param {boolean} isCurrentPlayerActive
      */
     onEnteringState(args, isCurrentPlayerActive) {
         this.selection = null;
+        this.additional = args.additional === true;
         if (!isCurrentPlayerActive) {
-            this.bga.statusBar.setTitle(_('${actplayer} must explore or pass'));
+            this.bga.statusBar.setTitle(this.additional ? _('${actplayer} may explore one more card') : _('${actplayer} must explore or pass'));
             return;
         }
         this.enableTargets(args);
@@ -256,7 +259,7 @@ class ExploreChoose {
         const selection = this.selection;
         this.bga.statusBar.removeActionButtons();
         if (selection === null) {
-            this.bga.statusBar.setTitle(_('${you} must explore or pass'));
+            this.bga.statusBar.setTitle(this.additional ? _('${you} may explore one more card, or pass') : _('${you} must explore or pass'));
         } else if (selection.source === 'deck') {
             this.bga.statusBar.setTitle(
                 _('Explore the top card of the ${cost}-cost pile? It will be revealed and cannot be undone').replace('${cost}', String(selection.cost)),
@@ -477,6 +480,277 @@ class WormholeChoice {
             () => this.bga.actions.performAction('actWormhole', { rowCardId: 0 }),
             { color: 'secondary' },
         );
+    }
+}
+
+/**
+ * 探査時の効果の使用（状態 42。011 広範囲レーダー、013 局所的な地図）。手番の開始時に、使うものを選んだ順に 1 つずつ押す。
+ * どちらも任意で、使えるものがなくなるか [Done] を押すと探査へ進む。
+ */
+class ExploreOnExploreChoice {
+    /**
+     * @param {Game} game
+     * @param {Bga} bga
+     */
+    constructor(game, bga) {
+        this.game = game;
+        this.bga = bga;
+    }
+
+    /**
+     * @param {{ usable?: { cardId: number, kind: string, deckCosts: number[] }[] }} args
+     * @param {boolean} isCurrentPlayerActive
+     */
+    onEnteringState(args, isCurrentPlayerActive) {
+        const usable = args.usable ?? [];
+        if (!isCurrentPlayerActive) {
+            this.bga.statusBar.setTitle(_('${actplayer} may use on-explore effects'));
+            return;
+        }
+        this.bga.statusBar.setTitle(_('${you} may use on-explore effects'));
+        this.game.highlightCards(usable.map((u) => int(u.cardId)));
+        for (const effect of usable) {
+            const cardId = int(effect.cardId);
+            if (effect.kind === 'radar') {
+                for (const cost of effect.deckCosts) {
+                    this.bga.statusBar.addActionButton(
+                        _('Wide-Area Radar: add the top card of the ${cost}-cost pile to the row').replace('${cost}', String(cost)),
+                        () => this.bga.actions.performAction('actUseOnExplore', { cardId, deckCost: int(cost) }),
+                    );
+                }
+            } else {
+                this.bga.statusBar.addActionButton(
+                    _('Local Map: exclude it to lower all explore costs by 1 this turn'),
+                    () => this.bga.actions.performAction('actUseOnExplore', { cardId, deckCost: 0 }),
+                );
+            }
+        }
+        this.bga.statusBar.addActionButton(_('Done'), () => this.bga.actions.performAction('actSkipOnExplore'), { color: 'secondary' });
+    }
+
+    /**
+     * @param {unknown} _args
+     * @param {boolean} _isCurrentPlayerActive
+     */
+    onLeavingState(_args, _isCurrentPlayerActive) {
+        this.game.highlightCards([]);
+    }
+}
+
+/**
+ * 準備場の表向きのカードを選んで除外する状態の共通部品（45 の 004 は必須、51 の 058 は最大 1 枚）。
+ */
+class PrepExcludeChoice {
+    /**
+     * @param {Game} game
+     * @param {Bga} bga
+     * @param {{ title: string, others: string, button: string, skip: string | null }} texts skip が null なら必ず 1 枚選ぶ
+     */
+    constructor(game, bga, texts) {
+        this.game = game;
+        this.bga = bga;
+        this.texts = texts;
+        /** @type {number | null} */
+        this.selected = null;
+        /** @type {number | null} */
+        this.playerId = null;
+    }
+
+    /**
+     * @param {{ candidates?: { id: number }[] }} args
+     * @param {boolean} isCurrentPlayerActive
+     */
+    onEnteringState(args, isCurrentPlayerActive) {
+        this.selected = null;
+        if (!isCurrentPlayerActive) {
+            this.bga.statusBar.setTitle(this.texts.others);
+            return;
+        }
+        this.bga.statusBar.setTitle(this.texts.title);
+        this.playerId = int(this.bga.players.getCurrentPlayerId());
+        this.game.enablePrepSelection(this.playerId, (args.candidates ?? []).map((c) => int(c.id)), (id) => {
+            this.selected = id;
+            this.render();
+        });
+        this.render();
+    }
+
+    /**
+     * @param {unknown} _args
+     * @param {boolean} _isCurrentPlayerActive
+     */
+    onLeavingState(_args, _isCurrentPlayerActive) {
+        if (this.playerId !== null) {
+            this.game.disablePrepSelection(this.playerId);
+        }
+        this.playerId = null;
+        this.selected = null;
+    }
+
+    render() {
+        this.bga.statusBar.removeActionButtons();
+        const cardId = this.selected;
+        if (cardId !== null) {
+            this.bga.statusBar.addActionButton(this.texts.button, () => this.bga.actions.performAction('actExcludePrepCard', { cardId }), { color: 'primary' });
+        }
+        if (this.texts.skip !== null) {
+            this.bga.statusBar.addActionButton(this.texts.skip, () => this.bga.actions.performAction('actExcludePrepCard', { cardId: 0 }), { color: 'secondary' });
+        }
+    }
+}
+
+/**
+ * 034 粉塵バキューマ（状態 46）。探査場の [Solar System] または [Milky Way] のみを持つカードを 1 枚、無料で獲得する（必須）。
+ * 列のカードか、コスト 2・4 の探査山札の上を選ぶ。山札の上は獲得するまで公開されない。
+ */
+class FreeAcquireChoice {
+    /**
+     * @param {Game} game
+     * @param {Bga} bga
+     */
+    constructor(game, bga) {
+        this.game = game;
+        this.bga = bga;
+        /** @type {{ type: 'row' | 'deck', ref: number } | null} */
+        this.selection = null;
+        /** @type {{ element: HTMLElement, handler: () => void }[]} */
+        this.deckHandlers = [];
+    }
+
+    /**
+     * @param {{ rowCandidates?: { id: number }[], deckCandidates?: number[] }} args
+     * @param {boolean} isCurrentPlayerActive
+     */
+    onEnteringState(args, isCurrentPlayerActive) {
+        this.selection = null;
+        if (!isCurrentPlayerActive) {
+            this.bga.statusBar.setTitle(_('${actplayer} must choose a card to acquire for free'));
+            return;
+        }
+        this.bga.statusBar.setTitle(_('${you} must choose a card to acquire for free'));
+        this.game.enableRowSelection((args.rowCandidates ?? []).map((c) => int(c.id)), (id) => {
+            this.clearDeck();
+            this.selection = id === null ? null : { type: 'row', ref: id };
+            this.render();
+        });
+        const costs = new Set((args.deckCandidates ?? []).map(int));
+        for (const cost of COSTS) {
+            const element = this.game.exploreDecks[cost].getElement();
+            element.classList.add(costs.has(cost) ? 'mj-selectable' : 'mj-unselectable');
+            if (costs.has(cost)) {
+                const handler = () => this.onDeckSelected(cost);
+                element.addEventListener('click', handler);
+                this.deckHandlers.push({ element, handler });
+            }
+        }
+        this.render();
+    }
+
+    /**
+     * @param {unknown} _args
+     * @param {boolean} _isCurrentPlayerActive
+     */
+    onLeavingState(_args, _isCurrentPlayerActive) {
+        this.game.disableRowSelection();
+        for (const { element, handler } of this.deckHandlers) {
+            element.removeEventListener('click', handler);
+        }
+        for (const cost of COSTS) {
+            this.game.exploreDecks[cost].getElement().classList.remove('mj-selectable', 'mj-unselectable', 'mj-selected');
+        }
+        this.deckHandlers = [];
+        this.selection = null;
+    }
+
+    clearDeck() {
+        for (const cost of COSTS) {
+            this.game.exploreDecks[cost].getElement().classList.remove('mj-selected');
+        }
+    }
+
+    /** @param {number} cost */
+    onDeckSelected(cost) {
+        const already = this.selection?.type === 'deck' && this.selection.ref === cost;
+        this.clearDeck();
+        for (const stock of Object.values(this.game.rowStocks)) {
+            stock.unselectAll(true);
+        }
+        this.selection = null;
+        if (!already) {
+            this.selection = { type: 'deck', ref: cost };
+            this.game.exploreDecks[cost].getElement().classList.add('mj-selected');
+        }
+        this.render();
+    }
+
+    render() {
+        this.bga.statusBar.removeActionButtons();
+        const selection = this.selection;
+        if (selection !== null) {
+            this.bga.statusBar.addActionButton(
+                _('Acquire the selected card for free'),
+                () => this.bga.actions.performAction('actFreeAcquire', { type: selection.type, ref: selection.ref }),
+                { color: 'primary' },
+            );
+        }
+    }
+}
+
+/**
+ * 055 ブラックホール発生機（状態 47）。自分のデッキ（山札・準備場・獲得・裏向き）から最大 2 枚を除外する。
+ * 「デッキ」を参照する効果なので、解決中だけ本人にデッキ全体の券面が届く（_private.deckCards）。
+ */
+class DeckExcludeChoice {
+    /**
+     * @param {Game} game
+     * @param {Bga} bga
+     */
+    constructor(game, bga) {
+        this.game = game;
+        this.bga = bga;
+        /** @type {number[]} */
+        this.selected = [];
+    }
+
+    /**
+     * @param {{ max?: number, _private?: { deckCards?: { id: number, cardNo: number, art: number, zone: string }[] } }} args
+     * @param {boolean} isCurrentPlayerActive
+     */
+    onEnteringState(args, isCurrentPlayerActive) {
+        this.selected = [];
+        if (!isCurrentPlayerActive) {
+            this.bga.statusBar.setTitle(_('${actplayer} may exclude up to 2 cards from their deck'));
+            return;
+        }
+        this.bga.statusBar.setTitle(_('${you} may exclude up to 2 cards from your deck'));
+        const cards = args._private?.deckCards ?? [];
+        this.game.showMultiChoicePanel(_('Your whole deck (choose up to 2 cards to exclude)'), cards, int(args.max ?? 2), (ids) => {
+            this.selected = ids;
+            this.render();
+        });
+        this.render();
+    }
+
+    /**
+     * @param {unknown} _args
+     * @param {boolean} _isCurrentPlayerActive
+     */
+    onLeavingState(_args, _isCurrentPlayerActive) {
+        this.game.hideChoicePanel();
+        this.selected = [];
+    }
+
+    render() {
+        this.bga.statusBar.removeActionButtons();
+        const cardIds = this.selected;
+        if (cardIds.length > 0) {
+            this.bga.statusBar.addActionButton(
+                _('Exclude the selected cards'),
+                () => this.bga.actions.performAction('actExcludeDeckCards', { cardIds }),
+                { color: 'primary' },
+            );
+        }
+        this.bga.statusBar.addActionButton(_('Do not exclude'), () => this.bga.actions.performAction('actExcludeDeckCards', { cardIds: [] }), { color: 'secondary' });
     }
 }
 
@@ -828,6 +1102,21 @@ export class Game {
             action: 'actChooseLockedCard',
         }));
         this.bga.states.register('SimultaneousEffects', new SimultaneousEffects(this, bga));
+        this.bga.states.register('ExploreOnExploreChoice', new ExploreOnExploreChoice(this, bga));
+        this.bga.states.register('AcquireExcludeChoice', new PrepExcludeChoice(this, bga, {
+            title: _('${you} must exclude a card from your prep area'),
+            others: _('${actplayer} must exclude a card from their prep area'),
+            button: _('Exclude the selected card'),
+            skip: null,
+        }));
+        this.bga.states.register('FreeAcquireChoice', new FreeAcquireChoice(this, bga));
+        this.bga.states.register('DeckExcludeChoice', new DeckExcludeChoice(this, bga));
+        this.bga.states.register('AmuletExcludeChoice', new PrepExcludeChoice(this, bga, {
+            title: _('${you} may exclude a card from your prep area'),
+            others: _('${actplayer} may exclude a card from their prep area'),
+            button: _('Exclude the selected card'),
+            skip: _('Do not exclude'),
+        }));
     }
 
     /**
@@ -1444,6 +1733,34 @@ export class Game {
     }
 
     /**
+     * 自分の準備場のカード（本体）を 1 枚選べるようにする（004・058 の除外）。
+     *
+     * @param {number} playerId
+     * @param {number[]} ids 選べるカードの ID
+     * @param {(id: number | null) => void} onChange 選択が変わったとき（外したら null）
+     */
+    enablePrepSelection(playerId, ids, onChange) {
+        const stock = this.areas[playerId]?.prep;
+        if (stock === undefined) {
+            return;
+        }
+        const selectable = new Set(ids);
+        stock.setSelectionMode('single', stock.getCards().filter((/** @type {MjCard} */ c) => selectable.has(int(c.id))));
+        stock.onSelectionChange = (/** @type {MjCard[]} */ selection) => onChange(selection.length > 0 ? int(selection[0].id) : null);
+    }
+
+    /** @param {number} playerId */
+    disablePrepSelection(playerId) {
+        const stock = this.areas[playerId]?.prep;
+        if (stock === undefined) {
+            return;
+        }
+        stock.unselectAll(true);
+        stock.setSelectionMode('none');
+        stock.onSelectionChange = undefined;
+    }
+
+    /**
      * 盤面に無いカード（山札の上など、本人にだけ見せるカード）を一時的に並べる。onSelect を渡すと 1 枚選べる。
      *
      * @param {string} label
@@ -1451,6 +1768,45 @@ export class Game {
      * @param {((id: number | null) => void) | null} onSelect
      */
     showChoicePanel(label, cards, onSelect) {
+        this.openChoicePanel(label, cards.map((c) => this.toCard(c)));
+        if (onSelect !== null && this.choiceStock !== null) {
+            this.choiceStock.setSelectionMode('single');
+            this.choiceStock.onSelectionChange = (/** @type {MjCard[]} */ selection) => onSelect(selection.length > 0 ? int(selection[0].id) : null);
+        }
+    }
+
+    /**
+     * 本人にだけ見せるカードの一覧から、max 枚まで選ばせる（055 のデッキ全体）。
+     * 盤面に同じカードがあっても要素が重ならないよう、パネル用の別の ID で並べ、選択は元の ID で返す。
+     *
+     * @param {string} label
+     * @param {{ id: number, cardNo: number, art: number, zone?: string }[]} cards
+     * @param {number} max
+     * @param {(ids: number[]) => void} onChange
+     */
+    showMultiChoicePanel(label, cards, max, onChange) {
+        this.openChoicePanel(label, cards.map((c) => /** @type {MjCard} */ ({ ...this.toCard(c), id: `pick-${int(c.id)}` })));
+        const stock = this.choiceStock;
+        if (stock === null) {
+            return;
+        }
+        stock.setSelectionMode('multiple');
+        stock.onSelectionChange = (/** @type {MjCard[]} */ selection) => {
+            while (selection.length > max) {
+                const extra = /** @type {MjCard} */ (selection.pop());
+                stock.unselectCard(extra, true);
+            }
+            onChange(selection.map((c) => int(String(c.id).replace('pick-', ''))));
+        };
+    }
+
+    /**
+     * 解決の選択用のパネルを開いて、カードを並べる。
+     *
+     * @param {string} label
+     * @param {MjCard[]} cards
+     */
+    openChoicePanel(label, cards) {
         this.hideChoicePanel();
         const root = document.getElementById('mj-choice');
         const holder = document.getElementById('mj-choice-cards');
@@ -1462,12 +1818,8 @@ export class Game {
             labelEl.textContent = label;
         }
         root.hidden = false;
-        this.choiceStock = new BgaCards.LineStock(this.cardsManager, holder, { gap: '8px' });
-        this.choiceStock.addCards(cards.map((c) => this.toCard(c)));
-        if (onSelect !== null) {
-            this.choiceStock.setSelectionMode('single');
-            this.choiceStock.onSelectionChange = (/** @type {MjCard[]} */ selection) => onSelect(selection.length > 0 ? int(selection[0].id) : null);
-        }
+        this.choiceStock = new BgaCards.LineStock(this.cardsManager, holder, { gap: '8px', wrap: 'wrap' });
+        this.choiceStock.addCards(cards);
     }
 
     hideChoicePanel() {
