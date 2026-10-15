@@ -808,7 +808,7 @@ class SimultaneousEffects {
             this.bga.statusBar.setTitle(_('Some players must resolve their effects'));
             return;
         }
-        this.bga.statusBar.setTitle(_('${you} must resolve your effect'));
+        this.setEffectTitle(mine);
         switch (mine.effect) {
             case 'arrangeTop':
                 this.arrangeTop(mine);
@@ -835,6 +835,24 @@ class SimultaneousEffects {
         this.game.hideChoicePanel();
         this.game.highlightCards([]);
         this.selected = null;
+    }
+
+    /**
+     * 何をすればよいかを、効果名つきでタイトルに出す。
+     *
+     * @param {SimulPrivate} mine
+     */
+    setEffectTitle(mine) {
+        /** @type {Record<string, string>} */
+        const titles = {
+            arrangeTop: _('${you} must resolve ${effect}: choose the card to put on top'),
+            topOrBottom: _('${you} must resolve ${effect}: put the card back on top or on the bottom'),
+            pickOne: _('${you} must resolve ${effect}: choose the card to put on top'),
+            pickFromDeck: _('${you} may resolve ${effect}: choose a card to put on top'),
+        };
+        const title = titles[mine.effect] ?? _('${you} must resolve ${effect}: return and redraw, or not');
+        const effect = mine.effectName !== undefined && mine.effectName !== '' ? mine.effectName : _('your effect');
+        this.bga.statusBar.setTitle(title.replace('${effect}', effect));
     }
 
     /**
@@ -881,13 +899,17 @@ class SimultaneousEffects {
      * @param {SimulPrivate} mine
      */
     pickOne(mine) {
+        const hint = () => this.button(_('Select a card above to put on top'), () => this.game.scrollToChoicePanel(), 'secondary');
         this.game.showChoicePanel(_('Choose the card to put on top (the other goes to the bottom)'), mine.seenCards, (id) => {
             this.bga.statusBar.removeActionButtons();
             this.selected = id;
             if (id !== null) {
                 this.button(_('Put the selected card on top'), () => this.bga.actions.performAction('actPickOne', { cardId: id }));
+            } else {
+                hint();
             }
         });
+        hint();
     }
 
     /**
@@ -1999,6 +2021,15 @@ export class Game {
         root.hidden = false;
         this.choiceStock = new BgaCards.LineStock(this.cardsManager, holder, { gap: '8px', wrap: 'wrap' });
         this.choiceStock.addCards(cards);
+        this.scrollToChoicePanel();
+    }
+
+    /** 選択パネルが画面外にあっても見落とさないよう、中央へスクロールする。 */
+    scrollToChoicePanel() {
+        const root = document.getElementById('mj-choice');
+        if (root !== null && !root.hidden) {
+            root.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        }
     }
 
     hideChoicePanel() {
