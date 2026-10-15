@@ -309,6 +309,57 @@ final class GlobalValues
     }
 
     /**
+     * 獲得時効果の解決待ち（008 §5.3）。先頭から解決する。
+     *
+     * @return list<array{card_id: int, player_id: int}>
+     */
+    public function acquireQueue(): array
+    {
+        $v = $this->globals->get('acquire_queue', []);
+        $result = [];
+        foreach (is_array($v) ? $v : [] as $row) {
+            if (is_array($row)) {
+                $result[] = ['card_id' => (int) ($row['card_id'] ?? 0), 'player_id' => (int) ($row['player_id'] ?? 0)];
+            }
+        }
+        return $result;
+    }
+
+    /**
+     * @param list<array{card_id: int, player_id: int}> $value
+     */
+    public function setAcquireQueue(array $value): void
+    {
+        $this->globals->set('acquire_queue', $value);
+    }
+
+    /**
+     * 040 を探査フェイズで獲得した記録（帰還フェイズ②のシャッフル後に山札の上へ置く。008 §5.3）。
+     * 帰還フェイズで ID が付け替わるので、カード番号で持つ。
+     *
+     * @return list<array{player_id: int, card_no: int}>
+     */
+    public function topAfterShuffle(): array
+    {
+        $v = $this->globals->get('top_after_shuffle', []);
+        $result = [];
+        foreach (is_array($v) ? $v : [] as $row) {
+            if (is_array($row)) {
+                $result[] = ['player_id' => (int) ($row['player_id'] ?? 0), 'card_no' => (int) ($row['card_no'] ?? 0)];
+            }
+        }
+        return $result;
+    }
+
+    /**
+     * @param list<array{player_id: int, card_no: int}> $value
+     */
+    public function setTopAfterShuffle(array $value): void
+    {
+        $this->globals->set('top_after_shuffle', $value);
+    }
+
+    /**
      * @return list<int>
      */
     private function intList(string $name): array

@@ -11,7 +11,7 @@ use Bga\Games\MinimumJourney\Game;
 
 /**
  * 次の探査手番のプレイヤーを決める（006 §6.1）。全員終わっていれば帰還フェイズへ。
- * 探査時効果（42）は I-11 まで経由しない。
+ * 使える探査時効果（011・013）があれば 42 を経由する。
  */
 class ExploreTurnStart extends GameState
 {

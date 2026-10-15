@@ -59,7 +59,7 @@ class ExploreChoose extends GameState
             'rowTargets' => $targets['rowTargets'],
             'unknownTarget' => $targets['unknownTarget'],
             'deckTargets' => $targets['deckTargets'],
-            'additional' => false,
+            'additional' => $state['additional_done'] ?? false,
             'exploredCostSum' => $state['sum_cost'] ?? 0,
             'canPass' => true,
             'lockedCard' => $this->game->globalValues->lockedCard(),
