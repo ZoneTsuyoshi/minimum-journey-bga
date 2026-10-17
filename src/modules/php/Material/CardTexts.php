@@ -276,7 +276,7 @@ final class CardTexts
             '043' => [
                 'name' => clienttranslate('Runaway Transfer Pod'),
                 'effects' => [
-                    ['timings' => [EffectTiming::OnDraw], 'text' => clienttranslate('Other players may return the card they drew in this draw to their deck and shuffle. If they do, that player prepares 1 card. Decide whether to apply this effect before the When Drawn effects trigger.')],
+                    ['timings' => [EffectTiming::OnDraw], 'text' => clienttranslate('Other players may return the card they drew in this draw to their deck and shuffle. If they do, that player prepares 1 card. Decide whether to apply this effect before the When Drawn effects trigger. The When Drawn effect of the newly prepared card does not trigger.')],
                 ],
             ],
             '044' => [
