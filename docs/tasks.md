@@ -56,9 +56,12 @@
 | BGA Studio の開発者アカウント取得 | T-005 まで | 済 |
 | BGA Studio でのプロジェクト作成（プロジェクト名: `minimumjourney`） | T-003 まで | 済 |
 | SSH 鍵の生成と BGA Studio への登録、GitHub への Secrets / Variables の登録（手順は `specs/005-bga-sync.md` §7） | T-005 の導入時 | 済（2026-10-14） |
-| GitHub リポジトリの設定（`main` の保護、ブランチ自動削除、squash merge。手順は `specs/004-ci-lint.md` §7） | T-004 の導入時 | 未着手 |
+| GitHub リポジトリの設定（`main` の保護、ブランチ自動削除、squash merge。手順は `specs/004-ci-lint.md` §7） | T-004 の導入時 | 行わない（作者判断 2026-10-17。`main` の保護は設定しない） |
 | `gh` CLI の再ログイン（エージェントが PR を作成・マージできるようにする） | 随時 | 済 |
 | BGA Studio 上の初期ファイルのダウンロードとファイル一覧の共有（`specs/005-bga-sync.md` §4） | T-005 の導入時 | 済（2026-10-14。`src/` に取り込み） |
-| メタ画像: Banner（JPG、1386×400、2MB 以下）の用意（`specs/009-ui-assets.md` §1.2） | ベータまで | 未着手 |
-| メタ画像: Display（JPG、高さ 400〜760px、幅は高さの 1.5 倍まで、最大 10 枚）の用意（同上） | 正式リリースまで | 未着手 |
+| メタ画像: Banner（JPG、1386×400、2MB 以下）の用意（`specs/009-ui-assets.md` §1.2） | ベータまで | 原本を用意済み（`data/banner/`、2026-10-17）。BGA Studio のメタデータ管理画面へのアップロードは未 |
+| メタ画像: Display（JPG、高さ 400〜760px、幅は高さの 1.5 倍まで、最大 10 枚）の用意（同上） | 正式リリースまで | 原本を 1 枚用意済み（`data/display/`、2026-10-17）。アップロードは未 |
 | BoardGameGeek へのゲーム登録（手順と英語の紹介文は `publishing/game-description.md`）。登録後、BGG_ID を `src/gameinfos.jsonc` に設定する | 公開の準備まで | 申請済み（2026-10-15。承認後に BGG_ID を設定） |
+| 英語のカード文の確認（034 の「for free」、043 の裁定 D7 を文面に足すか、056 の英語名。`src/modules/php/Material/CardTexts.php`） | アルファ申請まで | 確認待ち |
+| 仕様書 011 の未確定事項 No.1〜8 への回答（`specs/011-power-mod-priority.md` の「未確定事項」。暫定案で実装済み） | アルファ申請まで | 回答待ち |
+| BGA のライセンス確認（作者が権利者であることを BGA に示す。アルファ申請時に承認メールを添える。[Pre-release checklist](https://en.doc.boardgamearena.com/Pre-release_checklist)） | アルファ申請まで | 未着手 |
