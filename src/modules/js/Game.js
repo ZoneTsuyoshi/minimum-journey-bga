@@ -174,8 +174,8 @@ class ExploreChoose {
         }
         for (const { element, handler } of this.deckHandlers) {
             element.removeEventListener('click', handler);
-            element.classList.remove('mj-selectable', 'mj-unselectable', 'mj-selected');
         }
+        clearPileStates(this.game);
         this.deckHandlers = [];
         this.selection = null;
     }
@@ -204,7 +204,7 @@ class ExploreChoose {
         for (const cost of COSTS) {
             const element = this.game.exploreDecks[cost].getElement();
             const selectable = deckCosts.has(cost);
-            element.classList.add(selectable ? 'mj-selectable' : 'mj-unselectable');
+            setPileState(this.game, cost, selectable ? 'selectable' : 'unselectable');
             if (selectable) {
                 const handler = () => this.onDeckSelected(cost);
                 element.addEventListener('click', handler);
@@ -239,7 +239,7 @@ class ExploreChoose {
         this.clearSelection(null);
         if (!already) {
             this.selection = { source: 'deck', cardId: 0, cost };
-            this.game.exploreDecks[cost].getElement().classList.add('mj-selected');
+            setPileState(this.game, cost, 'selected');
         }
         this.render();
     }
@@ -256,7 +256,10 @@ class ExploreChoose {
             }
         }
         for (const cost of COSTS) {
-            this.game.exploreDecks[cost].getElement().classList.remove('mj-selected');
+            const el = this.game.exploreDecks[cost].getElement();
+            if (el.classList.contains('mj-selected')) {
+                setPileState(this.game, cost, 'selectable');
+            }
         }
         this.selection = null;
     }
@@ -512,6 +515,12 @@ class ExploreOnExploreChoice {
     constructor(game, bga) {
         this.game = game;
         this.bga = bga;
+        /** @type {{ cardId: number, kind: string, deckCosts: number[] }[]} */
+        this.usable = [];
+        /** @type {{ cardId: number, cost: number } | null} 011 で選んだ探査山札。未選択なら null */
+        this.pile = null;
+        /** @type {{ element: HTMLElement, handler: () => void }[]} */
+        this.deckHandlers = [];
     }
 
     /**
@@ -519,23 +528,69 @@ class ExploreOnExploreChoice {
      * @param {boolean} isCurrentPlayerActive
      */
     onEnteringState(args, isCurrentPlayerActive) {
-        const usable = args.usable ?? [];
+        this.usable = args.usable ?? [];
+        this.pile = null;
         if (!isCurrentPlayerActive) {
             this.bga.statusBar.setTitle(_('${actplayer} may use on-explore effects'));
             return;
         }
         this.bga.statusBar.setTitle(_('${you} may use on-explore effects'));
-        this.game.highlightCards(usable.map((u) => int(u.cardId)));
-        for (const effect of usable) {
-            const cardId = int(effect.cardId);
-            if (effect.kind === 'radar') {
-                for (const cost of effect.deckCosts) {
-                    this.bga.statusBar.addActionButton(
-                        _('Wide-Area Radar: add the top card of the ${cost}-cost pile to the row').replace('${cost}', String(cost)),
-                        () => this.bga.actions.performAction('actUseOnExplore', { cardId, deckCost: int(cost) }),
-                    );
+        this.game.highlightCards(this.usable.map((u) => int(u.cardId)));
+        // 011: 探査山札そのものを押して選ぶ（011 が複数あっても山札の選択は 1 つ。最初の 011 を使う）
+        const radar = this.usable.find((u) => u.kind === 'radar');
+        if (radar !== undefined) {
+            const radarId = int(radar.cardId);
+            const costs = new Set(radar.deckCosts.map(int));
+            for (const cost of COSTS) {
+                setPileState(this.game, cost, costs.has(cost) ? 'selectable' : 'unselectable');
+                if (costs.has(cost)) {
+                    const element = this.game.exploreDecks[cost].getElement();
+                    const handler = () => this.onPileSelected(radarId, cost);
+                    element.addEventListener('click', handler);
+                    this.deckHandlers.push({ element, handler });
                 }
-            } else {
+            }
+        }
+        this.render();
+    }
+
+    /**
+     * 山札を選ぶ（この時点ではカードを公開しない）。もう一度押すと選択を外す。
+     *
+     * @param {number} cardId
+     * @param {number} cost
+     */
+    onPileSelected(cardId, cost) {
+        const already = this.pile?.cost === cost;
+        const radar = this.usable.find((u) => u.kind === 'radar');
+        const costs = new Set((radar?.deckCosts ?? []).map(int));
+        for (const c of COSTS) {
+            setPileState(this.game, c, costs.has(c) ? 'selectable' : 'unselectable');
+        }
+        this.pile = null;
+        if (!already) {
+            this.pile = { cardId, cost };
+            setPileState(this.game, cost, 'selected');
+        }
+        this.render();
+    }
+
+    render() {
+        this.bga.statusBar.removeActionButtons();
+        const pile = this.pile;
+        if (pile !== null) {
+            const { cardId, cost } = pile;
+            this.bga.statusBar.addActionButton(
+                _('Wide-Area Radar: add the top card of the ${cost}-cost pile to the row').replace('${cost}', String(cost)),
+                () => this.bga.actions.performAction('actUseOnExplore', { cardId, deckCost: cost }),
+                { color: 'primary' },
+            );
+            this.bga.statusBar.addActionButton(_('Cancel'), () => this.onPileSelected(cardId, cost), { color: 'secondary' });
+            return;
+        }
+        for (const effect of this.usable) {
+            if (effect.kind !== 'radar') {
+                const cardId = int(effect.cardId);
                 this.bga.statusBar.addActionButton(
                     _('Local Map: exclude it to lower all explore costs by 1 this turn'),
                     () => this.bga.actions.performAction('actUseOnExplore', { cardId, deckCost: 0 }),
@@ -550,6 +605,13 @@ class ExploreOnExploreChoice {
      * @param {boolean} _isCurrentPlayerActive
      */
     onLeavingState(_args, _isCurrentPlayerActive) {
+        for (const { element, handler } of this.deckHandlers) {
+            element.removeEventListener('click', handler);
+        }
+        this.deckHandlers = [];
+        clearPileStates(this.game);
+        this.pile = null;
+        this.usable = [];
         this.game.highlightCards([]);
     }
 }
@@ -653,7 +715,7 @@ class FreeAcquireChoice {
         const costs = new Set((args.deckCandidates ?? []).map(int));
         for (const cost of COSTS) {
             const element = this.game.exploreDecks[cost].getElement();
-            element.classList.add(costs.has(cost) ? 'mj-selectable' : 'mj-unselectable');
+            setPileState(this.game, cost, costs.has(cost) ? 'selectable' : 'unselectable');
             if (costs.has(cost)) {
                 const handler = () => this.onDeckSelected(cost);
                 element.addEventListener('click', handler);
@@ -672,16 +734,16 @@ class FreeAcquireChoice {
         for (const { element, handler } of this.deckHandlers) {
             element.removeEventListener('click', handler);
         }
-        for (const cost of COSTS) {
-            this.game.exploreDecks[cost].getElement().classList.remove('mj-selectable', 'mj-unselectable', 'mj-selected');
-        }
+        clearPileStates(this.game);
         this.deckHandlers = [];
         this.selection = null;
     }
 
     clearDeck() {
         for (const cost of COSTS) {
-            this.game.exploreDecks[cost].getElement().classList.remove('mj-selected');
+            if (this.game.exploreDecks[cost].getElement().classList.contains('mj-selected')) {
+                setPileState(this.game, cost, 'selectable');
+            }
         }
     }
 
@@ -695,7 +757,7 @@ class FreeAcquireChoice {
         this.selection = null;
         if (!already) {
             this.selection = { type: 'deck', ref: cost };
-            this.game.exploreDecks[cost].getElement().classList.add('mj-selected');
+            setPileState(this.game, cost, 'selected');
         }
         this.render();
     }
@@ -1037,6 +1099,31 @@ const START_KEYS = [
 
 /** 探査山札・列のコスト */
 const COSTS = [2, 4, 6, 8];
+
+/**
+ * 探査山札の選択状態の見た目を 1 つに決める（冪等）。他の状態のクラスは必ず外す。
+ *
+ * @param {Game} game
+ * @param {number} cost
+ * @param {'selectable' | 'unselectable' | 'selected' | 'none'} state
+ */
+function setPileState(game, cost, state) {
+    const classes = { selectable: 'mj-selectable', unselectable: 'mj-unselectable', selected: 'mj-selected' };
+    const element = game.exploreDecks[cost].getElement();
+    element.classList.remove('mj-selectable', 'mj-unselectable', 'mj-selected');
+    if (state === 'selected') {
+        element.classList.add('mj-selectable', 'mj-selected');
+    } else if (state !== 'none') {
+        element.classList.add(classes[state]);
+    }
+}
+
+/** 全探査山札の選択状態の見た目を消す。 @param {Game} game */
+function clearPileStates(game) {
+    for (const cost of COSTS) {
+        setPileState(game, cost, 'none');
+    }
+}
 
 /**
  * 効果テキストの {key} に対応するアイコンの CSS 名（icons.webp のセル。minimumjourney.css の mj-icon-*）。

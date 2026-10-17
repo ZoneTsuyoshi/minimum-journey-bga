@@ -692,7 +692,7 @@ BGA のガイドラインは、パネルを**小さく**して（モバイルの
 - 案 B のレイアウト（探査場と各プレイヤーの領域）、bga-cards（`BgaCards.Manager`、`LineStock`、`AllVisibleDeck`）、スプライト表示（`spriteKey(cardNo, art)`）、横向きカードの回転（`getCardRotation`）、山札の天辺の偽カード（`fakeCardGenerator`）。046 の付加カードは本体の直後に置き、CSS クラスでグループ表示する（U5）。
 - プレイヤーパネルの数値（準備枚数、現在の探査出力、山札・裏向き・獲得の枚数、お守りの所持、名声）と、領域の見出し。通知（`countersUpdate` など）で更新する。
 - 自分の領域を先頭に置く並び（観戦者を含め、全員同じ大きさ）。
-- 準備選択（[Draw]／[Stop]、選択済みのチェックマーク）、探査の確認ステップ（選ぶ → [Explore]／[Cancel]、[Pass] は常に表示）、効果の選択 UI（31〜35、42、45〜47、51 の状態ごとの `onEnteringState`、選択パネル）。
+- 準備選択（[Draw]／[Stop]、選択済みのチェックマーク）、探査の確認ステップ（選ぶ → [Explore]／[Cancel]、[Pass] は常に表示）、効果の選択 UI（31〜35、42（011 は探査山札そのものをクリック／タップして選び、[Add the top card …]（確定）・[Cancel] で確かめる。選べる山札は `mj-selectable`、選べない山札は `mj-unselectable`、選択中は `mj-selected`。局所的な地図（013）は従来どおりボタン）、45〜47、51 の状態ごとの `onEnteringState`、選択パネル）。
 - 拡大表示（マウスは `pointerover`、タッチは `pointerdown` から遅延して表示。ホバーと長押し）、獲得カードの `AllVisibleDeck`、ダークモード（`html[data-theme="dark"]`）。
 - 他プレイヤーの準備場の折りたたみは作者指示により廃止（2026-10-15）。
 

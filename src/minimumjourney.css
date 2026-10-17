@@ -394,6 +394,7 @@
 
 /* ---- 選択の状態（操作 UI は後続タスク）。枠の太さと記号で示し、色だけに頼らない ---- */
 .mj-selectable {
+    filter: none;
     outline: 4px solid var(--mj-accent);
     outline-offset: -2px;
     cursor: pointer;
