@@ -530,11 +530,30 @@ class ExploreOnExploreChoice {
     onEnteringState(args, isCurrentPlayerActive) {
         this.usable = args.usable ?? [];
         this.pile = null;
+        // 使える効果の名前と、その場でやることをタイトルに書く（作者指示 2026-10-19）
+        const hasRadar = this.usable.some((u) => u.kind === 'radar');
+        const hasMap = this.usable.some((u) => u.kind !== 'radar');
         if (!isCurrentPlayerActive) {
-            this.bga.statusBar.setTitle(_('${actplayer} may use on-explore effects'));
+            if (hasRadar && hasMap) {
+                this.bga.statusBar.setTitle(_('${actplayer} may use Wide-Area Radar and Local Map'));
+            } else if (hasRadar) {
+                this.bga.statusBar.setTitle(_('${actplayer} may use Wide-Area Radar (add the top card of an exploration pile to the row)'));
+            } else if (hasMap) {
+                this.bga.statusBar.setTitle(_('${actplayer} may use Local Map (lower all explore costs by 1 this turn)'));
+            } else {
+                this.bga.statusBar.setTitle(_('${actplayer} may use on-explore effects'));
+            }
             return;
         }
-        this.bga.statusBar.setTitle(_('${you} may use on-explore effects'));
+        if (hasRadar && hasMap) {
+            this.bga.statusBar.setTitle(_('${you} may use Wide-Area Radar (choose an exploration pile to add its top card to the row) and Local Map (exclude it to lower all explore costs by 1 this turn)'));
+        } else if (hasRadar) {
+            this.bga.statusBar.setTitle(_('${you} may use Wide-Area Radar: choose an exploration pile to add its top card to the row'));
+        } else if (hasMap) {
+            this.bga.statusBar.setTitle(_('${you} may use Local Map: exclude it to lower all explore costs by 1 this turn'));
+        } else {
+            this.bga.statusBar.setTitle(_('${you} may use on-explore effects'));
+        }
         this.game.highlightCards(this.usable.map((u) => int(u.cardId)));
         // 011: 探査山札そのものを押して選ぶ（011 が複数あっても山札の選択は 1 つ。最初の 011 を使う）
         const radar = this.usable.find((u) => u.kind === 'radar');
@@ -1309,6 +1328,8 @@ export class Game {
         this.exploreDecks = {};
         /** @type {Record<number, any>} 探査場の列（コスト別の SlotStock） */
         this.rowStocks = {};
+        /** @type {Record<number, number>} 列の規定枚数（コスト別。011 で超えたぶんのスロットはカードが無くなったら畳む） */
+        this.rowQuota = {};
         /** @type {any} */
         this.unknownStock = null;
         /** @type {any} */
@@ -1486,6 +1507,7 @@ export class Game {
      */
     setupExplore(gamedatas, playerCount) {
         const quota = gamedatas.rowQuota ?? defaultRowQuota(playerCount);
+        this.rowQuota = Object.fromEntries(COSTS.map((cost) => [cost, int(quota[cost] ?? 0)]));
         const root = /** @type {HTMLElement} */ (document.getElementById('mj-explore'));
         const rowsHtml = COSTS.map((cost) => `
             <div class="mj-row" data-cost="${cost}">
@@ -1535,6 +1557,26 @@ export class Game {
             }
         }
         this.updatePileMarks();
+    }
+
+    /**
+     * 011 で足した余りのスロットを、カードが無くなったら畳む（規定枚数 または 最大の埋まったスロット + 1 までにする）。
+     * ページ読み込み時のスロット数（setupExplore）と同じ式なので、再読み込みしても同じ見た目になる（009 §8.2）。
+     */
+    trimRowSlots() {
+        for (const cost of COSTS) {
+            const stock = this.rowStocks[cost];
+            if (stock === undefined) {
+                continue;
+            }
+            const used = stock.getCards().map((/** @type {MjCard} */ c) => int(c.slot ?? 0) + 1);
+            const wanted = Math.max(this.rowQuota[cost] ?? 0, ...used);
+            for (const slot of [...stock.getSlotsIds()]) {
+                if (slot >= wanted) {
+                    stock.removeSlot(slot);
+                }
+            }
+        }
     }
 
     /** 枚数 0 の山を空枠にし、コスト 8 が尽きたら注意を出す（009 §8.2） */
@@ -1599,7 +1641,7 @@ export class Game {
             root,
             deck: this.registerStock(new BgaCards.Deck(this.cardsManager, el('mj-deck'), { cardNumber: deckCount, counter })),
             facedown: this.registerStock(new BgaCards.Deck(this.cardsManager, el('mj-facedown'), { cardNumber: facedownCount, counter })),
-            prep: this.registerStock(new BgaCards.LineStock(this.cardsManager, el('mj-prep'), { direction: 'column', wrap: 'wrap', gap: '0' })),
+            prep: this.registerStock(new BgaCards.LineStock(this.cardsManager, el('mj-prep'), { direction: 'column', wrap: 'nowrap', gap: '0' })),
             acquired: this.registerStock(new BgaCards.AllVisibleDeck(this.cardsManager, el('mj-acquired'), { shift: '14px', direction: 'horizontal' })),
             charm: this.registerStock(new BgaCards.LineStock(this.cardsManager, el('mj-charm'), { gap: '0' })),
         };
@@ -2510,6 +2552,7 @@ export class Game {
                 await found.stock.removeCard(found.card, { fadeOut: true });
             }
         }
+        this.trimRowSlots();
         const delta = /** @type {Record<string, Partial<Record<'deckCount' | 'facedownCount' | 'acquiredCount' | 'prepCount', number>>>} */ ({
             prep: { prepCount: -1 }, deck: { deckCount: -1 }, facedown: { facedownCount: -1 }, acquired: { acquiredCount: -1 },
         });
@@ -2533,6 +2576,7 @@ export class Game {
         for (const entry of args.cards) {
             await this.addRowCard(cost, int(entry.slot), entry.card);
         }
+        this.trimRowSlots();
     }
 
     /**
@@ -2588,6 +2632,7 @@ export class Game {
         }
         this.bumpStats(playerId, { acquiredCount: 1 });
         await area.acquired.addCard(card, fromDeck ? { fromElement: this.exploreDecks[cost].getElement() } : {});
+        this.trimRowSlots();
     }
 
     /** お守りの移動（N28） */
