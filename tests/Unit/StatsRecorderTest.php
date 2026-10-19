@@ -83,6 +83,27 @@ final class StatsRecorderTest extends TestCase
         self::assertSame(14, $this->store->player['deck_size_final'][1]);
     }
 
+    public function testFinalScoreWritesTieBreakCounts(): void
+    {
+        $this->recorder->init();
+        $this->recorder->recordNotifications([
+            self::n('finalScore', [
+                'player_id' => 1,
+                'deck_size' => 14,
+                'unknown_acquired' => true,
+                'earth' => 6,
+                'symbols' => ['laniakea' => 1, 'virgo' => 2, 'milkyWay' => 3, 'solar' => 4],
+            ]),
+        ], 8);
+
+        self::assertTrue($this->store->player['unknown_acquired'][1]);
+        self::assertSame(6, $this->store->player['deck_earth'][1]);
+        self::assertSame(4, $this->store->player['deck_solar_system'][1]);
+        self::assertSame(3, $this->store->player['deck_milky_way'][1]);
+        self::assertSame(2, $this->store->player['deck_virgo'][1]);
+        self::assertSame(1, $this->store->player['deck_laniakea'][1]);
+    }
+
     public function testOutputKeepsMaxAndRunningAverage(): void
     {
         foreach ([[1, 4], [2, 8], [3, 3]] as [$round, $output]) {

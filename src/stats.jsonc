@@ -22,7 +22,12 @@
         "first_turn_count": { "id": 29, "name": "Times first in exploration order", "type": "int" },
         "charm_rounds": { "id": 30, "name": "Rounds holding the charm", "type": "int" },
         "unknown_acquired": { "id": 31, "name": "Acquired the Unknown Region", "type": "bool" },
-        "deck_size_final": { "id": 32, "name": "Final deck size", "type": "int" }
+        "deck_size_final": { "id": 32, "name": "Final deck size", "type": "int" },
+        "deck_earth": { "id": 33, "name": "Deck cards with Earth", "type": "int" },
+        "deck_solar_system": { "id": 34, "name": "Deck cards with Solar System", "type": "int" },
+        "deck_milky_way": { "id": 35, "name": "Deck cards with Milky Way", "type": "int" },
+        "deck_virgo": { "id": 36, "name": "Deck cards with Virgo Cluster", "type": "int" },
+        "deck_laniakea": { "id": 37, "name": "Deck cards with Laniakea", "type": "int" }
     },
 
     // end_reason の表示名（値 0 は終了条件が成立しなかった場合）
