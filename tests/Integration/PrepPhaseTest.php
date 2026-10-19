@@ -225,6 +225,74 @@ final class PrepPhaseTest extends DatabaseTestCase
         self::assertTrue($this->players->isHalved($a));
     }
 
+    /**
+     * 他の 3 人の山札が 0 枚（強制ストップ）でも、残り 1 人は選択者としてドロー／ストップを選べる。強制ドローにはならない。
+     */
+    public function testLastPlayerWithCardsStillChoosesWhenThreeOthersHaveEmptyDecks(): void
+    {
+        $this->start(4);
+        [$a, $b, $c, $d] = $this->ids;
+        foreach ([$b, $c, $d] as $id) {
+            $this->db->execute("UPDATE `card` SET `card_location` = 'acquired' WHERE `card_location` = 'deck' AND `card_location_arg` = $id");
+        }
+
+        $begin = $this->phase->begin($this->ids);
+
+        self::assertSame('needChoice', $begin->transition);
+        self::assertSame([$a], $this->globals->prepSelectors());
+        self::assertNull($this->players->prepChoice($a), 'まだ選んでいない（自動でドローにならない）');
+        foreach ([$b, $c, $d] as $id) {
+            self::assertSame(PrepChoice::Stop, $this->players->prepChoice($id));
+        }
+
+        // ストップを選べる: 全員ストップで何も引かない
+        $this->phase->select($a, PrepChoice::Stop);
+        self::assertSame('reveal', $this->phase->lock($this->ids)->transition);
+        $reveal = $this->phase->reveal($this->ids);
+        self::assertSame('allStop', $reveal->transition);
+        self::assertSame(4, $this->cards->count(Zone::Deck, $a));
+        self::assertSame(0, $this->cards->count(Zone::Prep, $a));
+        self::assertFalse($this->players->isHalved($a));
+    }
+
+    public function testLastPlayerWithCardsDrawsAloneOnlyWhenChoosingDraw(): void
+    {
+        $this->start(4);
+        [$a, $b, $c, $d] = $this->ids;
+        foreach ([$b, $c, $d] as $id) {
+            $this->db->execute("UPDATE `card` SET `card_location` = 'acquired' WHERE `card_location` = 'deck' AND `card_location_arg` = $id");
+        }
+
+        $step = $this->runStep([$a => 'draw']);
+
+        self::assertSame('soloDraw', $step['transition']);
+        self::assertTrue($this->players->isHalved($a));
+        $cardId = $this->ids(Zone::Prep, $a)[0];
+        self::assertTrue($this->cards->get($cardId)->sideways, '1 人だけのドローは横向き（001 §5 ③-3）');
+    }
+
+    /**
+     * 他の 3 人が前の回にストップ済み（準備終了）で、その山札が 0 枚でも同じ。
+     */
+    public function testLastPlayerStillChoosesWhenThreeOthersStoppedEarlierWithEmptyDecks(): void
+    {
+        $this->start(4);
+        [$a, $b, $c, $d] = $this->ids;
+        $this->runStep([$a => 'draw', $b => 'draw', $c => 'stop', $d => 'stop']);
+        // 2 回目に b・c・d が準備終了、b・c・d の山札を空にする
+        $this->runStep([$a => 'draw', $b => 'stop']);
+        foreach ([$b, $c, $d] as $id) {
+            $this->db->execute("UPDATE `card` SET `card_location` = 'acquired' WHERE `card_location` = 'deck' AND `card_location_arg` = $id");
+        }
+        $this->players->setPrepFinished($a, false);
+
+        $begin = $this->phase->begin($this->ids);
+
+        self::assertSame('needChoice', $begin->transition);
+        self::assertSame([$a], $this->globals->prepSelectors());
+        self::assertNull($this->players->prepChoice($a));
+    }
+
     public function testAllDecksEmptyGoesStraightToExplore(): void
     {
         $this->start(3);

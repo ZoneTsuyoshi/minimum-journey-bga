@@ -23,6 +23,7 @@ final class StatsRecorder
     private const PLAYER_INT = [
         'cards_acquired', 'draw_count', 'stop_count', 'forced_choice_count', 'solo_draw_count', 'cards_removed',
         'max_output', 'pass_count', 'first_turn_count', 'charm_rounds', 'deck_size_final',
+        'deck_earth', 'deck_solar_system', 'deck_milky_way', 'deck_virgo', 'deck_laniakea',
     ];
 
     public function __construct(private readonly StatStore $store)
@@ -89,6 +90,7 @@ final class StatsRecorder
                     break;
                 case 'finalScore':
                     $this->store->playerSet('deck_size_final', $playerId, (int) ($n->args['deck_size'] ?? 0));
+                    $this->recordTieBreakCounts($playerId, $n->args);
                     break;
                 default:
                     break;
@@ -142,6 +144,24 @@ final class StatsRecorder
     public static function runningAverage(float $previous, int $previousRounds, int $value): float
     {
         return ($previous * $previousRounds + $value) / ($previousRounds + 1);
+    }
+
+    /**
+     * 同点処理に使うデッキのシンボル枚数と未確認帯域の獲得を、ゲーム終了時の finalScore から書く（001 §9-3）。
+     *
+     * @param array<string, mixed> $args
+     */
+    private function recordTieBreakCounts(int $playerId, array $args): void
+    {
+        $symbols = is_array($args['symbols'] ?? null) ? $args['symbols'] : [];
+        if (($args['unknown_acquired'] ?? false) === true) {
+            $this->store->playerSet('unknown_acquired', $playerId, true);
+        }
+        $this->store->playerSet('deck_earth', $playerId, (int) ($args['earth'] ?? 0));
+        $this->store->playerSet('deck_solar_system', $playerId, (int) ($symbols['solar'] ?? 0));
+        $this->store->playerSet('deck_milky_way', $playerId, (int) ($symbols['milkyWay'] ?? 0));
+        $this->store->playerSet('deck_virgo', $playerId, (int) ($symbols['virgo'] ?? 0));
+        $this->store->playerSet('deck_laniakea', $playerId, (int) ($symbols['laniakea'] ?? 0));
     }
 
     private function recordChoice(int $playerId, string $choice, mixed $reason): void

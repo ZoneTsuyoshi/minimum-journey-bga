@@ -823,7 +823,13 @@ progress = min(99, floor(100 * max(g8, 0.8 * gAll)))
 | 30 | `charm_rounds` | int | Rounds holding the charm | 50（移動後の所持者に +1） |
 | 31 | `unknown_acquired` | bool | Acquired the Unknown Band | 44 |
 | 32 | `deck_size_final` | int | Final deck size | 60 |
+| 33 | `deck_earth` | int | Deck cards with Earth | 60（`finalScore` の `earth`） |
+| 34 | `deck_solar_system` | int | Deck cards with Solar System | 60（`symbols.solar`） |
+| 35 | `deck_milky_way` | int | Deck cards with Milky Way | 60（`symbols.milkyWay`） |
+| 36 | `deck_virgo` | int | Deck cards with Virgo Cluster | 60（`symbols.virgo`） |
+| 37 | `deck_laniakea` | int | Deck cards with Laniakea | 60（`symbols.laniakea`） |
 
+- 33〜37 は同点処理（001 §9-3）に使うデッキのシンボル別の枚数（複数シンボルのカードは各シンボルで 1 枚。デッキは除外とお守りを含まない）。ゲーム終了時の 60 で `finalScore` から書き、31（未確認帯域の獲得）もこのとき確定させる。作者指示（2026-10-19）「同点時処理のための各アイコンの枚数が stats に表れてない」。ID は未使用の 33〜37 を割り当てた（20〜39 の範囲内）。
 - 名声の最終値は `playerScore` として BGA が扱うので、統計には載せない。
 - 統計の更新は DB のカウンタだけなので、通知は要らない。
 
