@@ -1451,6 +1451,9 @@ export class Game {
             const width = board.clientWidth;
             if (width > 0) {
                 document.documentElement.style.setProperty('--mj-bw', `${width}px`);
+                // 4 列（992px 以上）が収まる最小の幅（1088px）より狭いときだけ、カードを縮めて 4 列を保つ（最小 108px）。009 §7.4
+                const pcWidth = width >= 992 && width < 1088 ? Math.floor((width - 128) / 8) : 120;
+                document.documentElement.style.setProperty('--mj-pcw', `${pcWidth}px`);
             }
         };
         update();
