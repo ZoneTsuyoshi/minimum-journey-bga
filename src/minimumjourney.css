@@ -179,9 +179,9 @@
 
 /*
  * 準備場: 縦に重ねる（ルールブック p.1「ゲーム場」、作者指示 2026-10-15。009 §8.2）。
- * 1 枚目が最上段・最前面。後のカードは 1 枚ぶん下（--mj-prep-step × カードの高さ）に、前のカードの背後へ置く。
- * 前のカードが後ろのカードの上半分を隠し、各カードの下半分（効果・探査力・シンボル・名声）が見える。
- * --mj-prep-rows 枚で次の列（右隣）へ折り返す。折り返しは max-height で決める。
+ * 新しくめくったカードが最上段・最前面（作者指示 2026-10-19）。古いカードは 1 枚ぶん（--mj-prep-step × カードの高さ）ずつ下へ押され、新しいカードの背後に入る。
+ * 新しいカードが古いカードの上半分を隠し、各カードの下半分（効果・探査力・シンボル・名声）が見える。
+ * 並びは上から新しい順。--mj-prep-rows 枚で次の列（右隣）へ折り返し、古いカードは第 1 列の下から次の列の上へ続く。折り返しは max-height で決める。
  */
 .mj-prep {
     box-sizing: content-box;
@@ -211,27 +211,6 @@
     min-width: var(--mj-w);
 }
 
-/* 順番の番号（数字で示す。色だけに頼らない） */
-.mj-order {
-    position: absolute;
-
-    /* 後ろのカードでは上端が隠れるので、見える帯（カードの高さ × 重ね幅）の左上の隅に置く。名声・探査力・効果は避ける */
-    top: calc(var(--mj-h) * var(--mj-prep-step) + 2px);
-    left: 2px;
-    z-index: 3;
-    min-width: 1.4em;
-    padding: 0 3px;
-    border: 1px solid var(--mj-badge-fg);
-    border-radius: 999px;
-    background: var(--mj-badge-bg);
-    color: var(--mj-badge-fg);
-    font-size: 12px;
-    font-weight: bold;
-    line-height: 1.4;
-    text-align: center;
-    pointer-events: none;
-}
-
 /* 横向き: 回転は bga-cards（getCardRotation）。占有幅の余白と斜線で示す */
 .mj-sideways {
     margin-inline: calc(var(--mj-w) * 0.22);
@@ -259,7 +238,7 @@
  * 付加カード（カード番号 46。作者指示 2026-10-17。009 §8.2）: 本体と付加カードを左右に並べ、1 枚ぶんとして扱う。
  * 付加カードは LineStock の中で本体の直後に置かれる（縦の送りは 0）。translate で本体の右隣へ動かし、
  * margin-right で列の幅を 2 枚ぶん＋枠の余白にする。縦の送りは本体と同じ 1 枠。共通の枠（破線）は本体の ::after で 2 枚を囲み、
- * 順番の番号は本体にだけ付く。付加カードも下半分（効果・名声）が見える。
+ * 付加カードも下半分（効果・名声）が見える。
  * translate は bga-animations の transform と競合しないよう、transform ではなく translate プロパティを使う。
  */
 .mj-prep .mj-attached {
@@ -294,9 +273,32 @@
     outline-offset: -3px;
 }
 
+/* 007 が保持したカード: 二重枠・少し傾ける・右下に錠前（探査コスト・名声・探査力は避ける。009 §8.2）。rotate は transform と別に効く */
 .mj-locked {
     outline: 3px double var(--mj-accent);
     outline-offset: -3px;
+    rotate: -6deg;
+}
+
+.mj-lock {
+    position: absolute;
+    right: 3px;
+    bottom: 38%;
+    z-index: 5;
+    width: 26px;
+    height: 26px;
+    padding: 3px;
+    box-sizing: border-box;
+    border: 1px solid var(--mj-badge-fg);
+    border-radius: 50%;
+    background: var(--mj-accent);
+    fill: #fff;
+}
+
+.mj-lock svg {
+    display: block;
+    width: 100%;
+    height: 100%;
 }
 
 .mj-choice {

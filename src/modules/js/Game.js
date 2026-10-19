@@ -1046,8 +1046,7 @@ const BgaCards = await importEsmLib('bga-cards', '1.x');
  * @property {number | string} id
  * @property {number} cardNo カード番号。0 は裏面だけの偽カード
  * @property {number} art 絵柄番号（001〜003 は 1 以上。それ以外は 0）
- * @property {number} [order] 準備した順の通し番号（準備場のみ）
- * @property {number} [stack] 準備場の重なり順（小さいほど前。本体は order × 2、付加カードは本体 + 1）
+ * @property {number} [stack] 準備場の重なり順（大きいほど前。本体は order × 2、付加カードは本体 − 1。新しいカードほど前）
  * @property {boolean} [sideways] 横向き（1 人だけドローしたカード）
  * @property {number | null} [attachedTo] 付加カードのとき、本体（カード番号 46）の ID
  * @property {boolean} [hasAttached] 付加カードを持つ本体か
@@ -1429,8 +1428,7 @@ export class Game {
         this.setupCharm(gamedatas.charm);
         if (gamedatas.lockedCard !== null && gamedatas.lockedCard !== undefined) {
             this.lockedCardId = int(gamedatas.lockedCard.cardId);
-            const found = this.locate(this.lockedCardId);
-            found?.stock.getCardElement(found.card)?.classList.add('mj-locked');
+            this.markLocked(this.lockedCardId, true);
         }
         this.chosen = new Set((gamedatas.gamestate?.args?.chosen ?? []).map(int));
         this.refreshAllStats();
@@ -1589,7 +1587,8 @@ export class Game {
         };
         this.areas[playerId] = area;
 
-        for (const entry of prep) {
+        // 新しいカードほど上（先頭）。準備した順の逆に並べる
+        for (const entry of [...prep].sort((a, b) => int(b.order) - int(a.order))) {
             area.prep.addCards(this.prepEntryCards(entry));
         }
         area.acquired.addCards(acquired.map((c) => this.toCard(c)));
@@ -1618,8 +1617,8 @@ export class Game {
      */
     prepEntryCards(entry) {
         const attached = entry.attached ?? [];
-        const host = this.toCard(entry.card, { order: int(entry.order), stack: int(entry.order) * 2, sideways: entry.sideways === true, hasAttached: attached.length > 0 });
-        return [host, ...attached.map((a) => this.toCard(a, { attachedTo: int(host.id), stack: int(entry.order) * 2 + 1 }))];
+        const host = this.toCard(entry.card, { stack: int(entry.order) * 2, sideways: entry.sideways === true, hasAttached: attached.length > 0 });
+        return [host, ...attached.map((a) => this.toCard(a, { attachedTo: int(host.id), stack: int(entry.order) * 2 - 1 }))];
     }
 
     /**
@@ -1747,7 +1746,27 @@ export class Game {
     }
 
     /**
-     * カード要素に付ける共通の属性（アクセシビリティ、順番の番号、横向き、付加カード）。
+     * 007 が保持した列のカードに、傾き・錠前の印・説明を付ける／外す（009 §8.2）。
+     *
+     * @param {number} cardId
+     * @param {boolean} locked
+     */
+    markLocked(cardId, locked) {
+        const found = this.locate(cardId);
+        const div = found?.stock.getCardElement(found.card);
+        if (div === undefined || div === null) {
+            return;
+        }
+        div.classList.toggle('mj-locked', locked);
+        div.querySelector('.mj-lock')?.remove();
+        if (locked) {
+            const text = _('Locked by Laser Sight: other players cannot acquire this card');
+            div.insertAdjacentHTML('beforeend', `<span class="mj-lock" title="${text}" aria-label="${text}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10V7a5 5 0 0 1 10 0v3h1.5A1.5 1.5 0 0 1 20 11.5v9a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 20.5v-9A1.5 1.5 0 0 1 5.5 10zm2.5 0h5V7a2.5 2.5 0 0 0-5 0z"/></svg></span>`);
+        }
+    }
+
+    /**
+     * カード要素に付ける共通の属性（アクセシビリティ、横向き、付加カード）。
      *
      * @param {MjCard} card
      * @param {HTMLDivElement} div
@@ -1761,16 +1780,13 @@ export class Game {
             div.setAttribute('aria-label', info === undefined ? `${_('Card')} ${String(card.cardNo).padStart(3, '0')}` : info.name);
             div.setAttribute('role', 'img');
         }
-        // 準備場の重なり順: 先にめくったカードほど前
-        div.style.zIndex = card.stack === undefined ? '' : String(1000 - card.stack);
+        // 準備場の重なり順: 後からめくったカードほど前（上）
+        div.style.zIndex = card.stack === undefined ? '' : String(card.stack);
         div.classList.toggle('mj-sideways', card.sideways === true);
         div.classList.toggle('mj-attached', card.attachedTo !== undefined && card.attachedTo !== null);
         div.classList.toggle('mj-has-attached', card.hasAttached === true);
         if (card.sideways === true) {
             div.insertAdjacentHTML('beforeend', `<span class="mj-sideways-mark" title="${_('Sideways: power and effects are ignored')}"></span>`);
-        }
-        if (card.order !== undefined && card.order > 0 && card.attachedTo === undefined) {
-            div.insertAdjacentHTML('beforeend', `<span class="mj-order">${card.order}</span>`);
         }
     }
 
@@ -2206,8 +2222,7 @@ export class Game {
         this.exploreOrder = [];
         this.exploreIndex = -1;
         if (this.lockedCardId !== null) {
-            const found = this.locate(this.lockedCardId);
-            found?.stock.getCardElement(found.card)?.classList.remove('mj-locked');
+            this.markLocked(this.lockedCardId, false);
             this.lockedCardId = null;
         }
         for (const s of Object.values(this.stats)) {
@@ -2258,7 +2273,8 @@ export class Game {
             return;
         }
         this.bumpStats(playerId, { deckCount: -1, prepCount: 1 });
-        await area.prep.addCard(this.toCard(args.card, { order: int(args.order), stack: int(args.order) * 2 }), { fromElement: area.deck.getElement() });
+        // 新しいカードは先頭（一番上）へ置く
+        await area.prep.addCard(this.toCard(args.card, { stack: int(args.order) * 2 }), { index: 0, fromElement: area.deck.getElement() });
     }
 
     /**
@@ -2280,7 +2296,7 @@ export class Game {
         }
         const hostIndex = area.prep.getCards().findIndex((/** @type {MjCard} */ c) => c.id === hostId);
         const lastAttached = area.prep.getCards().reduce((/** @type {number} */ acc, /** @type {MjCard} */ c, /** @type {number} */ i) => (c.attachedTo === hostId ? i : acc), hostIndex);
-        await area.prep.addCard(this.toCard(args.card, { attachedTo: hostId, stack: (host?.card.stack ?? 0) + 1 }), { index: lastAttached + 1, fromElement: area.deck.getElement() });
+        await area.prep.addCard(this.toCard(args.card, { attachedTo: hostId, stack: (host?.card.stack ?? 0) - 1 }), { index: lastAttached + 1, fromElement: area.deck.getElement() });
     }
 
     /** ストップしたプレイヤーが山札の上から伏せた 1 枚（中身は誰にも見えない。N7） */
@@ -2547,8 +2563,7 @@ export class Game {
     /** 007 が保持した列のカードに印を付ける（N18）。ラウンドの終わりまで */
     async notif_laserSightLocked(/** @type {{ card: any }} */ args) {
         this.lockedCardId = int(args.card.id);
-        const found = this.locate(this.lockedCardId);
-        found?.stock.getCardElement(found.card)?.classList.add('mj-locked');
+        this.markLocked(this.lockedCardId, true);
     }
 
     async notif_deckLooked() {}
