@@ -287,6 +287,8 @@ class Game extends \Bga\GameFramework\Table
                 $finalDecks[$playerId] = $fameTotals->deckCards($playerId);
             }
             $result['finalDecks'] = $finalDecks;
+            // 同点処理の内訳（未確認帯域と各シンボルの枚数。001 §9-3、作者指示 2026-10-19）
+            $result['finalSummaries'] = $fameTotals->tieBreakSummaries($seatOrder);
         }
 
         return array_replace_recursive($result, $board);

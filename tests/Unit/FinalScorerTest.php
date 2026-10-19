@@ -111,4 +111,24 @@ final class FinalScorerTest extends TestCase
         self::assertSame(1, $score->symbols['solar']);
         self::assertSame(FinalScorer::aux(true, $score->symbols), $score->aux);
     }
+
+    public function testEarthCountIsCountedSeparatelyAndNotUsedForTies(): void
+    {
+        // 051 は地球を含む 5 シンボル。地球の枚数が違っても aux は変わらない（001 §9-3）
+        self::assertSame(1, FinalScorer::earthCount([51]));
+        self::assertSame(0, FinalScorer::earthCount([]));
+        $a = FinalScorer::score([4], false, false, 0);
+        $b = FinalScorer::score([4, 1, 1], false, false, 0);
+        self::assertSame($a->symbols, $b->symbols);
+        self::assertSame($a->aux, $b->aux, '国旗・乗組員のシンボルが同点処理の 4 種に含まれなければ aux は同じ');
+    }
+
+    public function testMultiSymbolCardLosesToSingleSymbolCardOnTheSameTier(): void
+    {
+        // 051（4 種すべて）は 004（太陽系のみ）より同点処理で不利。全く同じデッキなら同値（共同勝利）
+        $multi = FinalScorer::score([51], false, false, 0);
+        $single = FinalScorer::score([4], false, false, 0);
+        self::assertGreaterThan($multi->aux, $single->aux);
+        self::assertSame(FinalScorer::score([4, 1], false, false, 0)->aux, FinalScorer::score([1, 4], false, false, 0)->aux);
+    }
 }

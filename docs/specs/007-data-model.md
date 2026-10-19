@@ -583,6 +583,8 @@ CardRepository.shuffleDeck(pid):
 
 - 公開するのはゲーム終了時だけ。ゲーム中は §6.1 のとおり山札・`facedown` の中身を送らない。
 - 通知 N35 `finalScore` の args に `deck_cards`（`[ { "id": int, "cardNo": int, "art": int } ]`）を追加する。カード番号の昇順、同じ番号は ID の昇順で並べる（山札の順序は送らない）。`deck_cards` の長さは `deck_size` と等しい。
+- 通知 N35 `finalScore` の args に `earth`（地球シンボルを持つカードの枚数。同点処理には使わず、表示用）を追加する。同点処理の内訳の表示には `unknown_acquired`、`symbols`、`earth` を使う（作者指示（2026-10-19）。001 §9-3、009 §8.5）。
+- `getAllDatas` は、現在の状態が 99（ゲーム終了）のときだけ `finalSummaries`（`{ "<player_id>": { "fame": int, "unknown": bool, "laniakea": int, "virgo": int, "milkyWay": int, "solar": int, "earth": int } }`、`finalScore` の値と同じ）も返す。再読み込み・リプレイで内訳を復元するため。それ以外では含めない。
 - `getAllDatas` は、現在の状態が 99（ゲーム終了）のときだけ `finalDecks`（`{ "<player_id>": [ card… ] }`、`deck_cards` と同じ形）を返す。再読み込み・リプレイ・終了後の閲覧で一覧を復元するため。それ以外では `finalDecks` のキーを含めない。
 - 実装: `Flow/FameTotals::deckCards`。テスト: `tests/Integration/ReturnPhaseTest.php`、`FameTotalsTest.php`。
 

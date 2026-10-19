@@ -263,6 +263,7 @@ final class ReturnPhase
                     'charm_bonus' => $score->charmBonus,
                     'unknown_acquired' => $score->unknownAcquired,
                     'symbols' => $score->symbols,
+                    'earth' => FinalScorer::earthCount($this->deckCardNos($playerId)),
                     'deck_size' => count($this->deckCardNos($playerId)),
                     // ゲーム終了時だけ、デッキ全体の券面を全員に公開する（007 §8.4、作者指示 2026-10-19）
                     'deck_cards' => (new FameTotals($this->cards, $this->globals))->deckCards($playerId),
