@@ -73,4 +73,25 @@ final class FameTotals
         }
         return $nos;
     }
+
+    /**
+     * ゲーム終了時に公開する、デッキ全体のカード一覧（カード番号の昇順、同じ番号は ID の昇順。山札の順序は漏れない）。
+     * デッキの範囲は deckCardNos と同じ（除外とお守りを含まず、付加カードも 1 枚として数える）。
+     * ゲーム終了前に呼んではならない（007 §6、§8.4）。
+     *
+     * @return list<array{id: int, cardNo: int, art: int}>
+     */
+    public function deckCards(int $playerId): array
+    {
+        $views = [];
+        foreach ([Zone::Deck, Zone::Prep, Zone::Acquired, Zone::Facedown] as $zone) {
+            foreach ($this->cards->list($zone, $playerId) as $card) {
+                foreach ([$card, ...$this->cards->attachedTo($card)] as $c) {
+                    $views[] = ['id' => $c->id, 'cardNo' => $c->cardNo, 'art' => $c->art];
+                }
+            }
+        }
+        usort($views, static fn(array $a, array $b): int => [$a['cardNo'], $a['id']] <=> [$b['cardNo'], $b['id']]);
+        return $views;
+    }
 }

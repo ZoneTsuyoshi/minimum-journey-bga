@@ -37,6 +37,22 @@ final class FameTotalsTest extends DatabaseTestCase
         }
     }
 
+    public function testDeckCardsListsTheSameCardsAsDeckCardNosSortedByCardNo(): void
+    {
+        $fame = $this->start();
+        [$a] = self::PLAYER_IDS;
+        $this->cards->moveToAcquired($this->cards->list(Zone::Row, 2)[0], $a);
+        $this->cards->drawTopToPrep($a);
+
+        $cards = $fame->deckCards($a);
+        $nos = array_column($cards, 'cardNo');
+        $expected = $fame->deckCardNos($a);
+        sort($expected);
+        self::assertSame($expected, $nos);
+        self::assertSame(['id', 'cardNo', 'art'], array_keys($cards[0]));
+        self::assertCount(count(array_unique(array_column($cards, 'id'))), $cards, 'ID は重複しない');
+    }
+
     public function testTotalsFollowAcquisitionRemovalAndMatchFinalScoring(): void
     {
         $fame = $this->start();

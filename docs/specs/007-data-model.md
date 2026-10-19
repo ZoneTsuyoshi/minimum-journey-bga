@@ -506,6 +506,10 @@ CardRepository.shuffleDeck(pid):
 
 つまり、`getAllDatas` の内容は本人・他プレイヤー・観戦者で**名声合計の有無だけ**が違い、非公開情報は誰にも含まれない。一時的に本人にだけ見せる情報（005 で見た 2 枚など）は、`getAllDatas` ではなく現在の状態の args の `_private` が復元する（006 §9.1「再接続・リロード」）。
 
+#### 8.1.1 ゲーム終了後の例外: デッキ一覧の公開（8.4）
+
+ゲーム終了後（状態 99）に限り、§8.4 のとおり全員のデッキ全体の券面を `finalDecks` で送る。ゲーム中は §6.1 のとおり送らない。
+
 #### 8.2 戻り値の構造【提案】
 
 数値は整数で送る（BgaCards の注意。009 §10）。`card` オブジェクトは `{ "id": int, "cardNo": int, "art": int }`。
@@ -572,6 +576,15 @@ CardRepository.shuffleDeck(pid):
 
 - 準備選択の「選択済み」は、現在の状態 21 の args（`chosen`）が復元する（V11 のため、通知 `prepMarked` と併用）。
 - 山札の中身、`facedown`、`setup_removed`、`prep_choice`、`entry_decision` は戻り値に含まれない。コードレビューでは、`getAllDatas` が `card` テーブルを丸ごと読んで整形していないこと（location で絞った専用の読み出しを使っていること）を確認する。
+
+#### 8.4 ゲーム終了後のデッキ一覧（`finalDecks`）
+
+作者指示（2026-10-19）「final situation ではそれぞれのデッキに入っているカード一覧を表示したいです」による。デッキは山札、準備場、付加カード、このラウンドの獲得カード、`facedown` の全カード（除外とお守りを含まない。名声合計の対象と同じ。§11.3）。
+
+- 公開するのはゲーム終了時だけ。ゲーム中は §6.1 のとおり山札・`facedown` の中身を送らない。
+- 通知 N35 `finalScore` の args に `deck_cards`（`[ { "id": int, "cardNo": int, "art": int } ]`）を追加する。カード番号の昇順、同じ番号は ID の昇順で並べる（山札の順序は送らない）。`deck_cards` の長さは `deck_size` と等しい。
+- `getAllDatas` は、現在の状態が 99（ゲーム終了）のときだけ `finalDecks`（`{ "<player_id>": [ card… ] }`、`deck_cards` と同じ形）を返す。再読み込み・リプレイ・終了後の閲覧で一覧を復元するため。それ以外では `finalDecks` のキーを含めない。
+- 実装: `Flow/FameTotals::deckCards`。テスト: `tests/Integration/ReturnPhaseTest.php`、`FameTotalsTest.php`。
 
 ### 9. 状態ごとの args
 
@@ -677,7 +690,7 @@ CardRepository.shuffleDeck(pid):
 | N32 | `nextChoiceRecorded` | 全員 | `kind`（`forceDraw`／`drawOnly`／`stopOnly`／`late`）、`player_id`、`player_name`、`card_name` | `forceDraw`: `${player_name}'s ${card_name} forces everyone to choose Draw next`。`drawOnly`: `${player_name} must choose Draw next (${card_name})`。`stopOnly`: `${player_name} must choose Stop next (${card_name})`。`late`: `${player_name} will choose after the others next (${card_name})` | 30 の P6（確定時）。43 で戻された 054 は通知を出さない（H2） |
 | N33 | `countersUpdate` | 全員 | `players`（`{ "プレイヤー ID": { "deckCount", "facedownCount", "acquiredCount", "prepCount", "outputNow" } }`。変更があった者だけ）、`piles`（`{ "2", "4", "6", "8" }`。変更があったときだけ） | `''` | 各 GAME 状態の処理の最後と、各アクションの最後。山札・裏向き・獲得・準備場・お守りの変化で再計算する |
 | N34 | `fameUpdate` | 本人（各プレイヤーに 1 件ずつ送る。観戦者には送らない） | `fame`（`{ "プレイヤー ID": 名声合計 }`） | `''` | ゲームオプション `showFame` が有効なときだけ、N33 と同じ契機（デッキの内容や名声変動の入力が変わるとき） |
-| N35 | `finalScore` | 全員 | `player_id`、`player_name`、`fame`、`base`、`charm_bonus`（0 または 1）、`unknown_acquired`（bool）、`symbols`（`{ "laniakea", "virgo", "milkyWay", "solar" }`） | `${player_name} scores ${fame} fame` | 60（終了時に全員分を席順に。名声表示オプションに関わらず公開） |
+| N35 | `finalScore` | 全員 | `player_id`、`player_name`、`fame`、`base`、`charm_bonus`（0 または 1）、`unknown_acquired`（bool）、`symbols`（`{ "laniakea", "virgo", "milkyWay", "solar" }`）、`deck_size`、`deck_cards`（§8.4） | `${player_name} scores ${fame} fame` | 60（終了時に全員分を席順に。名声表示オプションに関わらず公開） |
 
 - 046 が準備場を離れるとき付加カードも一緒に動く通知は、N12（戻す。`attached_id`）と N20（除外。`attached_card`）の args で表す。新しい通知は作らない（未確定事項 No.5）。
 - N1〜N35 のうち「本人」宛ては N4 と N34 の 2 種（N34 は卓のプレイヤー全員に 1 件ずつ送る）。他は全員宛て。**内容の非公開が必要な通知は、全員宛てに非公開の内容を載せず、本人宛ての N4 と、状態の `_private` args（§9）で本人に渡す**。公開通知に `_private` を併用する設計（D9）は、現状の通知では必要としない（本人だけに見せる情報は args の `_private` で全てまかなえるため）。
