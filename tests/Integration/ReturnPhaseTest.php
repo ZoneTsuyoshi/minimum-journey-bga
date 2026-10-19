@@ -329,6 +329,38 @@ final class ReturnPhaseTest extends DatabaseTestCase
         self::assertNull($notes[0]->to, '全員に公開');
     }
 
+    public function testFinalScoreNotificationPublishesWholeDeck(): void
+    {
+        $this->start(3);
+        [$a, $b] = $this->ids;
+        $this->cards->drawTopToPrep($a);
+        $this->cards->drawTopToFacedown($a);
+        $row = $this->cards->list(Zone::Row, 2)[0];
+        $this->cards->moveToAcquired($row, $a);
+        $host = $this->cards->create(46, 0, Zone::Prep, $a, 9);
+        $this->cards->create(7, 0, Zone::Attached, $host->id, 1);
+        $flag = array_values(array_filter(
+            $this->cards->list(Zone::Deck, $b),
+            static fn(Card $card): bool => $card->cardNo === 1,
+        ))[0];
+        $this->cards->removeFromGame([$flag]);
+
+        $notes = self::named($this->phase->finalScoring($this->ids)->notifications, 'finalScore');
+
+        $cardsA = $notes[0]->args['deck_cards'];
+        self::assertCount($notes[0]->args['deck_size'], $cardsA, '一覧の枚数は deck_size と一致');
+        self::assertCount(7, $cardsA, '初期 4 枚 + 獲得 1 + 046 + 付加カード');
+        $nos = array_column($cardsA, 'cardNo');
+        $sorted = $nos;
+        sort($sorted);
+        self::assertSame($sorted, $nos, 'カード番号の昇順');
+        self::assertContains($row->cardNo, $nos);
+        self::assertContains(46, $nos);
+        self::assertContains(7, $nos);
+        self::assertSame(['id', 'cardNo', 'art'], array_keys($cardsA[0]));
+        self::assertCount(3, $notes[1]->args['deck_cards'], '初期 4 枚から除外した 1 枚を引く');
+    }
+
     public function testFinalScoringCountsEveryDeckZoneOnce(): void
     {
         $this->start(3);

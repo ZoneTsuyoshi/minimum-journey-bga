@@ -279,6 +279,16 @@ class Game extends \Bga\GameFramework\Table
             'showFame' => $this->bga->tableOptions->get(GameSetup::OPTION_SHOW_FAME),
         ];
 
+        // ゲーム終了後（状態 99。再読み込み・リプレイ）だけ、全員のデッキ全体の券面を公開する（007 §8.4）
+        if ($this->gamestate->getCurrentMainStateId() === StateId::GAME_END) {
+            $finalDecks = [];
+            $fameTotals = new FameTotals($this->cards, $this->globalValues);
+            foreach ($seatOrder as $playerId) {
+                $finalDecks[$playerId] = $fameTotals->deckCards($playerId);
+            }
+            $result['finalDecks'] = $finalDecks;
+        }
+
         return array_replace_recursive($result, $board);
     }
 

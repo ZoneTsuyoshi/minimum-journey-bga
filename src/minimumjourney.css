@@ -428,6 +428,16 @@
     margin-top: 8px;
 }
 
+.mj-final-deck-wrap {
+    margin-top: 8px;
+    padding-top: 6px;
+    border-top: 1px solid var(--mj-badge-fg);
+}
+
+.mj-final-deck {
+    min-width: 0;
+}
+
 .mj-acquired {
     min-width: calc(var(--mj-w) * 1.5);
 }

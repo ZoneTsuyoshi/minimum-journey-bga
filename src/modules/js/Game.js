@@ -1275,6 +1275,9 @@ function defaultRowQuota(playerCount) {
  * @property {any} charm LineStock
  */
 
+/** 終了時のデッキ一覧のカード ID を、盤面のカードと重ならないようにするずらし幅 */
+const FINAL_DECK_ID_OFFSET = 1000000;
+
 export class Game {
     /**
      * @param {Bga} bga
@@ -1426,6 +1429,9 @@ export class Game {
             this.setupPlayerArea(playerId, gamedatas.players[playerId] ?? {});
         }
         this.setupCharm(gamedatas.charm);
+        for (const [pid, cards] of Object.entries(gamedatas.finalDecks ?? {})) {
+            this.showFinalDeck(int(pid), /** @type {any[]} */ (cards));
+        }
         if (gamedatas.lockedCard !== null && gamedatas.lockedCard !== undefined) {
             this.lockedCardId = int(gamedatas.lockedCard.cardId);
             this.markLocked(this.lockedCardId, true);
@@ -1619,6 +1625,27 @@ export class Game {
         const attached = entry.attached ?? [];
         const host = this.toCard(entry.card, { stack: int(entry.order) * 2, sideways: entry.sideways === true, hasAttached: attached.length > 0 });
         return [host, ...attached.map((a) => this.toCard(a, { attachedTo: int(host.id), stack: int(entry.order) * 2 - 1 }))];
+    }
+
+    /**
+     * ゲーム終了時に、プレイヤーのデッキ全体のカードを領域の下に並べる（009 §8.5）。
+     * 盤面のカードと ID が重ならないよう、表示用の ID をずらす。一覧は stock を登録せず、効果の選択の対象にしない。
+     *
+     * @param {number} playerId
+     * @param {{ id: number, cardNo: number, art: number }[]} cards カード番号の昇順
+     */
+    showFinalDeck(playerId, cards) {
+        const root = document.getElementById(`mj-player-${playerId}`);
+        if (root === null || document.getElementById(`mj-final-deck-${playerId}`) !== null) {
+            return;
+        }
+        root.insertAdjacentHTML('beforeend', `
+            <div class="mj-final-deck-wrap">
+                <span class="mj-label">${_('Final deck')} <span class="mj-final-deck-count">(${cards.length})</span></span>
+                <div id="mj-final-deck-${playerId}" class="mj-final-deck"></div>
+            </div>`);
+        const stock = new BgaCards.LineStock(this.cardsManager, document.getElementById(`mj-final-deck-${playerId}`), { gap: '4px', wrap: 'wrap' });
+        stock.addCards(cards.map((c) => this.toCard({ ...c, id: FINAL_DECK_ID_OFFSET + int(c.id) })));
     }
 
     /**
@@ -2510,8 +2537,11 @@ export class Game {
     }
 
     /** 最終得点（N35）。終了時は全員に公開する */
-    async notif_finalScore(/** @type {{ player_id: number, fame: number }} */ args) {
+    async notif_finalScore(/** @type {{ player_id: number, fame: number, deck_cards?: any[] }} */ args) {
         this.gameEnded = true;
+        if (args.deck_cards !== undefined) {
+            this.showFinalDeck(int(args.player_id), args.deck_cards);
+        }
         const s = this.stats[int(args.player_id)];
         if (s !== undefined) {
             s.fame = int(args.fame);
