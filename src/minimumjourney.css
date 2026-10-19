@@ -534,8 +534,9 @@
     overflow-y: auto;
 }
 
-.mj-pile-modal-cards .line-stock,
-.mj-pile-modal-cards .line-stock[data-center] {
+/* LineStock は一覧の要素そのものに付く。bga-cards の中央寄せに勝つよう詳細度を上げ、左詰めにする */
+.mj-pile-modal .mj-pile-modal-cards.line-stock,
+.mj-pile-modal .mj-pile-modal-cards.line-stock[data-center] {
     justify-content: flex-start;
 }
 
