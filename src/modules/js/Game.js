@@ -18,15 +18,41 @@ class PrepChoice {
         /** @type {string | null} */
         this.myChoice = null;
         this.canDraw = true;
+        /** @type {{ player_id: number, choice?: string | null, reason?: string }[]} */
+        this.forced = [];
     }
 
     /**
-     * @param {{ selectors?: number[], chosen?: number[], _private?: { myChoice?: string | null, canDraw?: boolean } }} args
+     * 自分が強制されているときの理由つきの文言（作者指示 2026-10-19）。強制されていなければ null。
+     *
+     * @returns {string | null}
+     */
+    forcedTitle() {
+        const me = int(this.bga.players.getCurrentPlayerId());
+        const entry = this.forced.find((f) => int(f.player_id) === me);
+        if (entry === undefined) {
+            return null;
+        }
+        switch (entry.reason) {
+            case 'bigBang':
+                return _('${you} must Draw (Seed of the Big Bang)');
+            case 'memoryAlbum':
+                return _('${you} must Draw (Memory Album)');
+            case 'safetyDevice':
+                return _('${you} must Stop (Safety Device)');
+            default:
+                return _('${you} have no cards left in your deck and must Stop');
+        }
+    }
+
+    /**
+     * @param {{ selectors?: number[], chosen?: number[], forced?: { player_id: number, choice?: string | null, reason?: string }[], _private?: { myChoice?: string | null, canDraw?: boolean } }} args
      * @param {boolean} isCurrentPlayerActive
      */
     onEnteringState(args, isCurrentPlayerActive) {
         this.myChoice = args._private?.myChoice ?? null;
         this.canDraw = args._private?.canDraw ?? true;
+        this.forced = args.forced ?? [];
         this.onPlayerActivationChange(args, isCurrentPlayerActive);
     }
 
@@ -44,7 +70,8 @@ class PrepChoice {
      */
     onPlayerActivationChange(_args, isCurrentPlayerActive) {
         if (!isCurrentPlayerActive && this.myChoice === null) {
-            this.bga.statusBar.setTitle(_('Other players must choose: draw or stop'));
+            // 選択者ではない（自動で確定した）人には、確定した理由を出す
+            this.bga.statusBar.setTitle(this.forcedTitle() ?? _('Other players must choose: draw or stop'));
             return;
         }
         if (this.myChoice === null) {
@@ -2441,6 +2468,8 @@ export class Game {
 
     /** 自分の他のタブの同期用（I-04 の状態ハンドラが表示する）。盤面には出さない */
     async notif_prepChoiceRecorded() {}
+
+    async notif_prepForced() {}
 
     /** 開示された選択。盤面は cardDrawn などで更新し、ここでは「選択済み」の印だけ外す */
     async notif_choiceRevealed(/** @type {{ player_id: number, choice?: string }} */ args) {

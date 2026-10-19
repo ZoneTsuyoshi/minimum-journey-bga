@@ -597,7 +597,7 @@ CardRepository.shuffleDeck(pid):
 | 状態 | 公開 args | `_private[プレイヤー ID]` | 備考 |
 | --- | --- | --- | --- |
 | 20、22、24（GAME） | なし | なし | args を持たない |
-| 21 `PrepChoice` | `selectors`（int 配列。この回の選択者）、`chosen`（int 配列。選択済みの ID。**内容は含めない**）、`forced`（`[{ "playerId", "choice": "draw"／"stop", "reason": "memoryAlbum"／"safetyDevice"／"bigBang"／"emptyDeck" }]`）、`lateOwner`（int／null。049 の持ち主）、`round` | `myChoice`（null／`"draw"`／`"stop"`）、`canDraw`（山札が 1 枚以上か） | `_private` は `selectors` の全員分を作る（V11: 選択済みで非アクティブでも本人に返せるようにする）。`forced` の確定済みの選択は公開情報（006 §4.6） |
+| 21 `PrepChoice` | `selectors`（int 配列。この回の選択者）、`chosen`（int 配列。選択済みの ID。**内容は含めない**）、`forced`（`[{ "player_id", "choice": "draw"／"stop", "reason": "memoryAlbum"／"safetyDevice"／"bigBang"／"emptyDeck" }]`）、`lateOwner`（int／null。049 の持ち主）、`round` | `myChoice`（null／`"draw"`／`"stop"`）、`canDraw`（山札が 1 枚以上か） | `_private` は `selectors` の全員分を作る（V11: 選択済みで非アクティブでも本人に返せるようにする）。`forced` の確定済みの選択は公開情報（006 §4.6） |
 | 23 `PrepChoiceLate` | `revealedChoices`（`{ "playerId": "draw"／"stop" }`。22 で公開済みの他プレイヤーの選択）、`canDraw`（持ち主の山札が 1 枚以上か） | なし | 秘密情報はない（開示済み）。選べる選択肢が 1 つだけなら状態に入らない（006 §2.2） |
 
 `reason` の値: `memoryAlbum`（028）、`safetyDevice`（029）、`bigBang`（054）、`emptyDeck`（山札 0 枚）。
@@ -693,8 +693,10 @@ CardRepository.shuffleDeck(pid):
 | N33 | `countersUpdate` | 全員 | `players`（`{ "プレイヤー ID": { "deckCount", "facedownCount", "acquiredCount", "prepCount", "outputNow" } }`。変更があった者だけ）、`piles`（`{ "2", "4", "6", "8" }`。変更があったときだけ） | `''` | 各 GAME 状態の処理の最後と、各アクションの最後。山札・裏向き・獲得・準備場・お守りの変化で再計算する |
 | N34 | `fameUpdate` | 本人（各プレイヤーに 1 件ずつ送る。観戦者には送らない） | `fame`（`{ "プレイヤー ID": 名声合計 }`） | `''` | ゲームオプション `showFame` が有効なときだけ、N33 と同じ契機（デッキの内容や名声変動の入力が変わるとき） |
 | N35 | `finalScore` | 全員 | `player_id`、`player_name`、`fame`、`base`、`charm_bonus`（0 または 1）、`unknown_acquired`（bool）、`symbols`（`{ "laniakea", "virgo", "milkyWay", "solar" }`）、`deck_size`、`deck_cards`（§8.4） | `${player_name} scores ${fame} fame` | 60（終了時に全員分を席順に。名声表示オプションに関わらず公開） |
+| N37 | `prepForced` | 全員 | `player_id`、`player_name`、`choice`（`draw`／`stop`）、`reason`（`memoryAlbum`／`safetyDevice`／`bigBang`／`emptyDeck`）、`card_name`（i18n。`emptyDeck` では無し） | `memoryAlbum`・`bigBang`: `${player_name} must Draw (${card_name})`。`safetyDevice`: `${player_name} must Stop (${card_name})`。`emptyDeck`: `${player_name} has no cards left in their deck and must Stop` | 20 の末尾。選択が自動で確定した（強制された）プレイヤーごとに 1 件（席順）。山札 0 枚のストップは準備終了になる回の 1 回だけ（以後は分類に現れない）。028・029・054 はその記録が適用される回に 1 回。通常のプレイヤーには出さない。作者指示（2026-10-19）。N32 は記録した時点、N37 は適用された時点 |
 
 - 046 が準備場を離れるとき付加カードも一緒に動く通知は、N12（戻す。`attached_id`）と N20（除外。`attached_card`）の args で表す。新しい通知は作らない（未確定事項 No.5）。
+- N37 `prepForced`（上の表）。選択が強制されたことをログに残す。作者指示（2026-10-19）「ドロー・ストップ強制の時はログに出すようにしましょう」
 - N36 `drawPileUpdate`（本人宛て。上の「102 の扱い」）。102 が有効なときだけ、`mjSendNotifications` の通知を送るたびに、卓の各プレイヤーに本人の山札の一覧を送る。`args`: `cards`（`[{ "id", "cardNo", "art" }]`。カード番号順）。`message` は `''`。
 - N1〜N35 のうち「本人」宛ては N4 と N34 の 2 種（N34 は卓のプレイヤー全員に 1 件ずつ送る）。他は全員宛て。**内容の非公開が必要な通知は、全員宛てに非公開の内容を載せず、本人宛ての N4 と、状態の `_private` args（§9）で本人に渡す**。公開通知に `_private` を併用する設計（D9）は、現状の通知では必要としない（本人だけに見せる情報は args の `_private` で全てまかなえるため）。
 - N2 と N3 の役割分担: N3 は選択の途中経過（誰が選び終えたか）、N2 は確定後の内容の公開。N3 は V11 のため必要と判断した（006 §9.2 も「内容なしの `prepMarked` だけ送る」に更新済み。未確定事項 No.9）。

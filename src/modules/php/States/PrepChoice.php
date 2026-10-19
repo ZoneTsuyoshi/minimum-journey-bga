@@ -65,7 +65,8 @@ class PrepChoice extends GameState
 
         $forced = [];
         foreach ($this->game->globalValues->prepReasons() as $playerId => $reason) {
-            $forced[] = ['player_id' => $playerId, 'reason' => $reason];
+            $choice = $this->game->playerValues->prepChoice($playerId);
+            $forced[] = ['player_id' => $playerId, 'choice' => $choice?->value, 'reason' => $reason];
         }
 
         return [
