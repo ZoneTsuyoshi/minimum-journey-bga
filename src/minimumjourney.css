@@ -7,7 +7,8 @@
 
 /* ---- 色と寸法のトークン ---- */
 .mj-board,
-.mj-zoom {
+.mj-zoom,
+.mj-pile-modal {
     --mj-bg: rgb(255 255 255 / 55%);
     --mj-fg: #1b1b1f;
     --mj-border: #8a8f99;
@@ -68,7 +69,8 @@
  * PC（作者指示 2026-10-17。009 §7.4）: 探査場を上、プレイヤーの領域を下にし、プレイヤーを横に並べる。
  * 準備場が縦に伸びるので、1 人 1 列にして並べると比べやすい。
  * 盤面の幅（.mj-board のコンテナ幅）が 992px 以上は 1 行（4 列）、820px 以上 992px 未満は 2 列（2×2）、820px 未満（モバイル）は従来どおり縦積み。
- * 4 列のときは 1 列を「山札と裏向きの山の 2 枚ぶん」（カード 120px で約 266px）に絞り、お守りは山の下へ送る（作者回答 2026-10-19）。
+ * 4 列のときは 1 列を「山札と裏向きの山の 2 枚ぶん」（カード 120px で約 266px）に絞る（作者回答 2026-10-19）。
+ * 領域の中の順は全レイアウト共通: 見出し → 山札・裏向きの山（1 行）→ 準備場 → お守り → 獲得カード（作者指示 2026-10-19）。
  * カードは 1088px 以上で 120px。992px〜1088px は --mj-pcw（Game.js が入れる）で 4 列が収まる大きさまで縮める（最小 108px）。
  * 準備場が列の幅を超えて長くなったら（046 の組など）、準備場だけ横にスクロールする。
  */
@@ -78,13 +80,6 @@
         grid-template-columns: repeat(2, minmax(0, 1fr));
         align-items: start;
     }
-
-    .mj-player > .mj-player-main > .mj-prep-wrap {
-        order: 2;
-        flex: 1 0 100%;
-        min-width: 0;
-        overflow-x: auto;
-    }
 }
 
 @container (min-width: 992px) {
@@ -93,12 +88,6 @@
         grid-auto-flow: column;
         grid-auto-columns: minmax(0, 1fr);
         gap: 8px;
-    }
-
-    /* お守りは山札・裏向きの山の下（準備場の上）へ送る */
-    .mj-player > .mj-player-main > .mj-pile-wrap:has(> .mj-charm) {
-        order: 1;
-        flex: 1 0 100%;
     }
 }
 
@@ -212,8 +201,10 @@
 }
 
 .mj-prep-wrap {
-    flex: 1 1 auto;
-    min-width: var(--mj-w);
+    /* 山札・裏向きの山の下に 1 行ぶんの幅で置く（お守りはその下）。長くなったら準備場だけ横にスクロールする */
+    flex: 1 0 100%;
+    min-width: 0;
+    overflow-x: auto;
 }
 
 /* 横向き: 回転は bga-cards（getCardRotation）。占有幅の余白と斜線で示す */
@@ -471,6 +462,83 @@
     min-width: calc(var(--mj-w) * 1.5);
 }
 
+/* 山札の一覧（ゲームオプション 102。009 §8.2.2）。山札の下のボタンと、body 直下のオーバーレイ */
+.mj-deck-view {
+    box-sizing: border-box;
+    width: max-content;
+    min-width: var(--mj-w);
+    max-width: calc(var(--mj-w) + 16px);
+    margin-top: 2px;
+    padding: 2px 4px;
+    border: 1px solid var(--mj-border);
+    border-radius: 4px;
+    background: var(--mj-bg);
+    color: var(--mj-fg);
+    font-size: 11px;
+    line-height: 16px;
+    cursor: pointer;
+}
+
+.mj-pile-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 1900;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px;
+    background: rgb(0 0 0 / 55%);
+}
+
+.mj-pile-modal[hidden] {
+    display: none;
+}
+
+.mj-pile-modal .mj-pile-dialog {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    width: min(100%, 900px);
+    max-height: 100%;
+    background: var(--mj-tooltip-bg);
+    color: var(--mj-tooltip-fg);
+}
+
+.mj-pile-dialog-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.mj-pile-close {
+    width: 32px;
+    height: 32px;
+    border: 1px solid var(--mj-border);
+    border-radius: 4px;
+    background: transparent;
+    color: inherit;
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.mj-pile-note {
+    margin: 0;
+    font-size: 12px;
+}
+
+.mj-pile-modal-cards {
+    min-height: 0;
+    overflow-y: auto;
+}
+
+.mj-pile-modal-cards .line-stock,
+.mj-pile-modal-cards .line-stock[data-center] {
+    justify-content: flex-start;
+}
+
 /* 枚数のバッジ（bga-cards の counter） */
 .mj-count {
     min-width: 1.6em;
@@ -702,7 +770,8 @@
 
 /* ---- ダークモード（最後に置く） ---- */
 html[data-theme="dark"] .mj-board,
-html[data-theme="dark"] .mj-zoom {
+html[data-theme="dark"] .mj-zoom,
+html[data-theme="dark"] .mj-pile-modal {
     --mj-bg: rgb(20 24 40 / 70%);
     --mj-fg: #eceff6;
     --mj-border: #5b6477;

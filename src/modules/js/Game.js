@@ -1277,6 +1277,8 @@ function defaultRowQuota(playerCount) {
 
 /** 終了時のデッキ一覧のカード ID を、盤面のカードと重ならないようにするずらし幅 */
 const FINAL_DECK_ID_OFFSET = 1000000;
+/** 山札一覧の表示用 ID のずらし幅（盤面のカードと ID が重ならないように） */
+const DRAW_PILE_ID_OFFSET = 2000000;
 
 export class Game {
     /**
@@ -1323,6 +1325,10 @@ export class Game {
         /** @type {ReturnType<typeof setTimeout> | null} */
         this.zoomTimer = null;
         this.zoomOpen = false;
+        /** @type {{ id: number, cardNo: number, art: number }[] | null} 自分の山札の一覧（オプション 102。カード番号順。無効・観戦者は null） */
+        this.myDrawPile = null;
+        /** @type {HTMLElement | null} */
+        this.drawPileModal = null;
         /** @type {any} 解決の選択でカードを見せる一時的な置き場（LineStock） */
         this.choiceStock = null;
         /** @type {Element[]} 強調表示中のカード要素 */
@@ -1440,6 +1446,10 @@ export class Game {
         }
         this.chosen = new Set((gamedatas.gamestate?.args?.chosen ?? []).map(int));
         this.refreshAllStats();
+        if (Array.isArray(gamedatas.myDrawPile) && !isSpectator) {
+            this.myDrawPile = gamedatas.myDrawPile;
+            this.setupDrawPileViewer(me);
+        }
         this.setupZoom();
         this.setupNotifications();
     }
@@ -1672,6 +1682,92 @@ export class Game {
             + item('solar', String(summary.solar))
             + item('earth', String(summary.earth), true)
             + `</div>`;
+    }
+
+    /**
+     * 自分の山札の一覧（ゲームオプション 102。009 §8.2.2）。山札の下にボタンを置き、押すと一覧を開く。
+     * 一覧は body 直下のオーバーレイ（拡大表示と同じ理由。盤面の contain の外に出す）。カード番号順で、山札の順序は分からない。
+     * 一覧は stock を登録せず、効果の選択の対象にしない。
+     *
+     * @param {number} playerId
+     */
+    setupDrawPileViewer(playerId) {
+        const wrap = document.querySelector(`#mj-deck-${playerId}`)?.parentElement;
+        if (wrap === null || wrap === undefined) {
+            return;
+        }
+        wrap.insertAdjacentHTML('beforeend', `<button type="button" id="mj-deck-view" class="mj-deck-view" title="${_('View my deck')}" aria-label="${_('View my deck')}"></button>`);
+        document.body.insertAdjacentHTML('beforeend', `
+            <div id="mj-pile-modal" class="mj-pile-modal" hidden>
+                <div class="mj-pile-dialog mj-scope" role="dialog" aria-modal="true" aria-label="${_('My draw pile')}">
+                    <div class="mj-pile-dialog-head">
+                        <span class="mj-label">${_('My draw pile')} <span id="mj-pile-modal-count"></span></span>
+                        <button type="button" id="mj-pile-close" class="mj-pile-close" aria-label="${_('Close')}">×</button>
+                    </div>
+                    <p class="mj-pile-note">${_('Sorted by card number. The order of the pile is not shown.')}</p>
+                    <div id="mj-pile-modal-cards" class="mj-pile-modal-cards"></div>
+                </div>
+            </div>`);
+        const modal = /** @type {HTMLElement} */ (document.getElementById('mj-pile-modal'));
+        this.drawPileModal = modal;
+        document.getElementById('mj-deck-view')?.addEventListener('click', () => this.toggleDrawPile(true));
+        document.getElementById('mj-pile-close')?.addEventListener('click', () => this.toggleDrawPile(false));
+        // 外側（背景）のタップ・クリックで閉じる
+        modal.addEventListener('click', (event) => {
+            if (event.target === modal) {
+                this.toggleDrawPile(false);
+            }
+        });
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && !modal.hidden) {
+                this.toggleDrawPile(false);
+            }
+        });
+        this.refreshDrawPile();
+    }
+
+    /**
+     * @param {boolean} open
+     */
+    toggleDrawPile(open) {
+        if (this.drawPileModal === null) {
+            return;
+        }
+        this.drawPileModal.hidden = !open;
+        if (open) {
+            this.hideZoom();
+            this.refreshDrawPile();
+        }
+    }
+
+    /** ボタンの枚数を更新し、一覧が開いていれば描き直す */
+    refreshDrawPile() {
+        const cards = this.myDrawPile ?? [];
+        const button = document.getElementById('mj-deck-view');
+        if (button !== null) {
+            button.textContent = `${_('View')} (${cards.length})`;
+        }
+        const modal = this.drawPileModal;
+        if (modal === null || modal.hidden) {
+            return;
+        }
+        const count = document.getElementById('mj-pile-modal-count');
+        if (count !== null) {
+            count.textContent = `(${cards.length})`;
+        }
+        const holder = /** @type {HTMLElement} */ (document.getElementById('mj-pile-modal-cards'));
+        holder.replaceChildren();
+        const stock = new BgaCards.LineStock(this.cardsManager, holder, { gap: '4px', wrap: 'wrap' });
+        stock.addCards(cards.map((c) => this.toCard({ ...c, id: DRAW_PILE_ID_OFFSET + int(c.id) })));
+    }
+
+    /** 山札の一覧（N36）。山札の持ち主にだけ届く */
+    async notif_drawPileUpdate(/** @type {{ cards: { id: number, cardNo: number, art: number }[] }} */ args) {
+        if (this.drawPileModal === null) {
+            return;
+        }
+        this.myDrawPile = args.cards;
+        this.refreshDrawPile();
     }
 
     /**
@@ -1916,35 +2012,39 @@ export class Game {
 
     setupZoom() {
         const board = /** @type {HTMLElement} */ (document.getElementById('mj-board'));
+        const modal = this.drawPileModal;
         const cardOf = (/** @type {EventTarget | null} */ target) => {
             const found = target instanceof Element ? target.closest('.mj-card') : null;
             return found instanceof HTMLElement && found.dataset.mjKey !== undefined ? found : null;
         };
-        board.addEventListener('pointerover', (event) => {
-            this.lastPointerType = event.pointerType;
-            const cardEl = cardOf(event.target);
-            if (event.pointerType === 'mouse' && cardEl !== null) {
-                this.scheduleZoom(cardEl, 400);
-            }
-        });
-        board.addEventListener('pointerout', (event) => {
-            if (event.pointerType === 'mouse') {
-                this.hideZoom();
-            }
-        });
-        board.addEventListener('pointerdown', (event) => {
-            this.lastPointerType = event.pointerType;
-            const cardEl = cardOf(event.target);
-            if (event.pointerType !== 'mouse' && cardEl !== null) {
-                this.scheduleZoom(cardEl, 500); // 長押し
-            }
-        });
-        for (const type of ['pointerup', 'pointercancel', 'pointermove']) {
-            board.addEventListener(type, () => {
-                if (this.lastPointerType !== 'mouse' && !this.zoomOpen) {
-                    this.cancelZoomTimer();
+        // 山札の一覧（body 直下）の中のカードも、盤面と同じ操作で拡大する
+        for (const target of modal === null ? [board] : [board, modal]) {
+            target.addEventListener('pointerover', (event) => {
+                this.lastPointerType = event.pointerType;
+                const cardEl = cardOf(event.target);
+                if (event.pointerType === 'mouse' && cardEl !== null) {
+                    this.scheduleZoom(cardEl, 400);
                 }
             });
+            target.addEventListener('pointerout', (event) => {
+                if (event.pointerType === 'mouse') {
+                    this.hideZoom();
+                }
+            });
+            target.addEventListener('pointerdown', (event) => {
+                this.lastPointerType = event.pointerType;
+                const cardEl = cardOf(event.target);
+                if (event.pointerType !== 'mouse' && cardEl !== null) {
+                    this.scheduleZoom(cardEl, 500); // 長押し
+                }
+            });
+            for (const type of ['pointerup', 'pointercancel', 'pointermove']) {
+                target.addEventListener(type, () => {
+                    if (this.lastPointerType !== 'mouse' && !this.zoomOpen) {
+                        this.cancelZoomTimer();
+                    }
+                });
+            }
         }
         // タッチ: 選択できないカードはタップでも開く。開いている間は、どこをタップしても閉じる
         // 選べるカードの拡大は、拡大をタップするとそのカードを選ぶ

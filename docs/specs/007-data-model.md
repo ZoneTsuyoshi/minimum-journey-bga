@@ -695,6 +695,7 @@ CardRepository.shuffleDeck(pid):
 | N35 | `finalScore` | 全員 | `player_id`、`player_name`、`fame`、`base`、`charm_bonus`（0 または 1）、`unknown_acquired`（bool）、`symbols`（`{ "laniakea", "virgo", "milkyWay", "solar" }`）、`deck_size`、`deck_cards`（§8.4） | `${player_name} scores ${fame} fame` | 60（終了時に全員分を席順に。名声表示オプションに関わらず公開） |
 
 - 046 が準備場を離れるとき付加カードも一緒に動く通知は、N12（戻す。`attached_id`）と N20（除外。`attached_card`）の args で表す。新しい通知は作らない（未確定事項 No.5）。
+- N36 `drawPileUpdate`（本人宛て。上の「102 の扱い」）。102 が有効なときだけ、`mjSendNotifications` の通知を送るたびに、卓の各プレイヤーに本人の山札の一覧を送る。`args`: `cards`（`[{ "id", "cardNo", "art" }]`。カード番号順）。`message` は `''`。
 - N1〜N35 のうち「本人」宛ては N4 と N34 の 2 種（N34 は卓のプレイヤー全員に 1 件ずつ送る）。他は全員宛て。**内容の非公開が必要な通知は、全員宛てに非公開の内容を載せず、本人宛ての N4 と、状態の `_private` args（§9）で本人に渡す**。公開通知に `_private` を併用する設計（D9）は、現状の通知では必要としない（本人だけに見せる情報は args の `_private` で全てまかなえるため）。
 - N2 と N3 の役割分担: N3 は選択の途中経過（誰が選び終えたか）、N2 は確定後の内容の公開。N3 は V11 のため必要と判断した（006 §9.2 も「内容なしの `prepMarked` だけ送る」に更新済み。未確定事項 No.9）。
 
@@ -836,6 +837,7 @@ ID は 100〜199（D17）。値のキーは文字列。既定値をデフォル�
 | --- | --- | --- | --- | --- |
 | 100 | Charm side | 1＝Safe Passage Charm（057）、2＝Misfortune-Warding Charm（058） | 1 | 001 §3-5（Q-3）。使う面の 1 枚だけを `card` に作る |
 | 101 | Show total fame during the game | 1＝No、2＝Yes | 1 | 009 No.5・No.15（全員共通のゲームオプション。既定は非表示）。観戦者には常に非表示。値が `No`／`Yes` の 2 つなのでチェックボックスで表示される（D17） |
+| 102 | View your own draw pile | 1＝Off、2＝On | 2（On） | 作者指示（2026-10-19）「オプションで自分の山札一覧を見れる機能欲しいです。デフォルトON」。下の「102 の扱い」。値は 101 と同じく 2 が有効 |
 
 ```jsonc
 {
@@ -856,9 +858,25 @@ ID は 100〜199（D17）。値のキーは文字列。既定値をデフォル�
     },
     "default": 1,
     "level": "additional"
+  },
+  "102": {
+    "name": "View your own draw pile",
+    "values": {
+      "1": { "name": "Off" },
+      "2": { "name": "On", "tmdisplay": "Draw pile viewable" }
+    },
+    "default": 2,
+    "level": "additional"
   }
 }
 ```
+
+**102 の扱い（作者指示 2026-10-19）。**
+
+- 有効（2）のとき、卓のプレイヤーは**自分の山札**（`deck`）のカード一覧を見られる。観戦者と他のプレイヤーには送らない。無効（1）のときは一覧に関するデータを一切送らない。
+- 一覧は**カード番号の昇順（同じ番号は ID の昇順）**に並べる。山札の順序は漏れない（§3.5）。ストップで引いた**裏向きの山（`facedown`）は山札ではないので含めない**（引いた本人にも見えない。§8.1）。準備場・獲得カードも含めない。
+- 送り方: `getAllDatas` に本人の分だけ `myDrawPile`（`[{ "id", "cardNo", "art" }]`。102 が有効で、現在のプレイヤーが卓のプレイヤーのときだけ。`options.viewDrawPile` も返す）。更新は私信の通知 **N36 `drawPileUpdate`**（`cards` は同じ形。各プレイヤーに `notify->player` で 1 件ずつ。観戦者には届かない）。
+- 更新の契機: 山札が変わる処理は多い（ドロー、準備場から戻す、帰還フェイズ、005／009／010／014／020／035／043／050／052 などの効果、獲得、除外）ので、個別に拾わず、**`mjSendNotifications` で通知を送るたびに全員ぶんを送る**（取りこぼしがない。山札は最大でも数十枚）。ID は山札に戻すたびに付け替わる（§3.5）ので、クライアントは一覧を毎回丸ごと置き換える。
 
 - 読み出し: PHP `$this->bga->tableOptions->get(100)`（`?int`）、JS `this.bga.tableOptions.get(100)`（D17）。`getAllDatas` の `options` にも入れる（§8.2）。
 - 3 人と 4 人の違いはオプションでなく人数から決める（001 §3）。人数による `displaycondition` は不要。

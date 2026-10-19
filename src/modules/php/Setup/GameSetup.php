@@ -21,6 +21,8 @@ final class GameSetup
     public const OPTION_CHARM_SIDE = 100;
     /** ゲームオプション 101: 名声合計の表示（007 §13.1）。セットアップでは使わない */
     public const OPTION_SHOW_FAME = 101;
+    /** ゲームオプション 102: 自分の山札一覧の表示（007 §13.1）。1＝Off、2＝On（既定）。セットアップでは使わない */
+    public const OPTION_VIEW_DRAW_PILE = 102;
 
     public const CHARM_SAFE_PASSAGE = 1;
     public const CHARM_MISFORTUNE_WARDING = 2;

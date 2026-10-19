@@ -23,5 +23,16 @@
     },
     "default": 1,
     "level": "additional"
+  },
+
+  // 自分の山札の一覧を見られるか（007 §13.1・009 §8.2.2）。本人にだけ見え、カード番号の順に並べるので山札の順序は漏れない
+  "102": {
+    "name": "View your own draw pile",
+    "values": {
+      "1": { "name": "Off" },
+      "2": { "name": "On", "tmdisplay": "Draw pile viewable" }
+    },
+    "default": 2,
+    "level": "additional"
   }
 }
