@@ -21,5 +21,6 @@
 | 009 | UI・アセット設計 | Approved | T-009 |
 | 010 | ドロー時効果の優先度 | Implemented | T-010 |
 | 011 | 探査力変動効果の適用順 | Implemented | T-011 |
+| 012 | チュートリアルの台本 | Approved | T-012 |
 
 各仕様書は別ブランチ（`docs/spec-NNN-<slug>`）で作成し、PR のマージで `main` に入る。
