@@ -118,6 +118,11 @@
     color: inherit;
 }
 
+/* 山の枚数バッジ（bga-cards の counter）は山の下端の中央に半分はみ出す。ラベルが隠れないよう、バッジの半分ぶん下げる */
+.mj-pile-wrap > .mj-label {
+    margin-top: 16px;
+}
+
 .mj-warning {
     margin: 0 0 8px;
     padding: 4px 8px;
@@ -334,10 +339,15 @@
     min-height: var(--mj-h);
 }
 
+/*
+ * 点線の枠は border ではなく outline（内側）で描く。border だと枠が 2px ぶん中身を押し下げ、
+ * 山札・お守り・スロットのカードだけ準備場・獲得済みのカードより 2px 下・右にずれる。
+ */
 .mj-pile,
 .mj-charm,
 .mj-slot {
-    border: 2px dashed var(--mj-slot-border);
+    outline: 2px dashed var(--mj-slot-border);
+    outline-offset: -2px;
     border-radius: 6px;
     background: var(--mj-slot-bg);
 }
@@ -382,7 +392,7 @@
 .mj-pile:not(.mj-empty),
 .mj-slot:has(.mj-card),
 .mj-charm:has(.mj-card) {
-    border-color: transparent;
+    outline-color: transparent;
     background: transparent;
 }
 
@@ -548,14 +558,20 @@
 
 /* ---- 拡大表示 ---- */
 .mj-zoom {
-    /* 画像の幅。英語の効果テキストが下に入るぶん、高さに余裕を残す */
-    --mj-zw: max(140px, min(360px, 90vw, calc((100vh - 240px) * 500 / 699)));
+    /*
+     * 画像の幅。英語の効果テキストが下に入るぶん、高さに余裕を残す。
+     * --mj-avail は Game.js が入れる、実際に見えている範囲での高さの上限（px）。
+     * 100vh は iOS でツールバーを引いた高さより大きいので、入っていないときの代用にとどめる
+     */
+    --mj-zw: max(140px, min(360px, 90vw, calc((var(--mj-avail, calc(100vh - 16px)) - 120px) * 500 / 699)));
 
     position: fixed;
     z-index: 2000;
     box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
     width: max(var(--mj-zw), min(280px, 94vw));
-    max-height: calc(100vh - 16px);
+    max-height: var(--mj-avail, calc(100vh - 16px));
     overflow: hidden;
     border-radius: 8px;
     background: var(--mj-tooltip-bg);
@@ -565,6 +581,7 @@
 }
 
 .mj-zoom-img {
+    flex: none;
     width: var(--mj-zw);
     height: calc(var(--mj-zw) * 699 / 500);
     border-radius: 4.2%;
@@ -578,6 +595,8 @@
 }
 
 .mj-zoom-text {
+    min-height: 0;
+    overflow-y: auto;
     font-size: 14px;
 }
 

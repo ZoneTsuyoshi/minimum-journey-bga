@@ -1420,6 +1420,8 @@ export class Game {
                 <div id="mj-zoom-text" class="mj-zoom-text"></div>
             </div>
         `);
+        // 拡大表示は body 直下へ移す。ゲーム領域の祖先に transform や zoom があると、position: fixed の基準がずれて端が切れる
+        document.body.appendChild(/** @type {HTMLElement} */ (document.getElementById('mj-zoom')));
 
         this.setupBoardWidth();
         this.setupExplore(gamedatas, playerOrder.length);
@@ -1957,15 +1959,20 @@ export class Game {
         text.innerHTML = this.getCardTooltipHtml(int(key.slice(0, 2)))
             + (selectable ? `<p class="mj-tip-effect">${escapeHtml(_('Tap the card to select it'))}</p>` : '');
 
-        zoom.hidden = false;
-        zoom.setAttribute('aria-hidden', 'false');
-        const rect = cardEl.getBoundingClientRect();
-        const zoomRect = zoom.getBoundingClientRect();
-        const left = Math.min(Math.max(8, rect.left + rect.width / 2 - zoomRect.width / 2), window.innerWidth - zoomRect.width - 8);
         // 上部のステータスバー（[Explore] などのボタン）を隠さない
         const bar = document.getElementById('page-title');
         const barBottom = bar === null ? 0 : Math.max(0, bar.getBoundingClientRect().bottom);
         const minTop = Math.max(8, barBottom + 8);
+        // 見えている範囲（window.innerHeight）から、拡大表示の高さの上限を決める。
+        // CSS の 100vh は iOS でツールバーを引いた高さより大きく、下が画面外に切れるため使わない
+        const viewWidth = Math.min(window.innerWidth, document.documentElement.clientWidth || window.innerWidth);
+        const available = Math.max(0, window.innerHeight - minTop - 8);
+        zoom.style.setProperty('--mj-avail', `${available}px`);
+        zoom.hidden = false;
+        zoom.setAttribute('aria-hidden', 'false');
+        const rect = cardEl.getBoundingClientRect();
+        const zoomRect = zoom.getBoundingClientRect();
+        const left = Math.min(Math.max(8, rect.left + rect.width / 2 - zoomRect.width / 2), viewWidth - zoomRect.width - 8);
         const top = Math.min(Math.max(minTop, rect.top + rect.height / 2 - zoomRect.height / 2), Math.max(minTop, window.innerHeight - zoomRect.height - 8));
         zoom.style.left = `${left}px`;
         zoom.style.top = `${top}px`;
