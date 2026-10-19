@@ -29,6 +29,7 @@ use Bga\Games\MinimumJourney\Data\GlobalValues;
 use Bga\Games\MinimumJourney\Data\PlayerValues;
 use Bga\Games\MinimumJourney\Data\ResolveEntryRepository;
 use Bga\Games\MinimumJourney\Data\Zone;
+use Bga\Games\MinimumJourney\Flow\DrawPileView;
 use Bga\Games\MinimumJourney\Flow\DrawResolver;
 use Bga\Games\MinimumJourney\Flow\DrawRuleViolation;
 use Bga\Games\MinimumJourney\Flow\ExploreOutputCalculator;
@@ -117,6 +118,28 @@ class Game extends \Bga\GameFramework\Table
         }
         if ($this->mjIsFameShown() && FameTotals::affectedBy($notifications)) {
             $this->mjSendFameUpdate();
+        }
+        if ($notifications !== [] && $this->mjIsDrawPileViewable()) {
+            $this->mjSendDrawPileUpdate();
+        }
+    }
+
+    /**
+     * ゲームオプション 102（自分の山札一覧）が有効か（007 §13.1）。
+     */
+    public function mjIsDrawPileViewable(): bool
+    {
+        return $this->bga->tableOptions->get(GameSetup::OPTION_VIEW_DRAW_PILE) === 2;
+    }
+
+    /**
+     * N36 drawPileUpdate: 山札の一覧（カード番号順）を、その山札の持ち主にだけ送る。notify->all は観戦者に届くので使わない。
+     * 通知を送るたびに全員ぶんを送る（山札が変わる契機が多く、取りこぼしを避けるため。007 §13.1）。
+     */
+    public function mjSendDrawPileUpdate(): void
+    {
+        foreach ($this->mjSeatOrder() as $playerId) {
+            $this->bga->notify->player($playerId, 'drawPileUpdate', '', ['cards' => DrawPileView::cards($this->cards, $playerId)]);
         }
     }
 
@@ -277,7 +300,13 @@ class Game extends \Bga\GameFramework\Table
         $result['options'] = [
             'charmSide' => $this->bga->tableOptions->get(GameSetup::OPTION_CHARM_SIDE),
             'showFame' => $this->bga->tableOptions->get(GameSetup::OPTION_SHOW_FAME),
+            'viewDrawPile' => $this->bga->tableOptions->get(GameSetup::OPTION_VIEW_DRAW_PILE),
         ];
+
+        // 山札の一覧は 102 が有効なとき、卓のプレイヤー本人の分だけ返す（観戦者・他のプレイヤーには返さない。007 §13.1）
+        if ($this->mjIsDrawPileViewable() && in_array($currentPlayerId, $seatOrder, true)) {
+            $result['myDrawPile'] = DrawPileView::cards($this->cards, $currentPlayerId);
+        }
 
         // ゲーム終了後（状態 99。再読み込み・リプレイ）だけ、全員のデッキ全体の券面を公開する（007 §8.4）
         if ($this->gamestate->getCurrentMainStateId() === StateId::GAME_END) {
