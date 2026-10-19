@@ -47,7 +47,6 @@
 
 .mj-scope {
     --mj-prep-step: 0.58;
-    --mj-prep-rows: 5;
 
     box-sizing: border-box;
     min-width: 0;
@@ -175,20 +174,18 @@
  * 準備場: 縦に重ねる（ルールブック p.1「ゲーム場」、作者指示 2026-10-15。009 §8.2）。
  * 新しくめくったカードが最上段・最前面（作者指示 2026-10-19）。古いカードは 1 枚ぶん（--mj-prep-step × カードの高さ）ずつ下へ押され、新しいカードの背後に入る。
  * 新しいカードが古いカードの上半分を隠し、各カードの下半分（効果・探査力・シンボル・名声）が見える。
- * 並びは上から新しい順。--mj-prep-rows 枚で次の列（右隣）へ折り返し、古いカードは第 1 列の下から次の列の上へ続く。折り返しは max-height で決める。
+ * 並びは上から新しい順。何枚でも 1 列の縦並びで、横へ折り返さない（作者指示 2026-10-19）。枚数が増えたぶん領域が縦に伸びる。
  */
 .mj-prep {
     box-sizing: content-box;
-    flex-flow: column wrap;
+    flex-flow: column nowrap;
     align-content: flex-start;
-    gap: 0 4px;
     min-width: var(--mj-w);
     min-height: var(--mj-h);
-    max-height: calc(var(--mj-h) * var(--mj-prep-step) * var(--mj-prep-rows) + 1px);
     padding-bottom: calc(var(--mj-h) * (1 - var(--mj-prep-step)));
 }
 
-/* bga-cards の .card-stock.line-stock（align-items: center）と [data-center=true]（justify-content: center）に勝つよう、詳細度を上げる。1 枚だけ・折り返した列が中央に寄るのを防ぐ */
+/* bga-cards の .card-stock.line-stock（align-items: center）と [data-center=true]（justify-content: center）に勝つよう、詳細度を上げる。1 枚だけのときや 046 の組で広がった列が中央に寄るのを防ぐ */
 .mj-scope .mj-prep.line-stock,
 .mj-scope .mj-prep.line-stock[data-center] {
     justify-content: flex-start;
@@ -201,7 +198,7 @@
 }
 
 .mj-prep-wrap {
-    /* 山札・裏向きの山の下に 1 行ぶんの幅で置く（お守りはその下）。長くなったら準備場だけ横にスクロールする */
+    /* 山札・裏向きの山の下に 1 行ぶんの幅で置く（お守りはその下）。1 列の縦並びなので、枚数が増えると縦に伸びる（046 の組などで横にはみ出したときだけ横にスクロールする） */
     flex: 1 0 100%;
     min-width: 0;
     overflow-x: auto;
