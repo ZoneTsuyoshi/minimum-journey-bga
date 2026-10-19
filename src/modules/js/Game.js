@@ -1432,7 +1432,7 @@ export class Game {
         }
         this.setupCharm(gamedatas.charm);
         for (const [pid, cards] of Object.entries(gamedatas.finalDecks ?? {})) {
-            this.showFinalDeck(int(pid), /** @type {any[]} */ (cards));
+            this.showFinalDeck(int(pid), /** @type {any[]} */ (cards), gamedatas.finalSummaries?.[pid]);
         }
         if (gamedatas.lockedCard !== null && gamedatas.lockedCard !== undefined) {
             this.lockedCardId = int(gamedatas.lockedCard.cardId);
@@ -1635,8 +1635,9 @@ export class Game {
      *
      * @param {number} playerId
      * @param {{ id: number, cardNo: number, art: number }[]} cards カード番号の昇順
+     * @param {{ unknown: boolean, laniakea: number, virgo: number, milkyWay: number, solar: number, earth: number } | undefined} [summary] 同点処理の内訳
      */
-    showFinalDeck(playerId, cards) {
+    showFinalDeck(playerId, cards, summary) {
         const root = document.getElementById(`mj-player-${playerId}`);
         if (root === null || document.getElementById(`mj-final-deck-${playerId}`) !== null) {
             return;
@@ -1644,10 +1645,33 @@ export class Game {
         root.insertAdjacentHTML('beforeend', `
             <div class="mj-final-deck-wrap">
                 <span class="mj-label">${_('Final deck')} <span class="mj-final-deck-count">(${cards.length})</span></span>
+                ${this.tieSummaryHtml(summary)}
                 <div id="mj-final-deck-${playerId}" class="mj-final-deck"></div>
             </div>`);
         const stock = new BgaCards.LineStock(this.cardsManager, document.getElementById(`mj-final-deck-${playerId}`), { gap: '4px', wrap: 'wrap' });
         stock.addCards(cards.map((c) => this.toCard({ ...c, id: FINAL_DECK_ID_OFFSET + int(c.id) })));
+    }
+
+    /**
+     * 同点処理の内訳（未確認帯域の獲得と、デッキの各シンボルの枚数。001 §9-3 の優先順）。地球は同点処理に使わないので薄く表示する。
+     *
+     * @param {{ unknown: boolean, laniakea: number, virgo: number, milkyWay: number, solar: number, earth: number } | undefined} summary
+     * @returns {string}
+     */
+    tieSummaryHtml(summary) {
+        if (summary === undefined) {
+            return '';
+        }
+        const item = (/** @type {string} */ key, /** @type {string} */ value, unused = false) =>
+            `<span class="mj-tie-item${unused ? ' mj-tie-unused' : ''}">${termHtml(key, false)}<b>${value}</b></span>`;
+        return `<div class="mj-tie-summary" title="${escapeHtml(_('Tie-breakers, in order: Unknown Region, then fewer Laniakea, Virgo, Milky Way, Solar System cards'))}">`
+            + item('unknown', summary.unknown ? '✓' : '–')
+            + item('laniakea', String(summary.laniakea))
+            + item('virgo', String(summary.virgo))
+            + item('milky', String(summary.milkyWay))
+            + item('solar', String(summary.solar))
+            + item('earth', String(summary.earth), true)
+            + `</div>`;
     }
 
     /**

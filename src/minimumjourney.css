@@ -438,6 +438,25 @@
     margin-top: 8px;
 }
 
+.mj-tie-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 12px;
+    align-items: center;
+    margin: 2px 0 4px;
+    font-size: 0.9em;
+}
+
+.mj-tie-item {
+    display: inline-flex;
+    gap: 3px;
+    align-items: center;
+}
+
+.mj-tie-item.mj-tie-unused {
+    opacity: 0.55;
+}
+
 .mj-final-deck-wrap {
     margin-top: 8px;
     padding-top: 6px;

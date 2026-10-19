@@ -87,6 +87,23 @@ final class FinalScorer
     }
 
     /**
+     * 地球シンボルを持つカードの枚数。同点処理には使わない（表示用。001 §9-3）。
+     *
+     * @param list<int> $cardNos
+     */
+    public static function earthCount(array $cardNos): int
+    {
+        $count = 0;
+        foreach ($cardNos as $cardNo) {
+            $definition = CardDefinitions::get(sprintf('%03d', $cardNo));
+            if ($definition !== null && $definition->hasSymbol(Symbol::Earth)) {
+                $count++;
+            }
+        }
+        return $count;
+    }
+
+    /**
      * 同点処理の値（007 §11.2）。大きいほど上位。
      * 未確認帯域の獲得 → ラニアケア少 → 乙女座少 → 天の川少 → 太陽系少。
      *

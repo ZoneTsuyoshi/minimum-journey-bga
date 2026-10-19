@@ -56,6 +56,31 @@ final class FameTotals
     }
 
     /**
+     * ゲーム終了時に公開する、同点処理の内訳（001 §9-3、007 §8.4）。名声・未確認帯域・各シンボルの枚数（デッキ全体）。
+     * ゲーム終了前に呼んではならない。
+     *
+     * @param list<int> $seatOrder
+     * @return array<int, array{fame: int, unknown: bool, laniakea: int, virgo: int, milkyWay: int, solar: int, earth: int}>
+     */
+    public function tieBreakSummaries(array $seatOrder): array
+    {
+        $charm = $this->cards->list(Zone::Charm)[0] ?? null;
+        $unknownAcquirer = $this->globals->unknownAcquirer();
+        $result = [];
+        foreach ($seatOrder as $playerId) {
+            $nos = $this->deckCardNos($playerId);
+            $score = FinalScorer::score(
+                $nos,
+                $charm !== null && $charm->locationArg === $playerId,
+                $unknownAcquirer === $playerId,
+            );
+            $result[$playerId] = ['fame' => $score->fame(), 'unknown' => $score->unknownAcquired]
+                + $score->symbols + ['earth' => FinalScorer::earthCount($nos)];
+        }
+        return $result;
+    }
+
+    /**
      * デッキ（山札・準備場・獲得・裏向き。付加カードも別の 1 枚として）のカード番号。除外されたカードとお守りは含まない。
      *
      * @return list<int>
