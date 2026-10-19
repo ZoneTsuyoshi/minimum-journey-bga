@@ -71,7 +71,52 @@ final class PrepPhase
             ]);
         }
 
+        array_push($notifications, ...$this->forcedNotifications($seatOrder, $plan));
+
         return new PrepStepResult($plan->transition(), $notifications);
+    }
+
+    /**
+     * N37 prepForced（強制されたプレイヤーごと 1 件。席順）。作者指示（2026-10-19）。
+     * 山札 0 枚のストップは、準備終了になるまでの 1 回（その回で必ず準備終了になるため、以後は分類に現れない）。
+     * 054 などのドロー・ストップ強制は、その選択に適用される回ごとに 1 回。
+     *
+     * @param list<int> $seatOrder
+     * @return list<Notification>
+     */
+    private function forcedNotifications(array $seatOrder, PrepPlan $plan): array
+    {
+        $result = [];
+        foreach ($seatOrder as $playerId) {
+            $reason = $plan->reasons[$playerId] ?? null;
+            if ($reason === null) {
+                continue;
+            }
+            $cardNo = match ($reason) {
+                PrepPlan::REASON_MEMORY_ALBUM => 28,
+                PrepPlan::REASON_SAFETY_DEVICE => 29,
+                PrepPlan::REASON_BIG_BANG => 54,
+                default => null,
+            };
+            $message = match ($reason) {
+                PrepPlan::REASON_MEMORY_ALBUM => clienttranslate('${player_name} must Draw (${card_name})'),
+                PrepPlan::REASON_SAFETY_DEVICE => clienttranslate('${player_name} must Stop (${card_name})'),
+                PrepPlan::REASON_BIG_BANG => clienttranslate('${player_name} must Draw (${card_name})'),
+                default => clienttranslate('${player_name} has no cards left in their deck and must Stop'),
+            };
+            $args = [
+                'player_id' => $playerId,
+                'player_name' => ($this->playerName)($playerId),
+                'choice' => $plan->fixed[$playerId]->value,
+                'reason' => $reason,
+            ];
+            if ($cardNo !== null) {
+                $args['card_name'] = DrawEffects::nameOf($cardNo);
+                $args['i18n'] = ['card_name'];
+            }
+            $result[] = new Notification(null, 'prepForced', $message, $args);
+        }
+        return $result;
     }
 
     /**

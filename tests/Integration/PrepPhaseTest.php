@@ -542,6 +542,76 @@ final class PrepPhaseTest extends DatabaseTestCase
         self::assertSame(1, $this->cards->count(Zone::Facedown, $c), '再びストップしていないので増えない');
     }
 
+    public function testForcedStopForEmptyDeckIsLoggedOnlyAtTheFirstStep(): void
+    {
+        $this->start(3);
+        [$a, $b, $c] = $this->ids;
+        $this->db->execute("UPDATE `card` SET `card_location` = 'acquired' WHERE `card_location` = 'deck' AND `card_location_arg` = $c");
+
+        $first = $this->runStep([$a => 'draw', $b => 'draw']);
+        $forced = self::named($first['notifications'], 'prepForced');
+        self::assertCount(1, $forced, '通常のプレイヤーには出ない');
+        self::assertNull($forced[0]->to);
+        self::assertSame($c, $forced[0]->args['player_id']);
+        self::assertSame('stop', $forced[0]->args['choice']);
+        self::assertSame('emptyDeck', $forced[0]->args['reason']);
+        self::assertStringContainsString('must Stop', $forced[0]->message);
+        self::assertTrue($this->players->prepFinished($c));
+
+        $second = $this->runStep([$a => 'draw', $b => 'draw']);
+        self::assertSame([], self::named($second['notifications'], 'prepForced'), '準備終了後は繰り返さない');
+    }
+
+    public function testNoForcedLogForNormalPlayers(): void
+    {
+        $this->start(3);
+        $step = $this->runStep([$this->ids[0] => 'draw']);
+        self::assertSame([], self::named($step['notifications'], 'prepForced'));
+    }
+
+    public function testBigBangForcedDrawIsLoggedAtTheStepItApplies(): void
+    {
+        $this->start(4);
+        [$a, $b, $c, $d] = $this->ids;
+        $this->runStep([$a => 'draw', $b => 'draw']);
+        $this->db->execute("UPDATE `card` SET `card_location` = 'acquired' WHERE `card_location` = 'deck' AND `card_location_arg` = $d");
+        $records = GlobalValues::emptyNextChoiceRecords();
+        $records['force_draw'] = true;
+        $this->globals->setNextChoiceRecords($records);
+
+        $begin = $this->phase->begin($this->ids);
+        $forced = self::named($begin->notifications, 'prepForced');
+        self::assertCount(3, $forced, 'd は準備終了済みで山札 0 枚なので対象外');
+        self::assertSame([$a, $b, $c], array_map(static fn(Notification $n): int => $n->args['player_id'], $forced));
+        foreach ($forced as $n) {
+            self::assertSame('draw', $n->args['choice']);
+            self::assertSame('bigBang', $n->args['reason']);
+            self::assertSame('Seed of the Big Bang', $n->args['card_name']);
+            self::assertSame('${player_name} must Draw (${card_name})', $n->message);
+        }
+
+        // 054 は 1 回の選択だけ。次の回には出ない
+        $this->phase->lock($this->ids);
+        $this->phase->reveal($this->ids);
+        $next = $this->phase->begin($this->ids);
+        self::assertSame([], self::named($next->notifications, 'prepForced'));
+    }
+
+    public function testBigBangLogsForcedStopForUnfinishedPlayerWithEmptyDeck(): void
+    {
+        $this->start(3);
+        [$a, $b, $c] = $this->ids;
+        $this->db->execute("UPDATE `card` SET `card_location` = 'acquired' WHERE `card_location` = 'deck' AND `card_location_arg` = $c");
+        $records = GlobalValues::emptyNextChoiceRecords();
+        $records['force_draw'] = true;
+        $this->globals->setNextChoiceRecords($records);
+
+        $forced = self::named($this->phase->begin($this->ids)->notifications, 'prepForced');
+        self::assertCount(3, $forced);
+        self::assertSame('emptyDeck', $forced[2]->args['reason']);
+        self::assertArrayNotHasKey('card_name', $forced[2]->args);
+    }
+
     public function testBigBangWithOnlyOnePlayerWhoCanDrawIsSoloDraw(): void
     {
         $this->start(3);
