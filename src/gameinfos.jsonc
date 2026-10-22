@@ -6,19 +6,19 @@
 */
 {
     // Name of the game in English (will serve as the basis for translation)
-    "game_name": "My Great Game",
+    "game_name": "MINIMUM JOURNEY",
 
     // Game publisher (use empty string if there is no publisher)
-    "publisher": "My Publishing Company",
+    "publisher": "Danjiri Concerto",
 
     // Url of game publisher website
-    "publisher_website": "http://www.mypublishingcompany.com/",
+    "publisher_website": "https://danjiri-concerto.github.io/index.html",
 
     // Board Game Geek ID of the publisher
-    "publisher_bgg_id": 0,
+    "publisher_bgg_id": 64662,
 
     // Board game geek ID of the game
-    "bgg_id": 0,
+    "bgg_id": 481895,
 
     // Players configuration that can be played (ex: 2 to 4 players)
     "players": [3, 4],

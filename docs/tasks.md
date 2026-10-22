@@ -64,7 +64,7 @@
 | BGA Studio 上の初期ファイルのダウンロードとファイル一覧の共有（`specs/005-bga-sync.md` §4） | T-005 の導入時 | 済（2026-10-14。`src/` に取り込み） |
 | メタ画像: Banner（JPG、1386×400、2MB 以下）の用意（`specs/009-ui-assets.md` §1.2） | ベータまで | 原本を用意済み（`data/banner/`、2026-10-17）。BGA Studio のメタデータ管理画面へのアップロードは未 |
 | メタ画像: Display（JPG、高さ 400〜760px、幅は高さの 1.5 倍まで、最大 10 枚）の用意（同上） | 正式リリースまで | 原本を 1 枚用意済み（`data/display/`、2026-10-17）。アップロードは未 |
-| BoardGameGeek へのゲーム登録（手順と英語の紹介文は `publishing/game-description.md`）。登録後、BGG_ID を `src/gameinfos.jsonc` に設定する | 公開の準備まで | 申請済み（2026-10-15。承認後に BGG_ID を設定） |
+| BoardGameGeek へのゲーム登録（手順と英語の紹介文は `publishing/game-description.md`）。登録後、BGG_ID を `src/gameinfos.jsonc` に設定する | 公開の準備まで | 済（2026-10-22 承認。BGG_ID 481895 を設定。<https://boardgamegeek.com/boardgame/481895/minimum-journey>） |
 | 英語のカード文の確認（034 の「for free」、043 の裁定 D7 を文面に足すか、056 の英語名。`src/modules/php/Material/CardTexts.php`） | アルファ申請まで | 済（2026-10-17。3 件とも案のとおり。043 は裁定 D7 を英文に追加） |
 | 仕様書 011 の未確定事項 No.1〜8 への回答（`specs/011-power-mod-priority.md` の「未確定事項」。暫定案で実装済み） | アルファ申請まで | 済（2026-10-17。全て暫定案のとおり） |
-| BGA のライセンス確認（作者が権利者であることを BGA に示す。アルファ申請時に承認メールを添える。[Pre-release checklist](https://en.doc.boardgamearena.com/Pre-release_checklist)） | アルファ申請まで | 未着手 |
+| BGA のライセンス確認（作者が権利者として BGA の申請フォームから許諾する。手順とフォームへの記入例は [publishing/bga-license.md](publishing/bga-license.md)） | アルファ申請まで | 公式サイトに告知を公開済み（2026-10-22）。作者の X への投稿とフォームの送信待ち |
