@@ -68,3 +68,4 @@
 | 英語のカード文の確認（034 の「for free」、043 の裁定 D7 を文面に足すか、056 の英語名。`src/modules/php/Material/CardTexts.php`） | アルファ申請まで | 済（2026-10-17。3 件とも案のとおり。043 は裁定 D7 を英文に追加） |
 | 仕様書 011 の未確定事項 No.1〜8 への回答（`specs/011-power-mod-priority.md` の「未確定事項」。暫定案で実装済み） | アルファ申請まで | 済（2026-10-17。全て暫定案のとおり） |
 | BGA のライセンス確認（作者が権利者として BGA の申請フォームから許諾する。手順とフォームへの記入例は [publishing/bga-license.md](publishing/bga-license.md)） | アルファ申請まで | 公式サイトに告知を公開済み（2026-10-22）。作者の X への投稿とフォームの送信待ち |
+| BGA の wiki にルール概要のページ（`Gamehelpminimumjourney`）を作る（文面と手順は `publishing/rules-summary.md`） | アルファ申請まで | 文面を用意済み（2026-11-10）。wiki への掲載は未 |
