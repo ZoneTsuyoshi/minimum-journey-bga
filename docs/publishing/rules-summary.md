@@ -35,11 +35,13 @@ BGA での表示に合わせた制約。
 - 表は崩れやすいので使わない。画像も使わない。
 - 対局画面では h2 の節ごとに枠が分かれるので、節単位で読んで完結させる。
 - 外部リンクは公式サイトだけにし、最後に 1 か所入れる。
+- 先頭に `__NOTOC__` を置き、自動の目次を出さない。目次は節へのリンク（`#`）で、BGA の画面では動かない。
 - 分量は英語版で 700〜1,100 語を目安にする。全カードの効果は載せない（ゲーム中にカードのツールチップで見られる）。
 
 ## 英語版
 
 ```text
+__NOTOC__
 '''MINIMUM JOURNEY''' is a card game for 3 to 4 players (20-40 minutes). Each round you flip cards from your deck to build up exploration power, use it to acquire new cards from deep space, then shuffle everything together again. The player with the most fame at the end wins.
 
 == Goal ==
@@ -52,7 +54,7 @@ Each card has a fame value. When the game ends, the player with the most fame wi
 
 • Sort the other cards by exploration cost into 4 face-down exploration piles: Solar System (cost 2), Milky Way (cost 4), Virgo Cluster (cost 6) and Laniakea Supercluster (cost 8).
 
-• With 3 players, first remove 2 random cards from each pile from the game, face down.
+• With 3 players, first take 2 random cards from each pile and remove them from the game without revealing them.
 
 • Then turn cards face up from the top of each pile to form its row: 3/3/2/2 cards with 3 players, 4/3/2/2 with 4 players.
 
@@ -142,7 +144,6 @@ Add up the fame of every card in your deck (draw pile, prep area and cards acqui
 
 • The Charm is not part of your deck, but it gives its holder +1 fame at the end.
 
-
 == Tips ==
 
 • '''Count the others' output.''' Drawing alone is usually a loss. Look at the other players' current exploration output and guess whether they will draw again.
@@ -165,6 +166,7 @@ Official site: https://danjiri-concerto.github.io/minimum-journey/
 ## 日本語版
 
 ```text
+__NOTOC__
 '''MINIMUM JOURNEY''' は 3〜4 人で遊ぶカードゲームです（20〜40 分）。毎ラウンド、山札からカードをめくって探査力を稼ぎ、その力で宇宙のカードを獲得し、最後に全カードを混ぜ直します。ゲーム終了時に名声がもっとも多い人の勝ちです。
 
 == 目的 ==
@@ -266,7 +268,6 @@ Official site: https://danjiri-concerto.github.io/minimum-journey/
 • 「最大 N 枚」は 0 枚でもかまいません。
 
 • お守りはデッキには入りませんが、持ち主はゲーム終了時に名声 +1 です。
-
 
 == コツ ==
 
