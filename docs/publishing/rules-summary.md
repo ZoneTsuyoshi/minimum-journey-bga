@@ -18,7 +18,7 @@ BGA のゲームページと対局画面に表示される「ルール概要（R
 
 ## 作者がやる手順
 
-1. BGA のアカウントで wiki にログインする。
+1. BGA のアカウントで wiki にログインする（未ログインでページを開くと「Login required」と表示される。2026-11-10 に確認）。
 2. 英語版の URL を開き、ページを作成する（英語版を先に作る）。
 3. 下の「英語版」のコードブロックの中身をそのまま貼る。
 4. プレビューで崩れがないか確認し（見出し、箇条書きの代わりの `•`、行間）、保存する。
@@ -48,9 +48,13 @@ Each card has a fame value. When the game ends, the player with the most fame wi
 
 == Setup ==
 
-• Each player starts with a deck of 4 cards: 1 Flag, 2 Crew and 1 Starter Ship, all with the Earth symbol. Your deck is your draw pile, face down.
+• Each player starts with a deck of 4 cards: 1 Flag, 2 Crew and 1 Starter Ship, all with the Earth symbol. Shuffle them to form your face-down draw pile.
 
-• The exploration pile for each exploration cost (2, 4, 6 and 8) is placed in the exploration field, with face-up cards next to it forming a row: the Solar System (cost 2), the Milky Way (cost 4), the Virgo Cluster (cost 6) and the Laniakea Supercluster (cost 8). Row sizes are 3/3/2/2 cards with 3 players and 4/3/2/2 with 4 players. With 3 players, 2 random cards from each pile are removed from the game face down.
+• Sort the other cards by exploration cost into 4 face-down exploration piles: Solar System (cost 2), Milky Way (cost 4), Virgo Cluster (cost 6) and Laniakea Supercluster (cost 8).
+
+• With 3 players, first remove 2 random cards from each pile from the game, face down.
+
+• Then turn cards face up from the top of each pile to form its row: 3/3/2/2 cards with 3 players, 4/3/2/2 with 4 players.
 
 • The Unknown Region card (cost 10) lies face up beside the rows.
 
@@ -64,11 +68,17 @@ All players who have not stopped yet choose Draw or Stop at the same time. You c
 
 • Players who chose '''Draw''' place the top card of their draw pile face up in their prep area.
 
-• Players who chose '''Stop''' put the top card of their draw pile aside face down and finish preparing. A face-down card is not a prepared card: it does not count, and has no power or effects. If everyone stops, nobody draws.
+• Players who chose '''Stop''' finish preparing. If at least one player drew in that step, they also put the top card of their draw pile aside face down. A face-down card is not a prepared card: it does not count, and has no power or effects.
 
-If two or more players drew, resolve any "When Drawn" effects (the game does this automatically, in a fixed priority) and choose again. A player who has stopped does not choose again. A player with an empty draw pile can only Stop.
+Then, depending on how many players drew:
 
-If '''only one player drew''' in that step, that card is turned '''sideways''' and preparation ends for everyone (even if others had stopped earlier). A sideways card still counts as a prepared card, but its exploration power and effects are ignored, and that player's exploration output is '''halved''' (rounded down).
+• '''Nobody drew''' (everyone who chose stopped): preparation ends. Nobody puts a card aside.
+
+• '''Two or more drew:''' resolve any "When Drawn" effects (the game does this automatically, in a fixed priority), then everyone who has not stopped chooses again.
+
+• '''Only one player drew:''' that card is turned '''sideways''' and preparation ends for everyone (even if others had stopped earlier). A sideways card still counts as a prepared card, but its exploration power and effects are ignored, and that player's exploration output is '''halved''' (rounded down).
+
+A player who has stopped does not choose again. A player with an empty draw pile can only Stop.
 
 == 2. Exploration ==
 
@@ -110,7 +120,7 @@ Add up the fame of every card in your deck (draw pile, prep area and cards acqui
 
 == Effect timings ==
 
-• '''When Drawn:''' when the card is drawn (face up) into your prep area.
+• '''When Drawn:''' when you draw the card face up in the Preparation phase (not when it is turned sideways).
 
 • '''On Exploring:''' at the start of your exploration turn, while the card is in your prep area.
 
@@ -132,7 +142,14 @@ Add up the fame of every card in your deck (draw pile, prep area and cards acqui
 
 • The Charm is not part of your deck, but it gives its holder +1 fame at the end.
 
-• Tip: the more you draw, the more power you get, but if you are the only one to draw, your output is halved. Watch the other players' choices, and remember that stopping with fewer cards lets you explore earlier.
+
+== Tips ==
+
+• '''Count the others' output.''' Drawing alone is usually a loss. Look at the other players' current exploration output and guess whether they will draw again.
+
+• '''Remember the cards you acquired.''' Knowing your deck tells you what you may flip next, so you can decide whether to gamble on Draw or play safe with Stop. The game option "View your own draw pile" shows the list of your draw pile.
+
+• '''Keep fame in mind.''' The player with the most fame wins, so you can win even if someone else acquires the Unknown Region card. When unsure what to acquire, a high-fame card is a fine choice. Strong effects often come with low fame, so adjust your strategy to the situation.
 
 == Game options ==
 
@@ -156,9 +173,13 @@ Official site: https://danjiri-concerto.github.io/minimum-journey/
 
 == 準備 ==
 
-• 各プレイヤーは、国旗 1 枚・乗組員 2 枚・初期探査船 1 枚の計 4 枚（すべて地球シンボル）を初期デッキとし、裏向きの山札にします。
+• 各プレイヤーは、国旗 1 枚・乗組員 2 枚・初期探査船 1 枚の計 4 枚（すべて地球シンボル）を初期デッキとします。シャッフルして裏向きの山札にします。
 
-• 探査コスト 2 / 4 / 6 / 8 ごとに探査山札を作り、それぞれの横に表向きのカードを並べて列にします。コスト 2 が太陽系、4 が天の川銀河、6 が乙女座銀河団、8 がラニアケア超銀河団です。列の枚数は 3 人なら 3 / 3 / 2 / 2 枚、4 人なら 4 / 3 / 2 / 2 枚です。3 人のときは、各探査山札からランダムに 2 枚を伏せたままゲームから除外します。
+• 残りのカードを探査コスト別に分け、裏向きの探査山札を 4 つ作ります。コスト 2 が太陽系、4 が天の川銀河、6 が乙女座銀河団、8 がラニアケア超銀河団です。
+
+• 3 人のときは、先に各探査山札からランダムに 2 枚を伏せたままゲームから除外します。
+
+• 各探査山札の上から表向きにカードを並べて列にします。3 人なら 3 / 3 / 2 / 2 枚、4 人なら 4 / 3 / 2 / 2 枚です。
 
 • 未確認帯域カード（コスト 10）を表向きで置きます。
 
@@ -172,11 +193,17 @@ Official site: https://danjiri-concerto.github.io/minimum-journey/
 
 • '''ドロー'''を選んだ人は、山札の一番上を表向きで準備場に置きます。
 
-• '''ストップ'''を選んだ人は、山札の一番上を裏向きで脇に置き、このラウンドの準備を終えます。裏向きのカードは準備したカードではなく、枚数にも数えず、探査力も効果もありません。全員がストップなら、誰もカードを引きません。
+• '''ストップ'''を選んだ人は、このラウンドの準備を終えます。その回に 1 人以上がドローした場合は、山札の一番上を裏向きで脇に置きます。裏向きのカードは準備したカードではなく、枚数にも数えず、探査力も効果もありません。
 
-2 人以上がドローしたら、ドロー時効果を解決し（複数の効果が重なるときはゲームが決まった優先度で自動的に処理します）、もう一度選びます。ストップした人は、もう選びません。山札が 0 枚の人はストップしか選べません。
+その後は、ドローした人数で分かれます。
 
-その回にドローしたのが'''1 人だけ'''なら、そのカードは'''横向き'''になり、準備フェイズが終わります（ほかの人がすでにストップしていても同じです）。横向きのカードは準備したカードの枚数には数えますが、探査力と効果は無視されます。さらに、その人の探査出力は'''半分'''（切り捨て）になります。
+• '''誰もドローしなかった'''（選んだ全員がストップ）: 準備フェイズが終わります。誰も裏向きのカードを引きません。
+
+• '''2 人以上がドローした:''' ドロー時効果を解決し（複数の効果が重なるときはゲームが決まった優先度で自動的に処理します）、ストップしていない人がもう一度選びます。
+
+• '''1 人だけがドローした:''' そのカードは'''横向き'''になり、準備フェイズが終わります（ほかの人がすでにストップしていても同じです）。横向きのカードは準備したカードの枚数には数えますが、探査力と効果は無視されます。さらに、その人の探査出力は'''半分'''（切り捨て）になります。
+
+ストップした人は、もう選びません。山札が 0 枚の人はストップしか選べません。
 
 == 2. 探査フェイズ ==
 
@@ -218,7 +245,7 @@ Official site: https://danjiri-concerto.github.io/minimum-journey/
 
 == 効果タイミング ==
 
-• '''ドロー時:''' カードを引いて（表向きで）準備場に置いたとき。
+• '''ドロー時:''' 準備フェイズでカードを表向きで引いたとき（横向きになったときは発動しません）。
 
 • '''探査時:''' 準備場にあるカードの効果で、自分の探査の番の始めに働きます。
 
@@ -240,7 +267,14 @@ Official site: https://danjiri-concerto.github.io/minimum-journey/
 
 • お守りはデッキには入りませんが、持ち主はゲーム終了時に名声 +1 です。
 
-• コツ: ドローするほど探査力は増えますが、1 人だけドローすると探査出力が半分になってしまいます。ほかのプレイヤーの動きを見ましょう。準備したカードが少ないほど、探査の順番が早くなります。
+
+== コツ ==
+
+• '''他人の探査出力を計算しよう。''' 自分だけがドローすると、基本的には損をします。ほかの人が次もドローするかが大事です。ほかの人の今の探査出力を見て、次にドローするかを想像してみましょう。
+
+• '''これまでに探査したカードを覚えておこう。''' 探査したカードを覚えておくと、次にどんなカードをめくる可能性があるかがわかります。ドローで勝負を仕掛けるか、ストップで手堅く進めるかを判断しやすくなります。ゲームオプション「View your own draw pile」で、自分の山札の一覧を見られます。
+
+• '''名声も意識して探査しよう。''' 勝つのは名声が最も多い人なので、ほかの人に未確認帯域カードを獲得されても、自分の名声が多ければ勝てます。探査するカードに困ったら、名声の高いカードを取るのも手です。一方、強い効果のカードには名声が低いものも多いので、状況に応じて戦略を変えましょう。
 
 == ゲームオプション ==
 
