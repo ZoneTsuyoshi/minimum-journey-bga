@@ -178,8 +178,14 @@ html[data-mj-layout="wide"] .bga-jump-to_controls {
     width: var(--mj-w) !important;
     height: var(--mj-h) !important;
     border-radius: 4.2%;
+}
 
-    /* 暗いマットの上で沈まないよう、明るい細い縁と影を付ける（drop-shadow は Safari で重いので box-shadow） */
+/*
+ * 暗いマットの上で沈まないよう、明るい細い縁と影を付ける（drop-shadow は Safari で重いので box-shadow）。
+ * カード要素は回転しないので、回転する内側の面（.bga-cards_card-side）に付けて、横向きでも見た目のカードに沿わせる。
+ */
+/* stylelint-disable-next-line selector-class-pattern -- bga-cards のクラス名 */
+.mj-card > .bga-cards_card-sides > .bga-cards_card-side {
     box-shadow: 0 0 0 1px rgb(255 255 255 / 35%), 0 2px 6px rgb(0 0 0 / 55%);
 }
 
@@ -282,7 +288,9 @@ html[data-mj-layout="wide"] .bga-jump-to_controls {
 
 .mj-sideways-mark {
     position: absolute;
-    inset: 0;
+
+    /* 斜線は回転しない要素に付くので、横向きの見た目のカード（高さ × 幅）に合わせる */
+    inset: calc((var(--mj-h) - var(--mj-w)) / 2) calc((var(--mj-w) - var(--mj-h)) / 2);
     z-index: 2;
     border-radius: 4.2%;
     background: repeating-linear-gradient(
@@ -702,6 +710,39 @@ html[data-mj-layout="wide"] .bga-jump-to_controls {
     color: var(--mj-badge-fg);
     font-weight: bold;
     text-align: center;
+}
+
+/*
+ * 横向きのカード: 要素そのもの（縦長の箱）ではなく、回転する面に選択の枠を付ける。
+ * 「+」は見た目のカードの右下（縦長の箱の中では、左右に (幅 − 高さ) / 2、上下に (高さ − 幅) / 2 ずらした位置）に置く。
+ */
+.mj-sideways.mj-selectable,
+.mj-sideways.mj-selected,
+.mj-sideways.mj-highlight {
+    outline: none;
+}
+
+/* stylelint-disable-next-line selector-class-pattern -- bga-cards のクラス名 */
+.mj-sideways.mj-selectable > .bga-cards_card-sides > .bga-cards_card-side {
+    outline: 4px solid var(--mj-accent);
+    outline-offset: -2px;
+}
+
+/* stylelint-disable-next-line selector-class-pattern -- bga-cards のクラス名 */
+.mj-sideways.mj-selected > .bga-cards_card-sides > .bga-cards_card-side {
+    outline: 6px double var(--mj-accent);
+    outline-offset: -3px;
+}
+
+/* stylelint-disable-next-line selector-class-pattern -- bga-cards のクラス名 */
+.mj-sideways.mj-highlight > .bga-cards_card-sides > .bga-cards_card-side {
+    outline: 3px solid var(--mj-accent);
+    outline-offset: -3px;
+}
+
+.mj-sideways.mj-selectable::after {
+    right: calc((var(--mj-w) - var(--mj-h)) / 2 + 2px);
+    bottom: calc((var(--mj-h) - var(--mj-w)) / 2 + 2px);
 }
 
 .mj-unselectable {
