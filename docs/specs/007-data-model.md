@@ -148,7 +148,7 @@ CREATE TABLE IF NOT EXISTS `card` (
 | `facedown` | プレイヤー ID | ストップ時に引いた裏向きのカード（別置き場）。準備したカードではない | 重ねた順 | 0〜数枚 |
 | `acquired` | プレイヤー ID | このラウンドの獲得カード | 獲得順 | 0〜3 枚程度 |
 | `explore_deck` | 探査コスト（2／4／6／8） | 探査山札（裏向き） | 山の順。上が先頭 | 最大 15 枚 |
-| `row` | 探査コスト（2／4／6／8） | 探査場の列の表向きのカード | **スロット番号**（0 始まり。取られた位置は空のまま残す） | 規定枚数まで |
+| `row` | 探査コスト（2／4／6／8） | 探査場の列の表向きのカード | **スロット番号**（0 始まり。探査フェイズ中は取られた位置を空のまま残し、帰還フェイズ③の補充の前に左へ詰める。作者の指示 2026-11-18） | 規定枚数まで |
 | `unknown` | 0 | 未確認帯域カード（56）が探査場にあるとき | 0 | 0〜1 枚 |
 | `removed` | 0 | ゲームから除外された公開カード | 除外順 | 増える |
 | `setup_removed` | 0 | 3 人プレイの開始時に伏せたまま除外した 8 枚（001 §3-2） | 0 | 0 または 8 枚 |
@@ -159,7 +159,7 @@ CREATE TABLE IF NOT EXISTS `card` (
 - 006 §2.2 の「裏向きの別置き場」＝`facedown`、「獲得エリア」＝`acquired`、「除外」＝`removed`。「ストップ時に引いた裏向きのカード」の枚数は、最後にシャッフルで山札へ戻すまで保持する。
 - 056 は開始時に `unknown` に置き、獲得されたら `acquired`、帰還フェイズ②で `deck` に入る。
 - お守りは 2 枚（57、58）あるが、ゲームオプションで選んだ面の 1 枚だけを作る（001 §3-5）。使わない面は存在しない。
-- 011 の「探査山札の一番上を列に加える」で、列の枚数が規定を超えることがある。その場合のスロット番号は既存の最大 + 1 を割り当てる（009 の UI は余りスロットを動的に足す。T-009 への申し送り）。補充（帰還フェイズ③）は「表向きの枚数が規定未満の列だけ」を空きスロットの小さい順に埋める。
+- 011 の「探査山札の一番上を列に加える」で、列の枚数が規定を超えることがある。その場合のスロット番号は既存の最大 + 1 を割り当てる（009 の UI は余りスロットを動的に足す。T-009 への申し送り）。補充（帰還フェイズ③）は、まず**すべての列を左に詰め**（カードの並び順を保ち、スロット番号を 0 から振り直す。探査フェイズ中は穴を残す）、そのあと「表向きの枚数が規定未満の列だけ」を空きスロットの小さい順に埋める（新しいカードは右に並ぶ）。規定を超えて残ったカード（011 で足して誰も取らなかった分）はそのまま残す。出典: 作者の指示（2026-11-18）「広範囲レーダーで列が伸びたあと、1番右のカード以外をとると、列に穴ができる状態になる。ラウンド終了時に左詰めして欲しい。」
 
 #### 3.3 location ごとの公開範囲
 
@@ -183,7 +183,7 @@ CREATE TABLE IF NOT EXISTS `card` (
 
 - **山（`deck`、`explore_deck`、`facedown`）**: `ORDER` の数値の向きに依存しない。操作は `CardRepository` の `peekTop(zone, arg, n)`、`drawTop`、`putOnTop`、`putOnBottom`、`shuffle` だけを使う（V2）。符号付き整数なので、`putOnBottom` は最小値 − 1 を割り当てる。
 - **`prep`**: 引いた順に 1, 2, 3…。位置依存の効果（「直前に準備されていたカード」「n 枚目」）は、`prep` の中で `card_sideways = 0` のカードを `card_order` の昇順に並べた列（011 の `live`）の順位で判定する。009 や 014 が準備場からカードを戻して新しく準備したカードは、`card_order` の最大 + 1 を持つ（欠番は許す。順位は並べ直して数える）。
-- **`row`**: `card_order` がスロット番号。036 の入れ替えでは、取り除く列カードのスロット番号を引き継ぐ。取られたスロットは行を持たないことで空を表す。
+- **`row`**: `card_order` がスロット番号。036 の入れ替えでは、取り除く列カードのスロット番号を引き継ぐ。取られたスロットは行を持たないことで空を表す。帰還フェイズ③の補充の前に、列のカードを `card_order` の昇順に 0, 1, 2… へ振り直す（`Flow/RowCompact`。動いたカードだけ更新する。出典: 作者の指示（2026-11-18）「広範囲レーダーで列が伸びたあと、1番右のカード以外をとると、列に穴ができる状態になる。ラウンド終了時に左詰めして欲しい。」）。
 - **`attached`**: 付加カードは準備枚数に数えず、「直前に準備されたカード」にもならない（002 No.50）。このため `prep` に入れない。付け先の 046 の `card_id` を `card_location_arg` に持つ。
 - **046 と付加カードの移動（確定。作者回答 2026-10-14、未確定事項 No.5）**: ラウンド中、046 と付加カードは**同一のカードとして扱う**。046 が準備場を離れる（009・014 で山札に戻す、004・058・055・013 で除外する）とき、付加カードも一緒に同じ移動をする。付加カードを `prep` の末尾に残す案は採らない。移動後の付加カードの `card_location_arg` は 046 の ID を持たない（`deck` ならプレイヤー ID、`removed` なら 0）。帰還フェイズ②（006 §2.4 の状態 52）では、046 の付加カードは 046 から離れ、別のカードとして準備場・獲得カードと一緒に山札へ戻る。ラウンド中は同一、帰還フェイズで分離、という関係で、006 と矛盾しない。「直前に準備されたカード」が 046 のときは、046 が直前のカードになり、付加カードは数えない（回答の「同一カードとして扱う」からの帰結。暫定案と同じ結論）。
 
@@ -448,6 +448,7 @@ CardRepository.shuffleDeck(pid):
 | `deck` → `acquired`（034 の無料獲得で `explore_deck` の上を獲得。探査で山札の上を探査） | 伏せ → 表（公開） | `cardAcquired`（ID と券面） | 不要 |
 | `row` → `acquired` | 表 → 表 | `cardAcquired` | 不要 |
 | 任意 → `removed` | 伏せ／表 → 表（公開） | `cardsRemoved`（ID と券面） | 不要（ゲームから消える） |
+| `row` → `row`（帰還フェイズ③の補充の前の左詰め。スロットだけが変わる） | 表 → 表 | `rowCompacted`（ID とスロット） | 不要 |
 | `explore_deck` の上 → `row`（011、帰還フェイズ③の補充） | 伏せ → 表 | `rowCardAdded`／`rowRefilled`（ID と券面） | 不要 |
 
 #### 7.3 伏せたカードの ID を送らない設計【提案】
@@ -689,6 +690,7 @@ CardRepository.shuffleDeck(pid):
 | N29 | `cardsGatheredToDecks` | 全員 | `gathered`（`{ "プレイヤー ID": [古い ID, ...] }`。`prep`、`attached`、`acquired` の表向きだったカードのみ）、`counts`（`{ "プレイヤー ID": 新しい山札の枚数 }`） | `All players shuffle their cards into their decks` | 52。`facedown` の ID は載せず、枚数は `counts` に含める。通知のあとに N30 |
 | N30 | `beaconPlaced` | 全員 | `player_id`、`player_name`、`card_name` | `${player_name} puts ${card_name} on top of their deck` | 52（040 を探査フェイズで獲得していたとき）。新しい ID は載せない |
 | N31 | `rowRefilled` | 全員 | `cost`、`cards`（`[{ "slot", "card" }]`） | `${count} card(s) are added to the ${cost}-cost row`（`count` は引数） | 53（補充したコストごとに 1 件。補充がないコストは送らない） |
+| N39 | `rowCompacted` | 全員 | `cost`、`cards`（`[{ "id", "slot" }]`。動いたカードだけ） | 空文字（ログに出さない） | 53（補充の前。左詰めで動くカードがあるコストごとに 1 件。動くカードがなければ送らない）。出典: 作者の指示（2026-11-18）「広範囲レーダーで列が伸びたあと、1番右のカード以外をとると、列に穴ができる状態になる。ラウンド終了時に左詰めして欲しい。」 |
 | N32 | `nextChoiceRecorded` | 全員 | `kind`（`forceDraw`／`drawOnly`／`stopOnly`／`late`）、`player_id`、`player_name`、`card_name` | `forceDraw`: `${player_name}'s ${card_name} forces everyone to choose Draw next`。`drawOnly`: `${player_name} must choose Draw next (${card_name})`。`stopOnly`: `${player_name} must choose Stop next (${card_name})`。`late`: `${player_name} will choose after the others next (${card_name})` | 30 の P6（確定時）。43 で戻された 054 は通知を出さない（H2） |
 | N33 | `countersUpdate` | 全員 | `players`（`{ "プレイヤー ID": { "deckCount", "facedownCount", "acquiredCount", "prepCount", "outputNow" } }`。変更があった者だけ）、`piles`（`{ "2", "4", "6", "8" }`。変更があったときだけ） | `''` | 各 GAME 状態の処理の最後と、各アクションの最後。山札・裏向き・獲得・準備場・お守りの変化で再計算する |
 | N34 | `fameUpdate` | 本人（各プレイヤーに 1 件ずつ送る。観戦者には送らない） | `fame`（`{ "プレイヤー ID": 名声合計 }`） | `''` | ゲームオプション `showFame` が有効なときだけ、N33 と同じ契機（デッキの内容や名声変動の入力が変わるとき） |
@@ -987,6 +989,7 @@ Studio で確認する項目。006 §10 のテスト T1〜T20 と合わせて実
 | `exploreOutputDecided`（N22）、`exploreOrderDecided`（N23） | 別々の通知として送る（全員分の N22 を席順に送った後に N23） |
 | `amuletMoved`（N28） | 通知名は `amuletMoved`（クライアントの `notif_amuletMoved`）。ログ文言と UI 文字列の「お守り」は `charm`／`Charm` と訳す。`card_name` は `Material/CardDefinitions.php` の英語名 |
 | `rowRefilled`（N31） | args は `cost`、`count`、`cards` |
+| 追加 `rowCompacted`（N39） | 帰還フェイズ③の補充の前に、列を左に詰める。args は `cost` と `cards`（`[{ id, slot }]`、動いたカードのみ）。ログ文言は空文字。出典: 作者の指示（2026-11-18）「広範囲レーダーで列が伸びたあと、1番右のカード以外をとると、列に穴ができる状態になる。ラウンド終了時に左詰めして欲しい。」 |
 | `cardsGatheredToDecks`（N29） | args は `gathered` と `counts` |
 
 #### 17.4 `getAllDatas`

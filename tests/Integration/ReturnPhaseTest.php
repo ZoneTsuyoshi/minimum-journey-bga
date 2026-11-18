@@ -234,14 +234,73 @@ final class ReturnPhaseTest extends DatabaseTestCase
         self::assertSame($deck2 - 2, $this->cards->count(Zone::ExploreDeck, 2));
         self::assertSame($deck8 - 1, $this->cards->count(Zone::ExploreDeck, 8));
         $slots = array_map(static fn(Card $c): int => $c->order, $this->cards->list(Zone::Row, 2));
-        self::assertSame(range(0, $sizes[2] - 1), $slots, '取られた位置から埋める');
+        self::assertSame(range(0, $sizes[2] - 1), $slots, '左に詰めてから埋める');
 
         $notes = self::named($result->notifications, 'rowRefilled');
         self::assertCount(2, $notes, '補充のあったコストだけ');
         self::assertSame(2, $notes[0]->args['cost']);
-        self::assertSame([0, 2], array_map(static fn(array $e): int => $e['slot'], $notes[0]->args['cards']));
+        self::assertSame(
+            range($sizes[2] - 2, $sizes[2] - 1),
+            array_map(static fn(array $e): int => $e['slot'], $notes[0]->args['cards']),
+            '左に詰めてから、空いた右側に入る',
+        );
         self::assertSame(8, $notes[1]->args['cost']);
         self::assertFalse($this->globals->gameEndTriggered());
+    }
+
+    /**
+     * 011 で規定より 1 枚伸びた 3 人用のコスト 2 の列（スロット 0〜3）を作る。
+     *
+     * @return list<Card> スロット順
+     */
+    private function extendedRow(): array
+    {
+        $extra = $this->cards->peekTop(Zone::ExploreDeck, 2, 1)[0];
+        $this->cards->move($extra, Zone::Row, 2, GameSetup::ROW_SIZES[3][2]);
+        return $this->cards->list(Zone::Row, 2);
+    }
+
+    public function testRefillCompactsTheRowExtendedBy011WhenTheLeftCardIsTaken(): void
+    {
+        $this->start(3);
+        $row = $this->extendedRow();
+        self::assertCount(4, $row);
+        $this->cards->moveToAcquired($row[0], $this->ids[0]);
+
+        $result = $this->phase->refill($this->ids);
+
+        $now = $this->cards->list(Zone::Row, 2);
+        self::assertSame([$row[1]->id, $row[2]->id, $row[3]->id], array_map(static fn(Card $c): int => $c->id, $now));
+        self::assertSame([0, 1, 2], array_map(static fn(Card $c): int => $c->order, $now));
+        $notes = self::named($result->notifications, 'rowCompacted');
+        self::assertCount(1, $notes);
+        self::assertSame(2, $notes[0]->args['cost']);
+        self::assertSame(
+            [['id' => $row[1]->id, 'slot' => 0], ['id' => $row[2]->id, 'slot' => 1], ['id' => $row[3]->id, 'slot' => 2]],
+            $notes[0]->args['cards'],
+        );
+        self::assertSame([], self::named($result->notifications, 'rowRefilled'), '規定枚数なので補充しない');
+    }
+
+    public function testRefillCompactsBeforeFillingWhenTheRowIsBelowTheRegularSize(): void
+    {
+        $this->start(3);
+        $row = $this->extendedRow();
+        $this->cards->moveToAcquired($row[0], $this->ids[0]);
+        $this->cards->moveToAcquired($row[1], $this->ids[0]);
+
+        $result = $this->phase->refill($this->ids);
+
+        $now = $this->cards->list(Zone::Row, 2);
+        self::assertSame([0, 1, 2], array_map(static fn(Card $c): int => $c->order, $now), '穴ができない');
+        self::assertSame([$row[2]->id, $row[3]->id], [$now[0]->id, $now[1]->id], '並び順を保つ');
+        $compacted = self::named($result->notifications, 'rowCompacted');
+        self::assertSame([$row[2]->id, $row[3]->id], array_map(static fn(array $e): int => $e['id'], $compacted[0]->args['cards']));
+        $refilled = self::named($result->notifications, 'rowRefilled');
+        self::assertSame(2, $refilled[0]->args['cost']);
+        self::assertSame([2], array_map(static fn(array $e): int => $e['slot'], $refilled[0]->args['cards']), '新しいカードは右');
+        $names = array_map(static fn(Notification $n): string => $n->name, $result->notifications);
+        self::assertLessThan(array_search('rowRefilled', $names, true), array_search('rowCompacted', $names, true));
     }
 
     public function testRefillWithShortPileFillsWhatIsLeftAndLeavesTheRestEmpty(): void

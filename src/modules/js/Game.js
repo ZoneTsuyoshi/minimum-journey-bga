@@ -3028,6 +3028,30 @@ export class Game {
     }
 
     /**
+     * 帰還フェイズ③の補充の前に、列のカードを左に詰める（作者の指示 2026-11-18）。動くカードだけが届く。
+     * SlotStock.addCard は、同じ stock の中のカードを別のスロットへ動かせる（bga-cards 1.x）。
+     * アニメーションが無効のとき・リプレイでは bga-cards が即座に置く。
+     *
+     * @param {{ cost: number, cards: { id: number, slot: number }[] }} args
+     */
+    async notif_rowCompacted(args) {
+        const stock = this.rowStocks[int(args.cost)];
+        if (stock === undefined) {
+            return;
+        }
+        const moves = [];
+        for (const entry of args.cards) {
+            const card = stock.getCards().find((/** @type {MjCard} */ c) => c.id === int(entry.id));
+            if (card !== undefined) {
+                // card.slot を更新しておく（trimRowSlots が使う）
+                moves.push(stock.addCard({ ...card, slot: int(entry.slot) }));
+            }
+        }
+        await Promise.all(moves);
+        this.trimRowSlots();
+    }
+
+    /**
      * @param {{ cost: number, cards: { slot: number, card: any }[] }} args
      */
     async notif_rowRefilled(args) {

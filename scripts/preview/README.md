@@ -34,6 +34,7 @@ npm run preview:shots -- --fixture 4p-prep-late --size 1920x1080 --theme dark
 | `4p-explore` | 4 人、探査フェイズ。自分の手番（`ExploreChoose`）、獲得カード、お守り |
 | `3p-prep-mid` | 3 人、準備の途中（列 3/3/2/2） |
 | `4p-pile8-empty` | 4 人、探査フェイズ。コスト 8 の探査山札が 0 枚（最終ラウンドのバナー） |
+| `4p-row-compact` | 4 人。列に穴がある状態（011 で伸びた列と、中ほどが空いた列）に、`replay` で `rowCompacted`（左詰め）を流す |
 | `4p-end` | 4 人、ゲーム終了（`finalDecks`・`finalSummaries`） |
 
 ## BGA の画面との違い

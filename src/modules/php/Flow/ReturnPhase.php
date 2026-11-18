@@ -185,7 +185,7 @@ final class ReturnPhase
     }
 
     /**
-     * 状態 53。列を規定枚数まで探査山札から表向きで補充する（足りなければあるだけ）。
+     * 状態 53。列を左に詰めてから（rowCompacted）、列を規定枚数まで探査山札から表向きで補充する（足りなければあるだけ）。
      * 補充後にコスト 8 の探査山札が空なら終了フラグを立てる。遷移は終了フラグがあれば end、なければ nextRound。
      *
      * @param list<int> $seatOrder
@@ -196,6 +196,23 @@ final class ReturnPhase
 
         $notifications = [];
         $piles = [];
+        // 補充の前に、各列を左に詰める（作者の指示 2026-11-18）。探査フェイズ中は穴を残す
+        foreach (GameSetup::EXPLORE_COSTS as $cost) {
+            $slots = [];
+            foreach ($this->cards->list(Zone::Row, $cost) as $card) {
+                $slots[$card->id] = $card->order;
+            }
+            $moves = RowCompact::moves($slots);
+            if ($moves === []) {
+                continue;
+            }
+            $cards = [];
+            foreach ($moves as $id => $slot) {
+                $this->cards->move($this->cards->get($id), Zone::Row, $cost, $slot);
+                $cards[] = ['id' => $id, 'slot' => $slot];
+            }
+            $notifications[] = new Notification(null, 'rowCompacted', '', ['cost' => $cost, 'cards' => $cards]);
+        }
         foreach (GameSetup::EXPLORE_COSTS as $cost) {
             $need = RowRefill::count(
                 $sizes[$cost],
