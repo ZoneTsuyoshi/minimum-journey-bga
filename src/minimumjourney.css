@@ -96,6 +96,11 @@ body::before {
     min-width: 0;
 }
 
+/* 狭い配置では、左にジャンプリンク（bga-jump-to。幅 32px + margin 5px × 2）の操作しない余白を取る（Game.js の JUMP_GUTTER と一致させる） */
+.mj-board[data-mj-layout="narrow"] {
+    padding-left: calc(8px + 44px);
+}
+
 /* 狭い: 2 列（自分が先頭、席順）。列の幅は .mj-player の固定幅 */
 .mj-board[data-mj-layout="narrow"] .mj-players {
     display: grid;
@@ -561,6 +566,12 @@ html[data-mj-layout="wide"] .bga-jump-to_controls {
 .mj-final-deck {
     min-width: 0;
     margin-top: 8px;
+}
+
+/* 一覧は左詰め（bga-cards の LineStock の中央寄せを切る） */
+.mj-scope .mj-final-deck.line-stock,
+.mj-scope .mj-final-deck.line-stock[data-center] {
+    justify-content: flex-start;
 }
 
 /* 山札の一覧ボタン（ゲームオプション 102。009 §8.2.2、013 §5.4）。山札の右上に重ねるアイコンボタン */

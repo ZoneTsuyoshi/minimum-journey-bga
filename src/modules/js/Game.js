@@ -1493,6 +1493,7 @@ function defaultRowQuota(playerCount) {
  *   PLAYER_EXTRA .mj-player の幅 = カード幅 × 1.5 + この値（山札と裏向きの山の間の gap 6px + MAT_CHROME）
  *   BOARD_PAD    .mj-board の左右の padding
  *   BOARD_MAX    .mj-board の max-width
+ *   JUMP_GUTTER  狭い配置で .mj-board の左に取る、ジャンプリンク（bga-jump-to。32px + margin 5px × 2）の分の余白
  */
 const MAT_CHROME = 22;
 const SLOT_GAP = 6;
@@ -1502,6 +1503,10 @@ const TABLE_GAP = 24;
 const PLAYER_EXTRA = 28;
 const BOARD_PAD = 8;
 const BOARD_MAX = 1600;
+const JUMP_GUTTER = 44;
+/** 縦スクロールバーの出入り（15〜20px）で配置が行き来しないための余裕（px） */
+const LAYOUT_HYSTERESIS = 24;
+const LAYOUT_RANK = { narrow: 0, standard: 1, wide: 2 };
 /** カード幅の上限・下限（px） */
 const CARD_MAX = 120;
 const CARD_MIN_WIDE = 100;
@@ -1694,7 +1699,8 @@ export class Game {
             getId: (/** @type {MjCard} */ card) => card.id,
             // 表面を常に使い、山札の天辺だけ偽のカード（cardNo 0）で裏面を出す（009 §10）
             isCardVisible: (/** @type {MjCard} */ card) => card.cardNo > 0,
-            getCardRotation: (/** @type {MjCard} */ card) => (card.sideways === true ? 90 : 0),
+            // bga-cards 1.x は戻り値を 90° 単位の回数として扱う（1 = 90°）
+            getCardRotation: (/** @type {MjCard} */ card) => (card.sideways === true ? 1 : 0),
             fakeCardGenerator: (/** @type {string} */ deckId) => ({ id: `${deckId}-top`, cardNo: 0, art: 0 }),
             cardWidth: 120,
             cardHeight: 168,
@@ -1770,12 +1776,24 @@ export class Game {
      * カード幅は <html> の CSS 変数 --mj-cw に入れる（移動中のカードは盤面の外へ出るため。minimumjourney.css の :root が --mj-w に使う）。
      */
     setupLayout() {
-        const update = () => this.updateLayout();
+        // 変更は requestAnimationFrame で 1 回にまとめる（RO のコールバック内で同期的に大きさを変えると
+        // 「ResizeObserver loop completed with undelivered notifications」になる）
+        let queued = false;
+        const update = () => {
+            if (queued) {
+                return;
+            }
+            queued = true;
+            requestAnimationFrame(() => {
+                queued = false;
+                this.updateLayout();
+            });
+        };
         window.addEventListener('resize', update);
         if (typeof ResizeObserver !== 'undefined') {
             new ResizeObserver(update).observe(this.bga.gameArea.getElement());
         }
-        update();
+        this.updateLayout();
     }
 
     /** 配置とカード幅を再計算する。探査場の 1 段の最大スロット数（011 で増減する）が変わったときも呼ぶ */
@@ -1785,11 +1803,33 @@ export class Game {
         if (board === null || area.clientWidth <= 0) {
             return;
         }
-        const width = Math.min(area.clientWidth, BOARD_MAX) - 2 * BOARD_PAD;
+        const rawWidth = Math.min(area.clientWidth, BOARD_MAX) - 2 * BOARD_PAD;
         // ページ上端からゲーム領域までの高さ（トップバー・ステータスバーなど）を引いた、見えている高さ
         const height = window.innerHeight - (area.getBoundingClientRect().top + window.scrollY);
         const slots = Math.max(1, ...COSTS.map((cost) => this.rowStocks[cost]?.getSlotsIds().length ?? this.rowQuota[cost] ?? 0));
-        const { layout, cardWidth } = computeLayout(width, height, this.playerCount, slots);
+        // 狭い配置では左にジャンプリンクの余白を取る。余白を引いた幅で、狭い配置になるかを判定し直す
+        let { layout, cardWidth } = computeLayout(rawWidth, height, this.playerCount, slots);
+        if (layout === 'narrow') {
+            ({ layout, cardWidth } = computeLayout(rawWidth - JUMP_GUTTER, height, this.playerCount, slots));
+        }
+        // ヒステリシス: 大きい配置・大きいカード幅へ変えるのは、幅が 24px 狭くても同じ結果になるときだけ。小さい方へはすぐ変える
+        const current = this.layoutKey === '' ? null : { layout: /** @type {'wide' | 'standard' | 'narrow'} */ (this.layoutKey.split('-')[0]), cardWidth: Number(this.layoutKey.split('-')[1]) };
+        if (current !== null) {
+            const bigger = LAYOUT_RANK[layout] > LAYOUT_RANK[current.layout] || (layout === current.layout && cardWidth > current.cardWidth);
+            if (bigger) {
+                let safe = computeLayout(rawWidth - LAYOUT_HYSTERESIS, height, this.playerCount, slots);
+                if (safe.layout === 'narrow') {
+                    safe = { layout: 'narrow', cardWidth: computeLayout(rawWidth - LAYOUT_HYSTERESIS - JUMP_GUTTER, height, this.playerCount, slots).cardWidth };
+                }
+                if (safe.layout !== layout || safe.cardWidth !== cardWidth) {
+                    ({ layout, cardWidth } = current);
+                    // 現在の配置が今の幅でも収まるかを確かめる（収まらなければ、安全な方へ）
+                    if (LAYOUT_RANK[safe.layout] < LAYOUT_RANK[layout] || (safe.layout === layout && safe.cardWidth < cardWidth)) {
+                        ({ layout, cardWidth } = safe);
+                    }
+                }
+            }
+        }
         const key = `${layout}-${cardWidth}`;
         if (key === this.layoutKey) {
             return;
@@ -1817,7 +1857,7 @@ export class Game {
                 backgroundImage: `url('${this.bga.players.getPlayerAvatarUrl(playerId, 32)}')`,
             }));
         }
-        new BgaJumpTo.Manager({ entries, element: this.bga.gameArea.getElement() });
+        new BgaJumpTo.Manager({ entries, element: this.bga.gameArea.getElement(), localStorageFoldedKey: 'minimumjourney-jumpto-folded' });
     }
 
     /**
