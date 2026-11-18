@@ -1,0 +1,288 @@
+{
+ "_comment": "3 人、2 ラウンド目の準備フェイズの途中。列の規定枚数は 3/3/2/2",
+ "preview": {
+  "me": 2310001,
+  "players": {
+   "2310001": {
+    "name": "Aiko",
+    "color": "ff0000"
+   },
+   "2310002": {
+    "name": "Ben",
+    "color": "008000"
+   },
+   "2310003": {
+    "name": "Chika",
+    "color": "0000ff"
+   }
+  },
+  "state": {
+   "name": "PrepChoice",
+   "active": true,
+   "args": {
+    "selectors": [
+     2310001,
+     2310002,
+     2310003
+    ],
+    "chosen": [
+     2310002
+    ],
+    "forced": [],
+    "lateOwner": null,
+    "round": 2,
+    "_private": {
+     "myChoice": "draw",
+     "canDraw": true
+    }
+   }
+  },
+  "replay": []
+ },
+ "gamedatas": {
+  "round": 2,
+  "phase": "prep",
+  "playerOrder": [
+   2310001,
+   2310002,
+   2310003
+  ],
+  "piles": {
+   "2": 6,
+   "4": 9,
+   "6": 7,
+   "8": 8
+  },
+  "rows": {
+   "2": [
+    {
+     "slot": 0,
+     "card": {
+      "id": 1005,
+      "cardNo": 5,
+      "art": 0
+     }
+    },
+    {
+     "slot": 1,
+     "card": {
+      "id": 1016,
+      "cardNo": 16,
+      "art": 0
+     }
+    },
+    {
+     "slot": 2,
+     "card": {
+      "id": 1004,
+      "cardNo": 4,
+      "art": 0
+     }
+    }
+   ],
+   "4": [
+    {
+     "slot": 0,
+     "card": {
+      "id": 1028,
+      "cardNo": 28,
+      "art": 0
+     }
+    },
+    {
+     "slot": 1,
+     "card": {
+      "id": 1020,
+      "cardNo": 20,
+      "art": 0
+     }
+    },
+    {
+     "slot": 2,
+     "card": {
+      "id": 1032,
+      "cardNo": 32,
+      "art": 0
+     }
+    }
+   ],
+   "6": [
+    {
+     "slot": 0,
+     "card": {
+      "id": 1039,
+      "cardNo": 39,
+      "art": 0
+     }
+    },
+    {
+     "slot": 1,
+     "card": {
+      "id": 1035,
+      "cardNo": 35,
+      "art": 0
+     }
+    }
+   ],
+   "8": [
+    {
+     "slot": 0,
+     "card": {
+      "id": 1049,
+      "cardNo": 49,
+      "art": 0
+     }
+    },
+    {
+     "slot": 1,
+     "card": {
+      "id": 1051,
+      "cardNo": 51,
+      "art": 0
+     }
+    }
+   ]
+  },
+  "unknown": {
+   "id": 1056,
+   "cardNo": 56,
+   "art": 0
+  },
+  "charm": null,
+  "lockedCard": null,
+  "exploreOrder": [],
+  "exploreIndex": -1,
+  "players": {
+   "2310001": {
+    "score": 0,
+    "prep": [
+     {
+      "card": {
+       "id": 1014,
+       "cardNo": 14,
+       "art": 0
+      },
+      "order": 1,
+      "sideways": false,
+      "attached": []
+     },
+     {
+      "card": {
+       "id": 1017,
+       "cardNo": 17,
+       "art": 0
+      },
+      "order": 2,
+      "sideways": false,
+      "attached": []
+     },
+     {
+      "card": {
+       "id": 101,
+       "cardNo": 1,
+       "art": 1
+      },
+      "order": 3,
+      "sideways": false,
+      "attached": []
+     }
+    ],
+    "acquired": [],
+    "deckCount": 5,
+    "facedownCount": 0,
+    "prepFinished": false,
+    "prepCount": 3,
+    "acquiredCount": 0,
+    "isHalved": false,
+    "output": null,
+    "outputNow": 4,
+    "fame": null
+   },
+   "2310002": {
+    "score": 0,
+    "prep": [
+     {
+      "card": {
+       "id": 204,
+       "cardNo": 2,
+       "art": 4
+      },
+      "order": 1,
+      "sideways": false,
+      "attached": []
+     },
+     {
+      "card": {
+       "id": 1008,
+       "cardNo": 8,
+       "art": 0
+      },
+      "order": 2,
+      "sideways": false,
+      "attached": []
+     },
+     {
+      "card": {
+       "id": 1010,
+       "cardNo": 10,
+       "art": 0
+      },
+      "order": 3,
+      "sideways": false,
+      "attached": []
+     }
+    ],
+    "acquired": [],
+    "deckCount": 5,
+    "facedownCount": 0,
+    "prepFinished": false,
+    "prepCount": 3,
+    "acquiredCount": 0,
+    "isHalved": false,
+    "output": null,
+    "outputNow": 5,
+    "fame": null
+   },
+   "2310003": {
+    "score": 0,
+    "prep": [
+     {
+      "card": {
+       "id": 303,
+       "cardNo": 3,
+       "art": 3
+      },
+      "order": 1,
+      "sideways": false,
+      "attached": []
+     },
+     {
+      "card": {
+       "id": 103,
+       "cardNo": 1,
+       "art": 3
+      },
+      "order": 2,
+      "sideways": false,
+      "attached": []
+     }
+    ],
+    "acquired": [],
+    "deckCount": 6,
+    "facedownCount": 0,
+    "prepFinished": false,
+    "prepCount": 2,
+    "acquiredCount": 0,
+    "isHalved": false,
+    "output": null,
+    "outputNow": 2,
+    "fame": null
+   }
+  },
+  "options": {
+   "charmSide": 1,
+   "showFame": 0,
+   "viewDrawPile": 0
+  }
+ }
+}

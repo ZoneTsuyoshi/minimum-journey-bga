@@ -37,5 +37,8 @@ id_ed25519*
 /src/img/icons.webp
 /build/
 
+# ローカルのプレビューのスクリーンショット（scripts/preview/shoot.mjs が生成する）
+/scripts/preview/out/
+
 # PHPUnit のキャッシュ
 .phpunit.result.cache

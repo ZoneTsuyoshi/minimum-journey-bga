@@ -1,0 +1,499 @@
+{
+ "_comment": "4 人、3 ラウンド目の準備フェイズの後半。46 と付加カード、横向きのカード、裏向きの山、選択済み、ストップ済み",
+ "preview": {
+  "me": 2310001,
+  "players": {
+   "2310001": {
+    "name": "Aiko",
+    "color": "ff0000"
+   },
+   "2310002": {
+    "name": "Ben",
+    "color": "008000"
+   },
+   "2310003": {
+    "name": "Chika",
+    "color": "0000ff"
+   },
+   "2310004": {
+    "name": "Dan",
+    "color": "ffa500"
+   }
+  },
+  "state": {
+   "name": "PrepChoice",
+   "active": true,
+   "args": {
+    "selectors": [
+     2310001,
+     2310002,
+     2310004
+    ],
+    "chosen": [
+     2310002,
+     2310004
+    ],
+    "forced": [
+     {
+      "player_id": 2310003,
+      "choice": "stop",
+      "reason": "safetyDevice"
+     }
+    ],
+    "lateOwner": null,
+    "round": 3,
+    "_private": {
+     "myChoice": null,
+     "canDraw": true
+    }
+   }
+  },
+  "replay": []
+ },
+ "gamedatas": {
+  "round": 3,
+  "phase": "prep",
+  "playerOrder": [
+   2310001,
+   2310002,
+   2310003,
+   2310004
+  ],
+  "piles": {
+   "2": 0,
+   "4": 0,
+   "6": 0,
+   "8": 7
+  },
+  "rows": {
+   "2": [
+    {
+     "slot": 0,
+     "card": {
+      "id": 1015,
+      "cardNo": 15,
+      "art": 0
+     }
+    },
+    {
+     "slot": 1,
+     "card": {
+      "id": 1009,
+      "cardNo": 9,
+      "art": 0
+     }
+    },
+    {
+     "slot": 2,
+     "card": {
+      "id": 1016,
+      "cardNo": 16,
+      "art": 0
+     }
+    },
+    {
+     "slot": 3,
+     "card": {
+      "id": 1006,
+      "cardNo": 6,
+      "art": 0
+     }
+    }
+   ],
+   "4": [
+    {
+     "slot": 0,
+     "card": {
+      "id": 1028,
+      "cardNo": 28,
+      "art": 0
+     }
+    },
+    {
+     "slot": 1,
+     "card": {
+      "id": 1026,
+      "cardNo": 26,
+      "art": 0
+     }
+    },
+    {
+     "slot": 2,
+     "card": {
+      "id": 1025,
+      "cardNo": 25,
+      "art": 0
+     }
+    }
+   ],
+   "6": [
+    {
+     "slot": 0,
+     "card": {
+      "id": 1043,
+      "cardNo": 43,
+      "art": 0
+     }
+    },
+    {
+     "slot": 1,
+     "card": {
+      "id": 1040,
+      "cardNo": 40,
+      "art": 0
+     }
+    }
+   ],
+   "8": [
+    {
+     "slot": 0,
+     "card": {
+      "id": 1049,
+      "cardNo": 49,
+      "art": 0
+     }
+    },
+    {
+     "slot": 1,
+     "card": {
+      "id": 1048,
+      "cardNo": 48,
+      "art": 0
+     }
+    }
+   ]
+  },
+  "unknown": {
+   "id": 1056,
+   "cardNo": 56,
+   "art": 0
+  },
+  "charm": null,
+  "lockedCard": null,
+  "exploreOrder": [],
+  "exploreIndex": -1,
+  "players": {
+   "2310001": {
+    "score": 0,
+    "prep": [
+     {
+      "card": {
+       "id": 1046,
+       "cardNo": 46,
+       "art": 0
+      },
+      "order": 1,
+      "sideways": false,
+      "attached": [
+       {
+        "id": 1039,
+        "cardNo": 39,
+        "art": 0
+       }
+      ]
+     },
+     {
+      "card": {
+       "id": 202,
+       "cardNo": 2,
+       "art": 2
+      },
+      "order": 2,
+      "sideways": false,
+      "attached": []
+     },
+     {
+      "card": {
+       "id": 1024,
+       "cardNo": 24,
+       "art": 0
+      },
+      "order": 3,
+      "sideways": false,
+      "attached": []
+     },
+     {
+      "card": {
+       "id": 1031,
+       "cardNo": 31,
+       "art": 0
+      },
+      "order": 4,
+      "sideways": false,
+      "attached": []
+     },
+     {
+      "card": {
+       "id": 301,
+       "cardNo": 3,
+       "art": 1
+      },
+      "order": 5,
+      "sideways": false,
+      "attached": []
+     },
+     {
+      "card": {
+       "id": 1013,
+       "cardNo": 13,
+       "art": 0
+      },
+      "order": 6,
+      "sideways": false,
+      "attached": []
+     }
+    ],
+    "acquired": [],
+    "deckCount": 7,
+    "facedownCount": 0,
+    "prepFinished": false,
+    "prepCount": 6,
+    "acquiredCount": 0,
+    "isHalved": false,
+    "output": null,
+    "outputNow": 14,
+    "fame": null
+   },
+   "2310002": {
+    "score": 0,
+    "prep": [
+     {
+      "card": {
+       "id": 302,
+       "cardNo": 3,
+       "art": 2
+      },
+      "order": 1,
+      "sideways": false,
+      "attached": []
+     },
+     {
+      "card": {
+       "id": 203,
+       "cardNo": 2,
+       "art": 3
+      },
+      "order": 2,
+      "sideways": false,
+      "attached": []
+     },
+     {
+      "card": {
+       "id": 1017,
+       "cardNo": 17,
+       "art": 0
+      },
+      "order": 3,
+      "sideways": false,
+      "attached": []
+     },
+     {
+      "card": {
+       "id": 1029,
+       "cardNo": 29,
+       "art": 0
+      },
+      "order": 4,
+      "sideways": false,
+      "attached": []
+     },
+     {
+      "card": {
+       "id": 1044,
+       "cardNo": 44,
+       "art": 0
+      },
+      "order": 5,
+      "sideways": true,
+      "attached": []
+     }
+    ],
+    "acquired": [],
+    "deckCount": 7,
+    "facedownCount": 1,
+    "prepFinished": false,
+    "prepCount": 5,
+    "acquiredCount": 0,
+    "isHalved": true,
+    "output": null,
+    "outputNow": 9,
+    "fame": null
+   },
+   "2310003": {
+    "score": 0,
+    "prep": [
+     {
+      "card": {
+       "id": 1030,
+       "cardNo": 30,
+       "art": 0
+      },
+      "order": 1,
+      "sideways": false,
+      "attached": []
+     },
+     {
+      "card": {
+       "id": 1004,
+       "cardNo": 4,
+       "art": 0
+      },
+      "order": 2,
+      "sideways": false,
+      "attached": []
+     },
+     {
+      "card": {
+       "id": 103,
+       "cardNo": 1,
+       "art": 3
+      },
+      "order": 3,
+      "sideways": false,
+      "attached": []
+     },
+     {
+      "card": {
+       "id": 205,
+       "cardNo": 2,
+       "art": 5
+      },
+      "order": 4,
+      "sideways": false,
+      "attached": []
+     },
+     {
+      "card": {
+       "id": 303,
+       "cardNo": 3,
+       "art": 3
+      },
+      "order": 5,
+      "sideways": false,
+      "attached": []
+     },
+     {
+      "card": {
+       "id": 1032,
+       "cardNo": 32,
+       "art": 0
+      },
+      "order": 6,
+      "sideways": false,
+      "attached": []
+     },
+     {
+      "card": {
+       "id": 1027,
+       "cardNo": 27,
+       "art": 0
+      },
+      "order": 7,
+      "sideways": false,
+      "attached": []
+     },
+     {
+      "card": {
+       "id": 1038,
+       "cardNo": 38,
+       "art": 0
+      },
+      "order": 8,
+      "sideways": false,
+      "attached": []
+     }
+    ],
+    "acquired": [],
+    "deckCount": 3,
+    "facedownCount": 1,
+    "prepFinished": true,
+    "prepCount": 8,
+    "acquiredCount": 0,
+    "isHalved": false,
+    "output": null,
+    "outputNow": 17,
+    "fame": null
+   },
+   "2310004": {
+    "score": 0,
+    "prep": [
+     {
+      "card": {
+       "id": 1041,
+       "cardNo": 41,
+       "art": 0
+      },
+      "order": 1,
+      "sideways": false,
+      "attached": []
+     },
+     {
+      "card": {
+       "id": 304,
+       "cardNo": 3,
+       "art": 4
+      },
+      "order": 2,
+      "sideways": false,
+      "attached": []
+     },
+     {
+      "card": {
+       "id": 104,
+       "cardNo": 1,
+       "art": 4
+      },
+      "order": 3,
+      "sideways": false,
+      "attached": []
+     },
+     {
+      "card": {
+       "id": 1037,
+       "cardNo": 37,
+       "art": 0
+      },
+      "order": 4,
+      "sideways": false,
+      "attached": []
+     },
+     {
+      "card": {
+       "id": 208,
+       "cardNo": 2,
+       "art": 8
+      },
+      "order": 5,
+      "sideways": false,
+      "attached": []
+     },
+     {
+      "card": {
+       "id": 1045,
+       "cardNo": 45,
+       "art": 0
+      },
+      "order": 6,
+      "sideways": false,
+      "attached": []
+     }
+    ],
+    "acquired": [],
+    "deckCount": 3,
+    "facedownCount": 2,
+    "prepFinished": false,
+    "prepCount": 6,
+    "acquiredCount": 0,
+    "isHalved": false,
+    "output": null,
+    "outputNow": 10,
+    "fame": null
+   }
+  },
+  "options": {
+   "charmSide": 1,
+   "showFame": 0,
+   "viewDrawPile": 0
+  }
+ }
+}
