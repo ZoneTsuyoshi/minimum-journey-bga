@@ -5,6 +5,58 @@
  */
 
 /**
+ * 自分の山札を押して選べるようにする部品（013 §2.5）。クラスとクリック処理は unbind で必ず外す（二重登録しない）。
+ * 山札のカードは cardNo を持たない（裏向き）ので、拡大表示（setupZoom）はもともと山札のタップを横取りしない。
+ */
+class DeckPress {
+    /**
+     * @param {Game} game
+     * @param {Bga} bga
+     */
+    constructor(game, bga) {
+        this.game = game;
+        this.bga = bga;
+        /** @type {{ element: HTMLElement, handler: () => void } | null} */
+        this.bound = null;
+    }
+
+    /**
+     * 山札を押せる状態にする。すでに付けていれば先に外す。観戦者には付けない。
+     *
+     * @param {() => void} onPress
+     * @param {boolean} selected 選び済み（見た目を変え、押しても何もしない）
+     */
+    bind(onPress, selected) {
+        this.unbind();
+        if (this.bga.players.isCurrentPlayerSpectator()) {
+            return;
+        }
+        const me = int(this.bga.players.getCurrentPlayerId());
+        const element = this.game.areas[me]?.deck.getElement();
+        if (element === undefined) {
+            return;
+        }
+        const handler = () => {
+            if (!selected) {
+                onPress();
+            }
+        };
+        element.classList.add('mj-selectable');
+        element.classList.toggle('mj-selected', selected);
+        element.addEventListener('click', handler);
+        this.bound = { element, handler };
+    }
+
+    unbind() {
+        if (this.bound !== null) {
+            this.bound.element.removeEventListener('click', this.bound.handler);
+            this.bound.element.classList.remove('mj-selectable', 'mj-selected');
+            this.bound = null;
+        }
+    }
+}
+
+/**
  * 準備フェイズのドロー／ストップ選択（状態 21）。全員が選び終えるまで何度でも変更できる（006 §4.3、009 §9.1）。
  */
 class PrepChoice {
@@ -20,6 +72,7 @@ class PrepChoice {
         this.canDraw = true;
         /** @type {{ player_id: number, choice?: string | null, reason?: string }[]} */
         this.forced = [];
+        this.deckPress = new DeckPress(game, bga);
     }
 
     /**
@@ -60,7 +113,9 @@ class PrepChoice {
      * @param {unknown} _args
      * @param {boolean} _isCurrentPlayerActive
      */
-    onLeavingState(_args, _isCurrentPlayerActive) {}
+    onLeavingState(_args, _isCurrentPlayerActive) {
+        this.deckPress.unbind();
+    }
 
     /**
      * 選び終えた人は非アクティブになる。その間も、本人は選択を変更できる（006 §4.3）。
@@ -70,6 +125,7 @@ class PrepChoice {
      */
     onPlayerActivationChange(_args, isCurrentPlayerActive) {
         if (!isCurrentPlayerActive && this.myChoice === null) {
+            this.deckPress.unbind();
             // 選択者ではない（自動で確定した）人には、確定した理由を出す
             this.bga.statusBar.setTitle(this.forcedTitle() ?? _('Other players must choose: draw or stop'));
             return;
@@ -84,24 +140,44 @@ class PrepChoice {
             );
         }
         this.bga.statusBar.removeActionButtons();
-        this.addChoiceButton('draw', _('Draw'), !this.canDraw);
-        this.addChoiceButton('stop', _('Stop'), false);
+        this.addChoiceButton('draw', _('Draw'), 'primary', !this.canDraw);
+        this.addChoiceButton('stop', _('Stop'), 'alert', false);
+        if (this.canDraw) {
+            this.deckPress.bind(() => this.choose('draw'), this.myChoice === 'draw');
+        } else {
+            this.deckPress.unbind();
+        }
     }
 
     /**
+     * ボタンと山札の両方から呼ぶ。
+     *
+     * @param {'draw' | 'stop'} choice
+     */
+    async choose(choice) {
+        await this.bga.actions.performAction('actSelectPrep', { choice }, { checkAction: false });
+        this.myChoice = choice;
+        this.onPlayerActivationChange({}, false);
+    }
+
+    /**
+     * 色は常に同じ（Draw は青、Stop は赤）。選び済みの方は「✓」つきの灰にする。
+     *
      * @param {'draw' | 'stop'} choice
      * @param {string} label
-     * @param {boolean} disabled
+     * @param {'primary' | 'alert'} color
+     * @param {boolean} unavailable
      */
-    addChoiceButton(choice, label, disabled) {
+    addChoiceButton(choice, label, color, unavailable) {
+        const chosen = this.myChoice === choice;
         this.bga.statusBar.addActionButton(
-            label,
-            async () => {
-                await this.bga.actions.performAction('actSelectPrep', { choice }, { checkAction: false });
-                this.myChoice = choice;
-                this.onPlayerActivationChange({}, false);
+            chosen ? `✓ ${label}` : label,
+            () => this.choose(choice),
+            {
+                color,
+                disabled: chosen || unavailable,
+                tooltip: unavailable ? _('You have no cards left in your deck') : undefined,
             },
-            { color: this.myChoice === choice ? 'primary' : 'secondary', disabled },
         );
     }
 }
@@ -117,6 +193,7 @@ class PrepChoiceLate {
     constructor(game, bga) {
         this.game = game;
         this.bga = bga;
+        this.deckPress = new DeckPress(game, bga);
     }
 
     /**
@@ -127,24 +204,37 @@ class PrepChoiceLate {
         this.bga.statusBar.setTitle(
             isCurrentPlayerActive ? _('${you} must choose: draw or stop') : _('${actplayer} must choose: draw or stop'),
         );
+        this.deckPress.unbind();
         if (isCurrentPlayerActive) {
+            const canDraw = args.canDraw !== false;
             this.bga.statusBar.addActionButton(
                 _('Draw'),
-                () => this.bga.actions.performAction('actSelectPrepLate', { choice: 'draw' }),
-                { disabled: args.canDraw === false },
+                () => this.draw(),
+                { color: 'primary', disabled: !canDraw, tooltip: canDraw ? undefined : _('You have no cards left in your deck') },
             );
             this.bga.statusBar.addActionButton(
                 _('Stop'),
                 () => this.bga.actions.performAction('actSelectPrepLate', { choice: 'stop' }),
+                { color: 'alert' },
             );
+            if (canDraw) {
+                this.deckPress.bind(() => this.draw(), false);
+            }
         }
+    }
+
+    /** ボタンと山札の両方から呼ぶ。 */
+    draw() {
+        return this.bga.actions.performAction('actSelectPrepLate', { choice: 'draw' });
     }
 
     /**
      * @param {unknown} _args
      * @param {boolean} _isCurrentPlayerActive
      */
-    onLeavingState(_args, _isCurrentPlayerActive) {}
+    onLeavingState(_args, _isCurrentPlayerActive) {
+        this.deckPress.unbind();
+    }
 }
 
 /**
@@ -323,9 +413,17 @@ class ExploreChoose {
             this.bga.statusBar.addActionButton(_('Cancel'), () => {
                 this.clearSelection(null);
                 this.render();
-            }, { color: 'secondary' });
+            }, { color: 'alert' });
+            return;
         }
-        this.bga.statusBar.addActionButton(_('Pass'), () => this.bga.actions.performAction('actPass'), { color: 'secondary' });
+        if (!this.noTargets) {
+            this.bga.statusBar.addActionButton(_('Explore'), () => {}, {
+                color: 'primary',
+                disabled: true,
+                tooltip: _('Select a card or an exploration pile first'),
+            });
+        }
+        this.bga.statusBar.addActionButton(_('Pass'), () => this.bga.actions.performAction('actPass'), { color: 'alert' });
     }
 }
 
@@ -445,6 +543,7 @@ class RowCardChoice {
             this.selected = id;
             this.render();
         });
+        this.render();
     }
 
     /**
@@ -459,9 +558,15 @@ class RowCardChoice {
     render() {
         this.bga.statusBar.removeActionButtons();
         const cardId = this.selected;
-        if (cardId !== null) {
-            this.bga.statusBar.addActionButton(this.texts.button, () => this.bga.actions.performAction(this.texts.action, { cardId }), { color: 'primary' });
-        }
+        this.bga.statusBar.addActionButton(
+            this.texts.button,
+            () => {
+                if (cardId !== null) {
+                    this.bga.actions.performAction(this.texts.action, { cardId });
+                }
+            },
+            { color: 'primary', disabled: cardId === null, tooltip: cardId === null ? _('Select a card first') : undefined },
+        );
     }
 }
 
@@ -515,13 +620,15 @@ class WormholeChoice {
     render() {
         this.bga.statusBar.removeActionButtons();
         const rowCardId = this.selected;
-        if (rowCardId !== null) {
-            this.bga.statusBar.addActionButton(
-                _('Swap with the selected card'),
-                () => this.bga.actions.performAction('actWormhole', { rowCardId }),
-                { color: 'primary' },
-            );
-        }
+        this.bga.statusBar.addActionButton(
+            _('Swap with the selected card'),
+            () => {
+                if (rowCardId !== null) {
+                    this.bga.actions.performAction('actWormhole', { rowCardId });
+                }
+            },
+            { color: 'primary', disabled: rowCardId === null, tooltip: rowCardId === null ? _('Select a card first') : undefined },
+        );
         this.bga.statusBar.addActionButton(
             _('Do not swap (shuffle only)'),
             () => this.bga.actions.performAction('actWormhole', { rowCardId: 0 }),
@@ -548,6 +655,8 @@ class ExploreOnExploreChoice {
         this.pile = null;
         /** @type {{ element: HTMLElement, handler: () => void }[]} */
         this.deckHandlers = [];
+        /** @type {{ element: HTMLElement, handler: () => void }[]} 局所的な地図のカードに付けたクリック処理（状態を出るときに外す） */
+        this.cardHandlers = [];
     }
 
     /**
@@ -582,6 +691,26 @@ class ExploreOnExploreChoice {
             this.bga.statusBar.setTitle(_('${you} may use on-explore effects'));
         }
         this.game.highlightCards(this.usable.map((u) => int(u.cardId)));
+        // 013: 局所的な地図のカードを押しても、ボタンと同じ効果を使う
+        for (const effect of this.usable) {
+            if (effect.kind === 'radar') {
+                continue;
+            }
+            const cardId = int(effect.cardId);
+            const found = this.game.locate(cardId);
+            const element = found === null ? null : found.stock.getCardElement(found.card);
+            if (element === null || element === undefined) {
+                continue;
+            }
+            const handler = () => {
+                if (this.pile === null) {
+                    this.bga.actions.performAction('actUseOnExplore', { cardId, deckCost: 0 });
+                }
+            };
+            element.classList.add('mj-selectable');
+            element.addEventListener('click', handler);
+            this.cardHandlers.push({ element, handler });
+        }
         // 011: 探査山札そのものを押して選ぶ（011 が複数あっても山札の選択は 1 つ。最初の 011 を使う）
         const radar = this.usable.find((u) => u.kind === 'radar');
         if (radar !== undefined) {
@@ -631,7 +760,7 @@ class ExploreOnExploreChoice {
                 () => this.bga.actions.performAction('actUseOnExplore', { cardId, deckCost: cost }),
                 { color: 'primary' },
             );
-            this.bga.statusBar.addActionButton(_('Cancel'), () => this.onPileSelected(cardId, cost), { color: 'secondary' });
+            this.bga.statusBar.addActionButton(_('Cancel'), () => this.onPileSelected(cardId, cost), { color: 'alert' });
             return;
         }
         for (const effect of this.usable) {
@@ -640,6 +769,7 @@ class ExploreOnExploreChoice {
                 this.bga.statusBar.addActionButton(
                     _('Local Map: exclude it to lower all explore costs by 1 this turn'),
                     () => this.bga.actions.performAction('actUseOnExplore', { cardId, deckCost: 0 }),
+                    { color: 'primary' },
                 );
             }
         }
@@ -655,6 +785,11 @@ class ExploreOnExploreChoice {
             element.removeEventListener('click', handler);
         }
         this.deckHandlers = [];
+        for (const { element, handler } of this.cardHandlers) {
+            element.removeEventListener('click', handler);
+            element.classList.remove('mj-selectable');
+        }
+        this.cardHandlers = [];
         clearPileStates(this.game);
         this.pile = null;
         this.usable = [];
@@ -715,9 +850,15 @@ class PrepExcludeChoice {
     render() {
         this.bga.statusBar.removeActionButtons();
         const cardId = this.selected;
-        if (cardId !== null) {
-            this.bga.statusBar.addActionButton(this.texts.button, () => this.bga.actions.performAction('actExcludePrepCard', { cardId }), { color: 'primary' });
-        }
+        this.bga.statusBar.addActionButton(
+            this.texts.button,
+            () => {
+                if (cardId !== null) {
+                    this.bga.actions.performAction('actExcludePrepCard', { cardId });
+                }
+            },
+            { color: 'primary', disabled: cardId === null, tooltip: cardId === null ? _('Select a card first') : undefined },
+        );
         if (this.texts.skip !== null) {
             this.bga.statusBar.addActionButton(this.texts.skip, () => this.bga.actions.performAction('actExcludePrepCard', { cardId: 0 }), { color: 'secondary' });
         }
@@ -811,13 +952,15 @@ class FreeAcquireChoice {
     render() {
         this.bga.statusBar.removeActionButtons();
         const selection = this.selection;
-        if (selection !== null) {
-            this.bga.statusBar.addActionButton(
-                _('Acquire the selected card for free'),
-                () => this.bga.actions.performAction('actFreeAcquire', { type: selection.type, ref: selection.ref }),
-                { color: 'primary' },
-            );
-        }
+        this.bga.statusBar.addActionButton(
+            _('Acquire the selected card for free'),
+            () => {
+                if (selection !== null) {
+                    this.bga.actions.performAction('actFreeAcquire', { type: selection.type, ref: selection.ref });
+                }
+            },
+            { color: 'primary', disabled: selection === null, tooltip: selection === null ? _('Select a card first') : undefined },
+        );
     }
 }
 
@@ -868,13 +1011,15 @@ class DeckExcludeChoice {
     render() {
         this.bga.statusBar.removeActionButtons();
         const cardIds = this.selected;
-        if (cardIds.length > 0) {
-            this.bga.statusBar.addActionButton(
-                _('Exclude the selected cards'),
-                () => this.bga.actions.performAction('actExcludeDeckCards', { cardIds }),
-                { color: 'primary' },
-            );
-        }
+        this.bga.statusBar.addActionButton(
+            _('Exclude the selected cards'),
+            () => {
+                if (cardIds.length > 0) {
+                    this.bga.actions.performAction('actExcludeDeckCards', { cardIds });
+                }
+            },
+            { color: 'primary', disabled: cardIds.length === 0, tooltip: cardIds.length === 0 ? _('Select up to 2 cards first') : undefined },
+        );
         this.bga.statusBar.addActionButton(_('Do not exclude'), () => this.bga.actions.performAction('actExcludeDeckCards', { cardIds: [] }), { color: 'secondary' });
     }
 }
@@ -1000,6 +1145,25 @@ class SimultaneousEffects {
     }
 
     /**
+     * 選んだカードで確定するボタン。未選択の間は灰で出す。
+     *
+     * @param {string} label
+     * @param {number | null} id 選んだカード（未選択なら null）
+     * @param {(id: number) => Promise<unknown> | void} handler
+     */
+    confirmButton(label, id, handler) {
+        this.bga.statusBar.addActionButton(
+            label,
+            () => {
+                if (id !== null) {
+                    handler(id);
+                }
+            },
+            { color: 'primary', disabled: id === null, tooltip: id === null ? _('Select a card first') : undefined },
+        );
+    }
+
+    /**
      * 005: 見た 2 枚の並び。一番上にするカードを選ぶ（残りが 2 番目）。
      *
      * @param {SimulPrivate} mine
@@ -1009,11 +1173,11 @@ class SimultaneousEffects {
         this.game.showChoicePanel(_('Choose the card to put on top (the other goes second)'), mine.seenCards, (id) => {
             this.bga.statusBar.removeActionButtons();
             this.selected = id;
-            if (id !== null) {
-                const other = int(first.id) === id ? second : first;
-                this.button(_('Put the selected card on top'), () => this.bga.actions.performAction('actArrangeTop', { firstId: id, secondId: int(other.id) }));
-            }
+            const other = int(first.id) === id ? second : first;
+            this.confirmButton(_('Put the selected card on top'), id, (cardId) => this.bga.actions.performAction('actArrangeTop', { firstId: cardId, secondId: int(other.id) }));
+            this.button(_('Keep this order'), () => this.bga.actions.performAction('actArrangeTop', { firstId: int(first.id), secondId: int(second.id) }), 'secondary');
         });
+        this.confirmButton(_('Put the selected card on top'), null, () => {});
         this.button(_('Keep this order'), () => this.bga.actions.performAction('actArrangeTop', { firstId: int(first.id), secondId: int(second.id) }), 'secondary');
     }
 
@@ -1034,17 +1198,12 @@ class SimultaneousEffects {
      * @param {SimulPrivate} mine
      */
     pickOne(mine) {
-        const hint = () => this.button(_('Select a card above to put on top'), () => this.game.scrollToChoicePanel(), 'secondary');
         this.game.showChoicePanel(_('Choose the card to put on top (the other goes to the bottom)'), mine.seenCards, (id) => {
             this.bga.statusBar.removeActionButtons();
             this.selected = id;
-            if (id !== null) {
-                this.button(_('Put the selected card on top'), () => this.bga.actions.performAction('actPickOne', { cardId: id }));
-            } else {
-                hint();
-            }
+            this.confirmButton(_('Put the selected card on top'), id, (cardId) => this.bga.actions.performAction('actPickOne', { cardId }));
         });
-        hint();
+        this.confirmButton(_('Put the selected card on top'), null, () => {});
     }
 
     /**
@@ -1056,11 +1215,10 @@ class SimultaneousEffects {
         this.game.showChoicePanel(_('Cards in your deck you may put on top'), mine.candidates, (id) => {
             this.bga.statusBar.removeActionButtons();
             this.selected = id;
-            if (id !== null) {
-                this.button(_('Put the selected card on top'), () => this.bga.actions.performAction('actPickFromDeck', { cardId: id }));
-            }
+            this.confirmButton(_('Put the selected card on top'), id, (cardId) => this.bga.actions.performAction('actPickFromDeck', { cardId }));
             this.button(_('Do not pick (shuffle only)'), () => this.bga.actions.performAction('actPickFromDeck', { cardId: 0 }), 'secondary');
         });
+        this.confirmButton(_('Put the selected card on top'), null, () => {});
         this.button(_('Do not pick (shuffle only)'), () => this.bga.actions.performAction('actPickFromDeck', { cardId: 0 }), 'secondary');
     }
 
