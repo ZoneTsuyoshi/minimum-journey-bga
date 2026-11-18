@@ -1,6 +1,6 @@
-// カード画像とアイコンのスプライト生成（仕様書 009 第 4・5 節）。
+// カード画像・アイコンのスプライトと背景画像の生成（仕様書 009 第 4・5 節、013 第 7 節）。
 // 使い方: npm run build:sprites [-- --out <dir>] [--manifest <path>] [--quality <n>] [--verify-determinism]
-// 入力: data/cards/*.png（72 枚）、data/icons/*.svg（18 点）。data/ は読み取りのみ。
+// 入力: data/cards/*.png（72 枚）、data/icons/*.svg（18 点）、data/banner/thumbnail_banner.png（背景用）。data/ は読み取りのみ。
 import { createHash } from 'node:crypto';
 import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -16,6 +16,15 @@ import { checkSprites } from './check-sprites.mjs';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const CARDS_DIR = path.join(ROOT, 'data/cards');
 const ICONS_DIR = path.join(ROOT, 'data/icons');
+const BANNER_FILE = path.join(ROOT, 'data/banner/thumbnail_banner.png');
+const BANNER_SIZE = { w: 3930, h: 1134 };
+// 右端の宇宙の部分（箱・カード・ロゴを含まない。x≈2750〜2790 にカードの角があるので右から切る）
+const BACKGROUND_CROP = { left: 2850, top: 0, width: 1080, height: 1134 };
+const BACKGROUND_BLUR = 10; // シグマ
+const BACKGROUND_BRIGHTNESS = 0.55;
+const BACKGROUND_SATURATION = 0.85;
+const BACKGROUND_QUALITY = 70;
+export const BACKGROUND_FILE = 'background.webp';
 const DEFAULT_QUALITY = 80;
 
 function parseArgs(argv) {
@@ -155,12 +164,29 @@ async function buildIcons(inputs, outDir) {
   return { file: ICON_FILE, w: ICON_SHEET.w, h: ICON_SHEET.h, scale: ICON_SCALE, items };
 }
 
+// 背景画像: バナーの宇宙の部分をぼかして暗くする（013 §7.1 案 A）。拡大はしない。
+async function buildBackground(outDir) {
+  const meta = await sharp(BANNER_FILE).metadata();
+  if (meta.width !== BANNER_SIZE.w || meta.height !== BANNER_SIZE.h) {
+    throw new Error(`data/banner/thumbnail_banner.png の寸法が想定外です: ${meta.width}x${meta.height}（想定 ${BANNER_SIZE.w}x${BANNER_SIZE.h}）`);
+  }
+  await mkdir(outDir, { recursive: true });
+  await sharp(BANNER_FILE)
+    .extract(BACKGROUND_CROP)
+    .removeAlpha()
+    .blur(BACKGROUND_BLUR)
+    .modulate({ brightness: BACKGROUND_BRIGHTNESS, saturation: BACKGROUND_SATURATION })
+    .webp({ quality: BACKGROUND_QUALITY, effort: 6 })
+    .toFile(path.join(outDir, BACKGROUND_FILE));
+}
+
 export async function buildAll({ out, manifest, quality }) {
   const cardInputs = await readCardInputs();
   const iconInputs = await readIconInputs();
   const tiers = {};
   await buildCardSheets(cardInputs, out, quality, tiers);
   const icons = await buildIcons(iconInputs, out);
+  await buildBackground(out);
   const cards = {};
   for (const key of CARD_KEYS) {
     cards[key] = { base: cardPosition(key, 'base'), zoom: cardPosition(key, 'zoom') };
