@@ -1,0 +1,760 @@
+{
+ "1": {
+  "cardNo": 1,
+  "name": "Flag",
+  "nameEn": "Flag",
+  "nameJa": "国旗",
+  "cost": 0,
+  "power": 0,
+  "fame": 3,
+  "symbols": [
+   "EARTH"
+  ],
+  "effects": []
+ },
+ "2": {
+  "cardNo": 2,
+  "name": "Crew",
+  "nameEn": "Crew",
+  "nameJa": "乗組員",
+  "cost": 0,
+  "power": 1,
+  "fame": 2,
+  "symbols": [
+   "EARTH"
+  ],
+  "effects": []
+ },
+ "3": {
+  "cardNo": 3,
+  "name": "Starter Ship",
+  "nameEn": "Starter Ship",
+  "nameJa": "初期探査船",
+  "cost": 0,
+  "power": 2,
+  "fame": 1,
+  "symbols": [
+   "EARTH"
+  ],
+  "effects": []
+ },
+ "4": {
+  "cardNo": 4,
+  "name": "Colony Camp",
+  "nameEn": "Colony Camp",
+  "nameJa": "コロニーキャンプ",
+  "cost": 2,
+  "power": 2,
+  "fame": 0,
+  "symbols": [
+   "SOLAR_SYSTEM"
+  ],
+  "effects": []
+ },
+ "5": {
+  "cardNo": 5,
+  "name": "Robot Arm",
+  "nameEn": "Robot Arm",
+  "nameJa": "ロボットアーム",
+  "cost": 2,
+  "power": 2,
+  "fame": 0,
+  "symbols": [
+   "SOLAR_SYSTEM"
+  ],
+  "effects": []
+ },
+ "6": {
+  "cardNo": 6,
+  "name": "Torn Map",
+  "nameEn": "Torn Map",
+  "nameJa": "破れた地図",
+  "cost": 2,
+  "power": 2,
+  "fame": 0,
+  "symbols": [
+   "SOLAR_SYSTEM"
+  ],
+  "effects": []
+ },
+ "7": {
+  "cardNo": 7,
+  "name": "Laser Sight",
+  "nameEn": "Laser Sight",
+  "nameJa": "レーザー照準器",
+  "cost": 2,
+  "power": 2,
+  "fame": 1,
+  "symbols": [
+   "SOLAR_SYSTEM"
+  ],
+  "effects": []
+ },
+ "8": {
+  "cardNo": 8,
+  "name": "Observation Satellite",
+  "nameEn": "Observation Satellite",
+  "nameJa": "観測衛星",
+  "cost": 2,
+  "power": 2,
+  "fame": 2,
+  "symbols": [
+   "SOLAR_SYSTEM"
+  ],
+  "effects": []
+ },
+ "9": {
+  "cardNo": 9,
+  "name": "Capricious Drill",
+  "nameEn": "Capricious Drill",
+  "nameJa": "気まぐれなドリル",
+  "cost": 2,
+  "power": 2,
+  "fame": 2,
+  "symbols": [
+   "SOLAR_SYSTEM"
+  ],
+  "effects": []
+ },
+ "10": {
+  "cardNo": 10,
+  "name": "Efficient Development Manual",
+  "nameEn": "Efficient Development Manual",
+  "nameJa": "効率的な開発マニュアル",
+  "cost": 2,
+  "power": 2,
+  "fame": 2,
+  "symbols": [
+   "SOLAR_SYSTEM"
+  ],
+  "effects": []
+ },
+ "11": {
+  "cardNo": 11,
+  "name": "Wide-Area Radar",
+  "nameEn": "Wide-Area Radar",
+  "nameJa": "広範囲レーダー",
+  "cost": 2,
+  "power": 2,
+  "fame": 2,
+  "symbols": [
+   "SOLAR_SYSTEM"
+  ],
+  "effects": []
+ },
+ "12": {
+  "cardNo": 12,
+  "name": "Towable Container",
+  "nameEn": "Towable Container",
+  "nameJa": "牽引可能コンテナ",
+  "cost": 2,
+  "power": 2,
+  "fame": 2,
+  "symbols": [
+   "SOLAR_SYSTEM"
+  ],
+  "effects": []
+ },
+ "13": {
+  "cardNo": 13,
+  "name": "Local Map",
+  "nameEn": "Local Map",
+  "nameJa": "局所的な地図",
+  "cost": 2,
+  "power": 2,
+  "fame": 2,
+  "symbols": [
+   "SOLAR_SYSTEM"
+  ],
+  "effects": []
+ },
+ "14": {
+  "cardNo": 14,
+  "name": "Recycler",
+  "nameEn": "Recycler",
+  "nameJa": "リサイクル装置",
+  "cost": 2,
+  "power": 2,
+  "fame": 2,
+  "symbols": [
+   "SOLAR_SYSTEM"
+  ],
+  "effects": []
+ },
+ "15": {
+  "cardNo": 15,
+  "name": "Rover Probe",
+  "nameEn": "Rover Probe",
+  "nameJa": "ローバー探査機",
+  "cost": 2,
+  "power": 2,
+  "fame": 2,
+  "symbols": [
+   "SOLAR_SYSTEM"
+  ],
+  "effects": []
+ },
+ "16": {
+  "cardNo": 16,
+  "name": "Patriot Robot",
+  "nameEn": "Patriot Robot",
+  "nameJa": "愛国ロボット",
+  "cost": 2,
+  "power": 2,
+  "fame": 2,
+  "symbols": [
+   "SOLAR_SYSTEM"
+  ],
+  "effects": []
+ },
+ "17": {
+  "cardNo": 17,
+  "name": "Relay Camera",
+  "nameEn": "Relay Camera",
+  "nameJa": "中継カメラ",
+  "cost": 2,
+  "power": 2,
+  "fame": 2,
+  "symbols": [
+   "SOLAR_SYSTEM"
+  ],
+  "effects": []
+ },
+ "18": {
+  "cardNo": 18,
+  "name": "Gamble Charger",
+  "nameEn": "Gamble Charger",
+  "nameJa": "ギャンブルチャージャー",
+  "cost": 2,
+  "power": 0,
+  "fame": 1,
+  "symbols": [
+   "SOLAR_SYSTEM"
+  ],
+  "effects": []
+ },
+ "19": {
+  "cardNo": 19,
+  "name": "Ore Mixer",
+  "nameEn": "Ore Mixer",
+  "nameJa": "鉱石ミキサー",
+  "cost": 4,
+  "power": 2,
+  "fame": 2,
+  "symbols": [
+   "MILKY_WAY"
+  ],
+  "effects": []
+ },
+ "20": {
+  "cardNo": 20,
+  "name": "Solar System Exploration Manual",
+  "nameEn": "Solar System Exploration Manual",
+  "nameJa": "太陽系探査マニュアル",
+  "cost": 4,
+  "power": 2,
+  "fame": 3,
+  "symbols": [
+   "MILKY_WAY"
+  ],
+  "effects": []
+ },
+ "21": {
+  "cardNo": 21,
+  "name": "Virgo Cluster Map",
+  "nameEn": "Virgo Cluster Map",
+  "nameJa": "乙女座銀河団の地図",
+  "cost": 4,
+  "power": 2,
+  "fame": 4,
+  "symbols": [
+   "MILKY_WAY"
+  ],
+  "effects": []
+ },
+ "22": {
+  "cardNo": 22,
+  "name": "Small Satellite",
+  "nameEn": "Small Satellite",
+  "nameJa": "小型衛星",
+  "cost": 4,
+  "power": 2,
+  "fame": 2,
+  "symbols": [
+   "MILKY_WAY"
+  ],
+  "effects": []
+ },
+ "23": {
+  "cardNo": 23,
+  "name": "Fussy Control Stick",
+  "nameEn": "Fussy Control Stick",
+  "nameJa": "こだわりの操縦桿",
+  "cost": 4,
+  "power": 2,
+  "fame": 2,
+  "symbols": [
+   "MILKY_WAY"
+  ],
+  "effects": []
+ },
+ "24": {
+  "cardNo": 24,
+  "name": "Overflowing Fuel",
+  "nameEn": "Overflowing Fuel",
+  "nameJa": "溢れ出る燃料",
+  "cost": 4,
+  "power": 3,
+  "fame": 2,
+  "symbols": [
+   "MILKY_WAY"
+  ],
+  "effects": []
+ },
+ "25": {
+  "cardNo": 25,
+  "name": "Clouded Space Telescope",
+  "nameEn": "Clouded Space Telescope",
+  "nameJa": "曇った宇宙望遠鏡",
+  "cost": 4,
+  "power": 3,
+  "fame": 3,
+  "symbols": [
+   "MILKY_WAY"
+  ],
+  "effects": []
+ },
+ "26": {
+  "cardNo": 26,
+  "name": "Oversized Engine",
+  "nameEn": "Oversized Engine",
+  "nameJa": "大振りエンジン",
+  "cost": 4,
+  "power": 3,
+  "fame": 3,
+  "symbols": [
+   "MILKY_WAY"
+  ],
+  "effects": []
+ },
+ "27": {
+  "cardNo": 27,
+  "name": "Nearly Expired Space Food",
+  "nameEn": "Nearly Expired Space Food",
+  "nameJa": "賞味期限が近い宇宙食",
+  "cost": 4,
+  "power": 3,
+  "fame": 4,
+  "symbols": [
+   "MILKY_WAY"
+  ],
+  "effects": []
+ },
+ "28": {
+  "cardNo": 28,
+  "name": "Memory Album",
+  "nameEn": "Memory Album",
+  "nameJa": "思い出のアルバム",
+  "cost": 4,
+  "power": 3,
+  "fame": 4,
+  "symbols": [
+   "MILKY_WAY"
+  ],
+  "effects": []
+ },
+ "29": {
+  "cardNo": 29,
+  "name": "Safety Device",
+  "nameEn": "Safety Device",
+  "nameJa": "安全装置",
+  "cost": 4,
+  "power": 4,
+  "fame": 2,
+  "symbols": [
+   "MILKY_WAY"
+  ],
+  "effects": []
+ },
+ "30": {
+  "cardNo": 30,
+  "name": "Nuclear Thermal Booster",
+  "nameEn": "Nuclear Thermal Booster",
+  "nameJa": "核熱ブースター",
+  "cost": 4,
+  "power": 4,
+  "fame": 3,
+  "symbols": [
+   "MILKY_WAY"
+  ],
+  "effects": []
+ },
+ "31": {
+  "cardNo": 31,
+  "name": "Unbreakable Mirror",
+  "nameEn": "Unbreakable Mirror",
+  "nameJa": "割れない鏡",
+  "cost": 4,
+  "power": 1,
+  "fame": 3,
+  "symbols": [
+   "MILKY_WAY"
+  ],
+  "effects": []
+ },
+ "32": {
+  "cardNo": 32,
+  "name": "Pedal Generator",
+  "nameEn": "Pedal Generator",
+  "nameJa": "人力発電機",
+  "cost": 4,
+  "power": 2,
+  "fame": 0,
+  "symbols": [
+   "MILKY_WAY"
+  ],
+  "effects": []
+ },
+ "33": {
+  "cardNo": 33,
+  "name": "Solar Power Plant",
+  "nameEn": "Solar Power Plant",
+  "nameJa": "太陽光発電設備",
+  "cost": 4,
+  "power": 2,
+  "fame": 0,
+  "symbols": [
+   "MILKY_WAY"
+  ],
+  "effects": []
+ },
+ "34": {
+  "cardNo": 34,
+  "name": "Dust Vacuum",
+  "nameEn": "Dust Vacuum",
+  "nameJa": "粉塵バキューマ",
+  "cost": 6,
+  "power": 3,
+  "fame": 2,
+  "symbols": [
+   "VIRGO_CLUSTER"
+  ],
+  "effects": []
+ },
+ "35": {
+  "cardNo": 35,
+  "name": "Milky Way Exploration Manual",
+  "nameEn": "Milky Way Exploration Manual",
+  "nameJa": "天の川銀河探査マニュアル",
+  "cost": 6,
+  "power": 3,
+  "fame": 2,
+  "symbols": [
+   "VIRGO_CLUSTER"
+  ],
+  "effects": []
+ },
+ "36": {
+  "cardNo": 36,
+  "name": "Makeshift Wormhole",
+  "nameEn": "Makeshift Wormhole",
+  "nameJa": "簡易ワームホール",
+  "cost": 6,
+  "power": 3,
+  "fame": 3,
+  "symbols": [
+   "VIRGO_CLUSTER"
+  ],
+  "effects": []
+ },
+ "37": {
+  "cardNo": 37,
+  "name": "Fluffy Bed",
+  "nameEn": "Fluffy Bed",
+  "nameJa": "ふかふかのベッド",
+  "cost": 6,
+  "power": 3,
+  "fame": 3,
+  "symbols": [
+   "VIRGO_CLUSTER"
+  ],
+  "effects": []
+ },
+ "38": {
+  "cardNo": 38,
+  "name": "Rough Map",
+  "nameEn": "Rough Map",
+  "nameJa": "大まかな地図",
+  "cost": 6,
+  "power": 3,
+  "fame": 4,
+  "symbols": [
+   "VIRGO_CLUSTER"
+  ],
+  "effects": []
+ },
+ "39": {
+  "cardNo": 39,
+  "name": "Jamming Transmitter",
+  "nameEn": "Jamming Transmitter",
+  "nameJa": "妨害電波発信機",
+  "cost": 6,
+  "power": 3,
+  "fame": 4,
+  "symbols": [
+   "VIRGO_CLUSTER"
+  ],
+  "effects": []
+ },
+ "40": {
+  "cardNo": 40,
+  "name": "Pioneer's Beacon",
+  "nameEn": "Pioneer's Beacon",
+  "nameJa": "先駆者の道標",
+  "cost": 6,
+  "power": 3,
+  "fame": 3,
+  "symbols": [
+   "VIRGO_CLUSTER"
+  ],
+  "effects": []
+ },
+ "41": {
+  "cardNo": 41,
+  "name": "Pretty Little Box",
+  "nameEn": "Pretty Little Box",
+  "nameJa": "綺麗な小箱",
+  "cost": 6,
+  "power": 3,
+  "fame": 3,
+  "symbols": [
+   "VIRGO_CLUSTER"
+  ],
+  "effects": []
+ },
+ "42": {
+  "cardNo": 42,
+  "name": "Upgrade Patch",
+  "nameEn": "Upgrade Patch",
+  "nameJa": "アップグレードパッチ",
+  "cost": 6,
+  "power": 3,
+  "fame": 3,
+  "symbols": [
+   "VIRGO_CLUSTER"
+  ],
+  "effects": []
+ },
+ "43": {
+  "cardNo": 43,
+  "name": "Runaway Transfer Pod",
+  "nameEn": "Runaway Transfer Pod",
+  "nameJa": "暴走転送ポッド",
+  "cost": 6,
+  "power": 4,
+  "fame": 4,
+  "symbols": [
+   "VIRGO_CLUSTER"
+  ],
+  "effects": []
+ },
+ "44": {
+  "cardNo": 44,
+  "name": "Knowledge Database",
+  "nameEn": "Knowledge Database",
+  "nameJa": "ナレッジデータベース",
+  "cost": 6,
+  "power": 0,
+  "fame": 4,
+  "symbols": [
+   "VIRGO_CLUSTER"
+  ],
+  "effects": []
+ },
+ "45": {
+  "cardNo": 45,
+  "name": "Upgrade Parts",
+  "nameEn": "Upgrade Parts",
+  "nameJa": "アップグレードパーツ",
+  "cost": 6,
+  "power": 1,
+  "fame": 0,
+  "symbols": [
+   "VIRGO_CLUSTER"
+  ],
+  "effects": []
+ },
+ "46": {
+  "cardNo": 46,
+  "name": "Some Part",
+  "nameEn": "Some Part",
+  "nameJa": "何かの部品",
+  "cost": 8,
+  "power": 2,
+  "fame": 4,
+  "symbols": [
+   "LANIAKEA"
+  ],
+  "effects": []
+ },
+ "47": {
+  "cardNo": 47,
+  "name": "Map to Glory",
+  "nameEn": "Map to Glory",
+  "nameJa": "栄光への地図",
+  "cost": 8,
+  "power": 3,
+  "fame": 2,
+  "symbols": [
+   "LANIAKEA"
+  ],
+  "effects": []
+ },
+ "48": {
+  "cardNo": 48,
+  "name": "Gravity Inverter",
+  "nameEn": "Gravity Inverter",
+  "nameJa": "重力反転装置",
+  "cost": 8,
+  "power": 3,
+  "fame": 3,
+  "symbols": [
+   "LANIAKEA"
+  ],
+  "effects": []
+ },
+ "49": {
+  "cardNo": 49,
+  "name": "Time Stopper",
+  "nameEn": "Time Stopper",
+  "nameJa": "時間停止装置",
+  "cost": 8,
+  "power": 3,
+  "fame": 4,
+  "symbols": [
+   "LANIAKEA"
+  ],
+  "effects": []
+ },
+ "50": {
+  "cardNo": 50,
+  "name": "Space Exploration Manual",
+  "nameEn": "Space Exploration Manual",
+  "nameJa": "宇宙探査マニュアル",
+  "cost": 8,
+  "power": 3,
+  "fame": 4,
+  "symbols": [
+   "LANIAKEA"
+  ],
+  "effects": []
+ },
+ "51": {
+  "cardNo": 51,
+  "name": "Zeus Material",
+  "nameEn": "Zeus Material",
+  "nameJa": "ゼウスマテリアル",
+  "cost": 8,
+  "power": 4,
+  "fame": 3,
+  "symbols": [
+   "EARTH",
+   "MILKY_WAY",
+   "LANIAKEA",
+   "VIRGO_CLUSTER",
+   "SOLAR_SYSTEM"
+  ],
+  "effects": []
+ },
+ "52": {
+  "cardNo": 52,
+  "name": "Scales of Fate",
+  "nameEn": "Scales of Fate",
+  "nameJa": "運命の天秤",
+  "cost": 8,
+  "power": 4,
+  "fame": 4,
+  "symbols": [
+   "LANIAKEA"
+  ],
+  "effects": []
+ },
+ "53": {
+  "cardNo": 53,
+  "name": "Superflare Trigger",
+  "nameEn": "Superflare Trigger",
+  "nameJa": "スーパーフレア誘発装置",
+  "cost": 8,
+  "power": 4,
+  "fame": 5,
+  "symbols": [
+   "LANIAKEA"
+  ],
+  "effects": []
+ },
+ "54": {
+  "cardNo": 54,
+  "name": "Seed of the Big Bang",
+  "nameEn": "Seed of the Big Bang",
+  "nameJa": "ビッグバンの種",
+  "cost": 8,
+  "power": 4,
+  "fame": 6,
+  "symbols": [
+   "LANIAKEA"
+  ],
+  "effects": []
+ },
+ "55": {
+  "cardNo": 55,
+  "name": "Black Hole Generator",
+  "nameEn": "Black Hole Generator",
+  "nameJa": "ブラックホール発生機",
+  "cost": 8,
+  "power": 4,
+  "fame": 6,
+  "symbols": [
+   "LANIAKEA"
+  ],
+  "effects": []
+ },
+ "56": {
+  "cardNo": 56,
+  "name": "Unknown",
+  "nameEn": "Unknown",
+  "nameJa": "Unknown",
+  "cost": 10,
+  "power": 10,
+  "fame": 10,
+  "symbols": [
+   "UNKNOWN"
+  ],
+  "effects": []
+ },
+ "57": {
+  "cardNo": 57,
+  "name": "Safe Passage Charm",
+  "nameEn": "Safe Passage Charm",
+  "nameJa": "航路安全のお守り",
+  "cost": null,
+  "power": 1,
+  "fame": 1,
+  "symbols": [
+   "CHARM"
+  ],
+  "effects": []
+ },
+ "58": {
+  "cardNo": 58,
+  "name": "Misfortune-Warding Charm",
+  "nameEn": "Misfortune-Warding Charm",
+  "nameJa": "厄除けのお守り",
+  "cost": null,
+  "power": 0,
+  "fame": 1,
+  "symbols": [
+   "CHARM"
+  ],
+  "effects": []
+ }
+}

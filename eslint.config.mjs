@@ -50,10 +50,26 @@ export default defineConfig([
     },
   },
 
+  // ローカルのプレビュー（ブラウザ側。BGA のグローバルを模す）
+  {
+    files: ['scripts/preview/**/*.js'],
+    languageOptions: {
+      ecmaVersion: 'latest',
+      sourceType: 'module',
+      globals: { ...globals.browser, ...bgaGlobals },
+    },
+  },
+
   // Node スクリプトと設定ファイル
   {
     files: ['scripts/**/*.mjs', '*.config.mjs'],
     languageOptions: { globals: globals.node },
+  },
+
+  // shoot.mjs は page.evaluate の中でブラウザ側のコードを書く
+  {
+    files: ['scripts/preview/shoot.mjs'],
+    languageOptions: { globals: { ...globals.node, document: 'readonly' } },
   },
 
   // JSONC（gameinfos.jsonc など）。構文と重複キーのみ検査する。末尾カンマは許可しない

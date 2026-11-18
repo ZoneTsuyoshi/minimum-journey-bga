@@ -1,0 +1,231 @@
+{
+ "_comment": "4 人、1 ラウンド目の準備フェイズの開始。全員の準備場が空で、自分は選択前",
+ "preview": {
+  "me": 2310001,
+  "players": {
+   "2310001": {
+    "name": "Aiko",
+    "color": "ff0000"
+   },
+   "2310002": {
+    "name": "Ben",
+    "color": "008000"
+   },
+   "2310003": {
+    "name": "Chika",
+    "color": "0000ff"
+   },
+   "2310004": {
+    "name": "Dan",
+    "color": "ffa500"
+   }
+  },
+  "state": {
+   "name": "PrepChoice",
+   "active": true,
+   "args": {
+    "selectors": [
+     2310001,
+     2310002,
+     2310003,
+     2310004
+    ],
+    "chosen": [],
+    "forced": [],
+    "lateOwner": null,
+    "round": 1,
+    "_private": {
+     "myChoice": null,
+     "canDraw": true
+    }
+   }
+  },
+  "replay": []
+ },
+ "gamedatas": {
+  "round": 1,
+  "phase": "prep",
+  "playerOrder": [
+   2310001,
+   2310002,
+   2310003,
+   2310004
+  ],
+  "piles": {
+   "2": 11,
+   "4": 12,
+   "6": 10,
+   "8": 8
+  },
+  "rows": {
+   "2": [
+    {
+     "slot": 0,
+     "card": {
+      "id": 1005,
+      "cardNo": 5,
+      "art": 0
+     }
+    },
+    {
+     "slot": 1,
+     "card": {
+      "id": 1009,
+      "cardNo": 9,
+      "art": 0
+     }
+    },
+    {
+     "slot": 2,
+     "card": {
+      "id": 1006,
+      "cardNo": 6,
+      "art": 0
+     }
+    },
+    {
+     "slot": 3,
+     "card": {
+      "id": 1010,
+      "cardNo": 10,
+      "art": 0
+     }
+    }
+   ],
+   "4": [
+    {
+     "slot": 0,
+     "card": {
+      "id": 1022,
+      "cardNo": 22,
+      "art": 0
+     }
+    },
+    {
+     "slot": 1,
+     "card": {
+      "id": 1019,
+      "cardNo": 19,
+      "art": 0
+     }
+    },
+    {
+     "slot": 2,
+     "card": {
+      "id": 1025,
+      "cardNo": 25,
+      "art": 0
+     }
+    }
+   ],
+   "6": [
+    {
+     "slot": 0,
+     "card": {
+      "id": 1037,
+      "cardNo": 37,
+      "art": 0
+     }
+    },
+    {
+     "slot": 1,
+     "card": {
+      "id": 1041,
+      "cardNo": 41,
+      "art": 0
+     }
+    }
+   ],
+   "8": [
+    {
+     "slot": 0,
+     "card": {
+      "id": 1050,
+      "cardNo": 50,
+      "art": 0
+     }
+    },
+    {
+     "slot": 1,
+     "card": {
+      "id": 1051,
+      "cardNo": 51,
+      "art": 0
+     }
+    }
+   ]
+  },
+  "unknown": {
+   "id": 1056,
+   "cardNo": 56,
+   "art": 0
+  },
+  "charm": null,
+  "lockedCard": null,
+  "exploreOrder": [],
+  "exploreIndex": -1,
+  "players": {
+   "2310001": {
+    "score": 0,
+    "prep": [],
+    "acquired": [],
+    "deckCount": 4,
+    "facedownCount": 0,
+    "prepFinished": false,
+    "prepCount": 0,
+    "acquiredCount": 0,
+    "isHalved": false,
+    "output": null,
+    "outputNow": 0,
+    "fame": null
+   },
+   "2310002": {
+    "score": 0,
+    "prep": [],
+    "acquired": [],
+    "deckCount": 4,
+    "facedownCount": 0,
+    "prepFinished": false,
+    "prepCount": 0,
+    "acquiredCount": 0,
+    "isHalved": false,
+    "output": null,
+    "outputNow": 0,
+    "fame": null
+   },
+   "2310003": {
+    "score": 0,
+    "prep": [],
+    "acquired": [],
+    "deckCount": 4,
+    "facedownCount": 0,
+    "prepFinished": false,
+    "prepCount": 0,
+    "acquiredCount": 0,
+    "isHalved": false,
+    "output": null,
+    "outputNow": 0,
+    "fame": null
+   },
+   "2310004": {
+    "score": 0,
+    "prep": [],
+    "acquired": [],
+    "deckCount": 4,
+    "facedownCount": 0,
+    "prepFinished": false,
+    "prepCount": 0,
+    "acquiredCount": 0,
+    "isHalved": false,
+    "output": null,
+    "outputNow": 0,
+    "fame": null
+   }
+  },
+  "options": {
+   "charmSide": 1,
+   "showFame": 0,
+   "viewDrawPile": 0
+  }
+ }
+}

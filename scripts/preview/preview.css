@@ -1,0 +1,177 @@
+/* BGA の画面の枠を大まかに模す。ゲームの見た目は src/minimumjourney.css が決める（ここでは body の背景を指定しない） */
+html {
+    background: #8a6a43 repeating-linear-gradient(90deg, #8a6a43 0 38px, #7f6039 38px 40px);
+    color-scheme: light;
+}
+
+html[data-theme="dark"] {
+    background: #3a2c1c repeating-linear-gradient(90deg, #3a2c1c 0 38px, #33261a 38px 40px);
+    color-scheme: dark;
+}
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: Roboto, Arial, sans-serif;
+    font-size: 14px;
+    color: #000;
+}
+
+html[data-theme="dark"] body {
+    color: #eee;
+}
+
+.pv-topbar {
+    height: 50px;
+    box-sizing: border-box;
+    padding: 0 10px;
+    line-height: 50px;
+    background: #1f2a44;
+    color: #fff;
+    font-weight: bold;
+}
+
+.pv-error {
+    padding: 8px 10px;
+    background: #c62828;
+    color: #fff;
+    font-family: monospace;
+    white-space: pre-wrap;
+}
+
+/* デスクトップ: 左にステータスバーとゲーム領域、右にプレイヤーパネルの列（幅 260px） */
+.pv-page {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 260px;
+    grid-template-areas:
+        "status panels"
+        "game panels";
+    grid-template-rows: auto 1fr;
+    column-gap: 10px;
+    padding: 10px;
+    align-items: start;
+}
+
+.pv-statusbar {
+    grid-area: status;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 12px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    background: #fff;
+    color: #000;
+    box-shadow: 0 1px 3px rgb(0 0 0 / 40%);
+}
+
+html[data-theme="dark"] .pv-statusbar {
+    background: #2b2b30;
+    color: #eee;
+}
+
+.pv-title {
+    flex: 1 1 240px;
+    font-size: 16px;
+}
+
+.pv-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.pv-button {
+    box-sizing: border-box;
+    min-height: 32px;
+    padding: 4px 14px;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    font: inherit;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.pv-button-primary {
+    background: #4871b6;
+    color: #fff;
+}
+
+.pv-button-alert {
+    background: #c62828;
+    color: #fff;
+}
+
+.pv-button-secondary {
+    border-color: #4871b6;
+    background: #fff;
+    color: #4871b6;
+}
+
+.pv-button:disabled,
+.pv-button.pv-disabled {
+    border-color: transparent;
+    background: #9e9e9e;
+    color: #eee;
+    cursor: not-allowed;
+}
+
+.pv-gamearea {
+    grid-area: game;
+    min-width: 0;
+    margin-top: 10px;
+}
+
+.pv-panels {
+    grid-area: panels;
+}
+
+.pv-panel {
+    margin-bottom: 10px;
+    padding: 6px 8px;
+    border-radius: 6px;
+    background: #fff;
+    color: #000;
+    box-shadow: 0 1px 3px rgb(0 0 0 / 40%);
+}
+
+html[data-theme="dark"] .pv-panel {
+    background: #2b2b30;
+    color: #eee;
+}
+
+.pv-panel-name {
+    font-weight: bold;
+}
+
+.pv-lastturn {
+    margin-bottom: 8px;
+    padding: 6px 10px;
+    border-radius: 4px;
+    background: #ffd54f;
+    color: #3e2a00;
+    text-align: center;
+    font-weight: bold;
+}
+
+/* モバイル: パネルを 2 列の格子にして、ステータスバーの下・ゲーム領域の上に置く */
+.mobile_version .pv-page {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+        "status"
+        "panels"
+        "game";
+    grid-template-rows: auto;
+    padding: 10px;
+}
+
+.mobile_version .pv-panels {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.mobile_version .pv-panel {
+    margin-bottom: 0;
+}
