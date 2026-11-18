@@ -690,6 +690,11 @@ html[data-mj-layout="wide"] .bga-jump-to_controls {
     font-size: 12px;
 }
 
+/* 山の選択の枠と「+」（z-index 3）より手前に出す。bga-cards の z-index: 2 は後から注入されるため、詳細度を上げて勝つ */
+.mj-pile .mj-count {
+    z-index: 4;
+}
+
 /* ---- 選択の状態（操作 UI は後続タスク）。枠の太さと記号で示し、色だけに頼らない ---- */
 .mj-selectable {
     filter: none;
@@ -751,6 +756,36 @@ html[data-mj-layout="wide"] .bga-jump-to_controls {
 }
 
 .mj-selected {
+    outline: 6px double var(--mj-accent);
+    outline-offset: -3px;
+}
+
+/*
+ * カードの入った山: 山の outline は中のカード（絶対配置）に隠れるため、
+ * 枠は ::before の重ね絵でカードより手前に描く（::after は「+」）。2026-11-18 作者の指摘。
+ */
+.mj-pile:not(.mj-empty).mj-selectable,
+.mj-pile:not(.mj-empty).mj-selected {
+    outline: none;
+}
+
+.mj-pile:not(.mj-empty).mj-selectable::before,
+.mj-pile:not(.mj-empty).mj-selected::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    box-sizing: border-box;
+    border-radius: 6px;
+    pointer-events: none;
+}
+
+.mj-pile:not(.mj-empty).mj-selectable::before {
+    outline: 4px solid var(--mj-accent);
+    outline-offset: -2px;
+}
+
+.mj-pile:not(.mj-empty).mj-selected::before {
     outline: 6px double var(--mj-accent);
     outline-offset: -3px;
 }
