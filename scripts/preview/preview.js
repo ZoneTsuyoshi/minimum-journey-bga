@@ -91,6 +91,7 @@ const bga = {
     getCurrentPlayerId: () => (spectator ? 9999999 : meta.me),
     isCurrentPlayerSpectator: () => spectator,
     getFormattedPlayerName: (/** @type {number} */ id) => playerNameHtml(id),
+    getPlayerAvatarUrl: () => 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 1 1%22%3E%3Crect width=%221%22 height=%221%22 fill=%22%23888%22/%3E%3C/svg%3E',
   },
   playerPanels: {
     getElement: (/** @type {number} */ id) => /** @type {HTMLElement} */ (document.getElementById(`pv-panel-body-${id}`)),
@@ -146,7 +147,13 @@ const bga = {
     getImgUrl: (/** @type {string} */ file) => `/src/img/${file}`,
     dontPreloadImages() {},
   },
-  gameui: { bgaAnimationsActive: () => animations },
+  gameui: {
+    bgaAnimationsActive: () => animations,
+    // 実際のツールチップは BGA の部品。プレビューでは title で代用する
+    addTooltip(/** @type {string} */ id, /** @type {string} */ help) {
+      document.getElementById(id)?.setAttribute('title', help);
+    },
+  },
 };
 
 async function main() {
