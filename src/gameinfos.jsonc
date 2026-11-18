@@ -82,7 +82,8 @@
     "game_interface_width": {
         // Smallest logical width at which the game remains usable.
         // Values below 320 are treated as 320. Default: 740.
-        "min": 740
+        // 360: the narrow layout (2 player columns) works at 360px (spec 013 section 8).
+        "min": 360
     },
 
     // Trigger an exception when PHP detect warnings.

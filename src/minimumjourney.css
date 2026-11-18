@@ -1,12 +1,29 @@
 /*
- * MINIMUM JOURNEY のスタイル（I-08。仕様書 009 §7〜§11）。
+ * MINIMUM JOURNEY のスタイル（I-08。仕様書 009 §7〜§11、013 §3〜§9）。
  * BGA の CSS は 1 ファイルのみ。@import は使えない。
  * 画像の位置は px 単位に統一する（% は使わない。009 §1.1）。
- * ダークモードは html[data-theme="dark"] で切り替える（009 §11）。
+ * 盤面（.mj-board）はライト・ダークのどちらでも暗い卓として同じ配色に固定する（013 §7.2）。
+ * 拡大表示（.mj-zoom）と山札一覧（.mj-pile-modal）だけ、html[data-theme="dark"] でテーマに従う（009 §11）。
+ *
+ * 寸法の数値（.mj-mat の padding・border、各 gap、.mj-player の幅、.mj-board の padding・max-width）は
+ * Game.js の MAT_CHROME などの定数と一致させる。ここを変えたら Game.js も直す。
  */
 
+/* ---- 背景（013 §7.2）。body::before を画面に固定して敷く。画像は I-17 が生成する（無い間は下の色が見える） ---- */
+body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background:
+        url("img/background.webp") center / cover no-repeat,
+        radial-gradient(ellipse 60% 50% at 20% 15%, rgb(70 84 140 / 30%), transparent 70%),
+        radial-gradient(ellipse 50% 60% at 85% 80%, rgb(96 56 120 / 25%), transparent 70%),
+        #0b0e1a;
+    pointer-events: none;
+}
+
 /* ---- 色と寸法のトークン ---- */
-.mj-board,
 .mj-zoom,
 .mj-pile-modal {
     --mj-bg: rgb(255 255 255 / 55%);
@@ -17,21 +34,8 @@
     --mj-badge-bg: #1f2937;
     --mj-badge-fg: #fff;
     --mj-accent: #1d4ed8;
-    --mj-warn-bg: #fff4d6;
-    --mj-warn-fg: #5c3d00;
     --mj-tooltip-bg: #fff;
     --mj-tooltip-fg: #1b1b1f;
-}
-
-/* ---- 全体のレイアウト（案 B）。幅はコンテナから決める。使えない環境では 1 列のまま ---- */
-.mj-board {
-    container-type: inline-size;
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    gap: 12px;
-    margin: 0 auto;
-    padding: 8px 0;
-    color: var(--mj-fg);
 }
 
 :root {
@@ -39,66 +43,122 @@
      * カードの大きさ。.mj-scope の中ではなく :root で決める。
      * bga-animations は移動中のカードを body 直下の animation-surface へ移すため、.mj-scope に定義すると
      * 移動中だけ --mj-w が未定義になり、スプライトの切り取りが崩れる。
-     * 1 段 5 枚が収まる幅から決める（最小 48px、最大 120px）。--mj-bw は Game.js が <html> に入れる盤面の幅（px）。
+     * --mj-cw は Game.js が <html> に入れるカード幅（px。013 §3.2。上限 120、広い配置では 100 以上）。
+     * 裏向きの山は、その要素の中だけで --mj-w と --mj-h の両方を定義し直して小さくする（--mj-h は定義した要素で計算済みの値が継承されるため）。
      */
-    --mj-w: clamp(48px, min(calc((var(--mj-bw, 100vw) - 56px) / 5), var(--mj-pcw, 120px)), 120px);
+    --mj-cw: 120px;
+    --mj-w: var(--mj-cw);
     --mj-h: calc(var(--mj-w) * 419 / 300);
 }
 
-.mj-scope {
-    --mj-prep-step: 0.58;
+/* ---- 全体のレイアウト（013 §3）。配置は Game.js が #mj-board の data-mj-layout（wide / standard / narrow）に入れる ---- */
+.mj-board {
+    --mj-bg: rgb(255 255 255 / 6%);
+    --mj-fg: #eceff6;
+    --mj-border: rgb(255 255 255 / 18%);
+    --mj-slot-bg: rgb(255 255 255 / 5%);
+    --mj-slot-border: rgb(255 255 255 / 40%);
+    --mj-badge-bg: #e5e7eb;
+    --mj-badge-fg: #111827;
+    --mj-accent: #93b4ff;
 
     box-sizing: border-box;
-    min-width: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+    max-width: 1600px;
+    margin: 0 auto;
     padding: 8px;
-    border: 1px solid var(--mj-border);
-    border-radius: 8px;
-    background: var(--mj-bg);
     color: var(--mj-fg);
+}
+
+/* 広い: 左に探査場、右にプレイヤーを 1 行。標準・狭い: 探査場の下にプレイヤー。どれも中身の幅で中央に寄せる */
+.mj-table {
+    display: flex;
+    flex-direction: column;
+    gap: 12px 24px;
+    align-items: center;
+    min-width: 0;
+}
+
+.mj-board[data-mj-layout="wide"] .mj-table {
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: center;
 }
 
 .mj-players {
     display: flex;
-    flex-direction: column;
+    flex-wrap: wrap;
     gap: 12px;
+    align-items: flex-start;
+    justify-content: center;
     min-width: 0;
 }
 
-/*
- * PC（作者指示 2026-10-17。009 §7.4）: 探査場を上、プレイヤーの領域を下にし、プレイヤーを横に並べる。
- * 準備場が縦に伸びるので、1 人 1 列にして並べると比べやすい。
- * 盤面の幅（.mj-board のコンテナ幅）が 992px 以上は 1 行（4 列）、820px 以上 992px 未満は 2 列（2×2）、820px 未満（モバイル）は従来どおり縦積み。
- * 4 列のときは 1 列を「山札と裏向きの山の 2 枚ぶん」（カード 120px で約 266px）に絞る（作者回答 2026-10-19）。
- * 領域の中の順は全レイアウト共通: 見出し → 山札・裏向きの山（1 行）→ 準備場 → お守り → 獲得カード（作者指示 2026-10-19）。
- * カードは 1088px 以上で 120px。992px〜1088px は --mj-pcw（Game.js が入れる）で 4 列が収まる大きさまで縮める（最小 108px）。
- * 準備場が列の幅を超えて長くなったら（046 の組など）、準備場だけ横にスクロールする。
- */
-@container (min-width: 820px) {
-    .mj-players {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        align-items: start;
-    }
+/* 狭い配置では、左にジャンプリンク（bga-jump-to。幅 32px + margin 5px × 2）の操作しない余白を取る（Game.js の JUMP_GUTTER と一致させる） */
+.mj-board[data-mj-layout="narrow"] {
+    padding-left: calc(8px + 44px);
 }
 
-@container (min-width: 992px) {
-    .mj-players {
-        grid-template-columns: none;
-        grid-auto-flow: column;
-        grid-auto-columns: minmax(0, 1fr);
-        gap: 8px;
-    }
+/* 狭い: 2 列（自分が先頭、席順）。列の幅は .mj-player の固定幅 */
+.mj-board[data-mj-layout="narrow"] .mj-players {
+    display: grid;
+    grid-template-columns: repeat(2, auto);
 }
 
-.mj-heading {
+/* ジャンプリンク（bga-jump-to。盤面の外に置かれる）は、全体が収まる広い配置では出さない（013 §8） */
+/* stylelint-disable-next-line selector-class-pattern -- bga-jump-to のクラス名 */
+html[data-mj-layout="wide"] .bga-jump-to_controls {
+    display: none;
+}
+
+/* ---- マット（013 §6）。半透明の薄い区画。UI パネルの箱ではなく、卓に敷いた布のようなもの ---- */
+.mj-mat {
+    box-sizing: border-box;
+    padding: 10px;
+    border: 1px solid var(--mj-border);
+    border-radius: 12px;
+    background: var(--mj-bg);
+    color: var(--mj-fg);
+}
+
+/* .mj-scope は bga-cards の変数の範囲指定（--mj-prep-step など）。見た目は持たない */
+.mj-scope {
+    --mj-prep-step: 0.58;
+
+    min-width: 0;
+}
+
+/* 列の幅は固定（山札 + 裏向きの山 + 余白。裏向きの山が出入りしても隣が動かない。013 §5.7）。mat の padding・border を含む */
+.mj-player {
     display: flex;
-    flex-wrap: wrap;
-    gap: 4px 12px;
-    align-items: center;
+    flex-direction: column;
+    width: calc(var(--mj-w) * 1.5 + 28px);
+}
+
+.mj-player.mj-active-turn {
+    border-color: var(--mj-accent);
+    box-shadow: 0 0 0 2px var(--mj-accent);
+}
+
+/* 名前だけが領域の見出し（013 §4・§5.5）。暗い色には明るい縁取り（.mj-name-dim）を付ける */
+.mj-player-name {
     margin: 0 0 8px;
-    font-size: 16px;
+    font-size: 15px;
     font-weight: bold;
+    line-height: 1.3;
+    overflow-wrap: anywhere;
     color: inherit;
+}
+
+.mj-name-dim {
+    text-shadow: 0 0 2px #fff, 0 0 2px #fff, 0 0 3px #fff;
+}
+
+.mj-active-turn .mj-player-name::before {
+    content: "▶ ";
+    color: var(--mj-accent);
 }
 
 .mj-label {
@@ -106,26 +166,6 @@
     color: inherit;
 }
 
-/* 山の枚数バッジ（bga-cards の counter）は山の下端の中央に半分はみ出す。ラベルが隠れないよう、バッジの半分ぶん下げる */
-.mj-pile-wrap > .mj-label {
-    margin-top: 16px;
-}
-
-.mj-warning {
-    margin: 0 0 8px;
-    padding: 4px 8px;
-    border: 2px solid currentcolor;
-    border-radius: 4px;
-    background: var(--mj-warn-bg);
-    color: var(--mj-warn-fg);
-    font-weight: bold;
-}
-
-.mj-warning::before {
-    content: "! ";
-}
-
-.mj-warning[hidden],
 .mj-stat[hidden],
 .mj-zoom[hidden] {
     display: none;
@@ -138,6 +178,15 @@
     width: var(--mj-w) !important;
     height: var(--mj-h) !important;
     border-radius: 4.2%;
+}
+
+/*
+ * 暗いマットの上で沈まないよう、明るい細い縁と影を付ける（drop-shadow は Safari で重いので box-shadow）。
+ * カード要素は回転しないので、回転する内側の面（.bga-cards_card-side）に付けて、横向きでも見た目のカードに沿わせる。
+ */
+/* stylelint-disable-next-line selector-class-pattern -- bga-cards のクラス名 */
+.mj-card > .bga-cards_card-sides > .bga-cards_card-side {
+    box-shadow: 0 0 0 1px rgb(255 255 255 / 35%), 0 2px 6px rgb(0 0 0 / 55%);
 }
 
 /*
@@ -197,11 +246,34 @@
     margin-bottom: calc(var(--mj-h) * (var(--mj-prep-step) - 1));
 }
 
-.mj-prep-wrap {
-    /* 山札・裏向きの山の下に 1 行ぶんの幅で置く（お守りはその下）。1 列の縦並びなので、枚数が増えると縦に伸びる（046 の組などで横にはみ出したときだけ横にスクロールする） */
-    flex: 1 0 100%;
+/* 空の準備場は高さ 0（013 §5.2） */
+.mj-prep:not(:has(.mj-card)) {
+    min-height: 0;
+    padding-bottom: 0;
+}
+
+/*
+ * 山札・裏向きの山の下に 1 行ぶんの幅で置く（お守りはその下）。1 列の縦並びなので、枚数が増えると縦に伸びる（046 の組などで横にはみ出したときだけ横にスクロールする）。
+ * overflow で縁と影が切れないよう、padding と負の margin で 4px の余白を取る。
+ */
+.mj-prep-wrap,
+.mj-acquired-wrap {
     min-width: 0;
+    margin: -4px;
+    padding: 4px;
     overflow-x: auto;
+}
+
+.mj-prep-wrap:has(.mj-card),
+.mj-charm-wrap,
+.mj-acquired-wrap {
+    margin-top: 10px;
+}
+
+.mj-charm-wrap[hidden],
+.mj-acquired-wrap[hidden],
+.mj-facedown-wrap[hidden] {
+    display: none;
 }
 
 /* 横向き: 回転は bga-cards（getCardRotation）。占有幅の余白と斜線で示す */
@@ -216,7 +288,9 @@
 
 .mj-sideways-mark {
     position: absolute;
-    inset: 0;
+
+    /* 斜線は回転しない要素に付くので、横向きの見た目のカード（高さ × 幅）に合わせる */
+    inset: calc((var(--mj-h) - var(--mj-w)) / 2) calc((var(--mj-w) - var(--mj-h)) / 2);
     z-index: 2;
     border-radius: 4.2%;
     background: repeating-linear-gradient(
@@ -388,42 +462,71 @@
 
 .mj-row {
     display: flex;
-    gap: 8px;
+    gap: 6px;
     align-items: flex-start;
     min-width: 0;
-    margin-bottom: 8px;
 }
 
 .mj-row-slots {
     display: flex;
-    gap: 4px;
+    gap: 6px;
     min-width: 0;
 }
 
+/* 探査場: 未確認帯域の行 + コスト別の 4 行を縦に並べる。中身の幅で、マットを内容に合わせる */
+.mj-explore {
+    display: grid;
+    gap: 12px;
+    justify-items: start;
+    width: fit-content;
+}
+
+.mj-unknown-wrap:not(:has(.mj-card)) {
+    display: none;
+}
+
+/* 枠の幅を中身（絶対配置のカード）に頼らず固定し、横並びで縮んだり左へずれたりしないようにする */
 .mj-pile-wrap,
-.mj-unknown-wrap,
-.mj-acquired-wrap {
-    /* 枠の幅を中身（絶対配置のカード）に頼らず固定し、横並びで縮んだり左へずれたりしないようにする */
+.mj-deck-wrap,
+.mj-facedown-wrap {
+    position: relative;
     flex: 0 0 auto;
+}
+
+/* 探査山札のコスト札。山を包む要素の上に重ねる（bga-cards が管理する山の要素の中には入れない。013 §4） */
+.mj-cost-token {
+    position: absolute;
+    top: -6px;
+    left: -6px;
+    z-index: 10;
+    box-sizing: border-box;
     display: flex;
-    flex-direction: column;
-    gap: 2px;
-    align-items: flex-start;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border: 2px solid #9cc3ff;
+    border-radius: 50%;
+    background: #12213f;
+    color: #fff;
+    font-size: 14px;
+    font-weight: bold;
+    line-height: 1;
+    pointer-events: none;
 }
 
-.mj-unknown-wrap {
-    margin-bottom: 8px;
-}
-
-.mj-player-main {
+/* 山札と裏向きの山の行。山の枚数バッジは下端に半分はみ出すので、そのぶん余白を取る */
+.mj-player-piles {
     display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    align-items: flex-start;
+    gap: 6px;
+    align-items: flex-end;
+    padding-bottom: 10px;
 }
 
-.mj-acquired-wrap {
-    margin-top: 8px;
+/* 裏向きの山は約 0.5 倍（013 §5.3）。--mj-w と --mj-h の両方をここで定義し直す。--mj-cw は <html> のカード幅 */
+.mj-facedown {
+    --mj-w: calc(var(--mj-cw) * 0.5);
+    --mj-h: calc(var(--mj-w) * 419 / 300);
 }
 
 .mj-tie-summary {
@@ -445,37 +548,66 @@
     opacity: 0.55;
 }
 
-.mj-final-deck-wrap {
-    margin-top: 8px;
-    padding-top: 6px;
-    border-top: 1px solid var(--mj-badge-fg);
+/* ゲーム終了時のデッキ一覧: 卓の下の全幅の段に、プレイヤーごとのマットで並べる（013 §5.6） */
+.mj-final {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 0;
+}
+
+.mj-final:empty {
+    display: none;
+}
+
+.mj-final-head {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 12px;
+    align-items: baseline;
+}
+
+.mj-final-head .mj-player-name {
+    margin: 0;
 }
 
 .mj-final-deck {
     min-width: 0;
+    margin-top: 8px;
 }
 
-.mj-acquired {
-    min-width: calc(var(--mj-w) * 1.5);
+/* 一覧は左詰め（bga-cards の LineStock の中央寄せを切る） */
+.mj-scope .mj-final-deck.line-stock,
+.mj-scope .mj-final-deck.line-stock[data-center] {
+    justify-content: flex-start;
 }
 
-/* 山札の一覧（ゲームオプション 102。009 §8.2.2）。山札の下のボタンと、body 直下のオーバーレイ */
+/* 山札の一覧ボタン（ゲームオプション 102。009 §8.2.2、013 §5.4）。山札の右上に重ねるアイコンボタン */
 .mj-deck-view {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    z-index: 6;
     box-sizing: border-box;
-    width: max-content;
-    min-width: var(--mj-w);
-    max-width: calc(var(--mj-w) + 16px);
-    margin-top: 2px;
-    padding: 2px 4px;
-    border: 1px solid var(--mj-border);
-    border-radius: 4px;
-    background: var(--mj-bg);
-    color: var(--mj-fg);
-    font-size: 11px;
-    line-height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: 1px solid rgb(255 255 255 / 60%);
+    border-radius: 50%;
+    background: rgb(11 14 26 / 85%);
+    color: #fff;
     cursor: pointer;
 }
 
+.mj-deck-view:hover,
+.mj-deck-view:focus-visible {
+    outline: 2px solid var(--mj-accent);
+}
+
+/* 山札の一覧のオーバーレイ（ゲームオプション 102。009 §8.2.2）。body 直下 */
 .mj-pile-modal {
     position: fixed;
     inset: 0;
@@ -492,7 +624,11 @@
 }
 
 .mj-pile-modal .mj-pile-dialog {
+    box-sizing: border-box;
     display: flex;
+    padding: 8px;
+    border: 1px solid var(--mj-border);
+    border-radius: 8px;
     flex-direction: column;
     gap: 6px;
     width: min(100%, 900px);
@@ -550,12 +686,8 @@
     text-align: center;
 }
 
-.mj-cost-tag {
-    display: inline-flex;
-    gap: 2px;
-    align-items: center;
-    font-size: 14px;
-    font-weight: bold;
+.mj-facedown .mj-count {
+    font-size: 12px;
 }
 
 /* ---- 選択の状態（操作 UI は後続タスク）。枠の太さと記号で示し、色だけに頼らない ---- */
@@ -580,6 +712,39 @@
     text-align: center;
 }
 
+/*
+ * 横向きのカード: 要素そのもの（縦長の箱）ではなく、回転する面に選択の枠を付ける。
+ * 「+」は見た目のカードの右下（縦長の箱の中では、左右に (幅 − 高さ) / 2、上下に (高さ − 幅) / 2 ずらした位置）に置く。
+ */
+.mj-sideways.mj-selectable,
+.mj-sideways.mj-selected,
+.mj-sideways.mj-highlight {
+    outline: none;
+}
+
+/* stylelint-disable-next-line selector-class-pattern -- bga-cards のクラス名 */
+.mj-sideways.mj-selectable > .bga-cards_card-sides > .bga-cards_card-side {
+    outline: 4px solid var(--mj-accent);
+    outline-offset: -2px;
+}
+
+/* stylelint-disable-next-line selector-class-pattern -- bga-cards のクラス名 */
+.mj-sideways.mj-selected > .bga-cards_card-sides > .bga-cards_card-side {
+    outline: 6px double var(--mj-accent);
+    outline-offset: -3px;
+}
+
+/* stylelint-disable-next-line selector-class-pattern -- bga-cards のクラス名 */
+.mj-sideways.mj-highlight > .bga-cards_card-sides > .bga-cards_card-side {
+    outline: 3px solid var(--mj-accent);
+    outline-offset: -3px;
+}
+
+.mj-sideways.mj-selectable::after {
+    right: calc((var(--mj-w) - var(--mj-h)) / 2 + 2px);
+    bottom: calc((var(--mj-h) - var(--mj-w)) / 2 + 2px);
+}
+
 .mj-unselectable {
     filter: brightness(0.55);
     cursor: default;
@@ -590,12 +755,7 @@
     outline-offset: -3px;
 }
 
-.mj-active-turn {
-    border-width: 3px;
-    border-color: var(--mj-accent);
-}
-
-/* ---- パネルと見出しの数値 ---- */
+/* ---- プレイヤーパネルの数値（013 §4）。パネルは BGA の側の色（ライト・ダーク）に従う ---- */
 .mj-stats {
     display: inline-flex;
     flex-wrap: wrap;
@@ -624,8 +784,9 @@
     white-space: nowrap;
 }
 
-.mj-stat-label {
-    opacity: 0.85;
+.mj-card-icon {
+    flex: none;
+    vertical-align: middle;
 }
 
 /* ---- アイコン（icons.webp。出力寸法の 1/4 で表示: セル 24x22。009 §4.5） ---- */
@@ -766,8 +927,7 @@
 .mj-timing-fame { background: #a21caf; }
 .mj-timing-acquire { background: #b91c1c; }
 
-/* ---- ダークモード（最後に置く） ---- */
-html[data-theme="dark"] .mj-board,
+/* ---- ダークモード（最後に置く）。拡大表示と山札一覧のオーバーレイだけテーマに従う ---- */
 html[data-theme="dark"] .mj-zoom,
 html[data-theme="dark"] .mj-pile-modal {
     --mj-bg: rgb(20 24 40 / 70%);
@@ -778,8 +938,6 @@ html[data-theme="dark"] .mj-pile-modal {
     --mj-badge-bg: #e5e7eb;
     --mj-badge-fg: #111827;
     --mj-accent: #93b4ff;
-    --mj-warn-bg: #4a3a10;
-    --mj-warn-fg: #ffe9a8;
     --mj-tooltip-bg: #1f2433;
     --mj-tooltip-fg: #eceff6;
 }

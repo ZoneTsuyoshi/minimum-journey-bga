@@ -72,8 +72,14 @@ try {
         const page = await context.newPage();
         page.on('pageerror', (e) => errors.push(`[${label}] pageerror: ${e.message}`));
         page.on('console', (m) => {
-          if (m.type() === 'error') {
+          // 背景画像（src/img/background.webp）は I-17 が生成する。無い間の 404 は無視する
+          if (m.type() === 'error' && !m.location().url?.endsWith('/src/img/background.webp')) {
             errors.push(`[${label}] console.error: ${m.text()} ${m.location().url ?? ''}`);
+          }
+        });
+        page.on('response', (r) => {
+          if (r.status() >= 400 && !r.url().endsWith('/src/img/background.webp')) {
+            errors.push(`[${label}] HTTP ${r.status()}: ${r.url()}`);
           }
         });
         page.on('requestfailed', (r) => errors.push(`[${label}] requestfailed: ${r.url()} ${r.failure()?.errorText ?? ''}`));
@@ -93,6 +99,11 @@ try {
         }
         await page.waitForLoadState('networkidle').catch(() => {});
         await page.waitForTimeout(300);
+        // ページが横にはみ出していないこと（013 §3.3）
+        const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+        if (overflow > 0) {
+          errors.push(`[${label}] ページが横にはみ出しています（scrollWidth が clientWidth より ${overflow}px 大きい）`);
+        }
         const base = path.join(dir, `${size}-${theme}`);
         await page.screenshot({ path: `${base}.png` });
         await page.screenshot({ path: `${base}-full.png`, fullPage: true });

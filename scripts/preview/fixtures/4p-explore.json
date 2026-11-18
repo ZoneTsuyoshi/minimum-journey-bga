@@ -67,30 +67,7 @@
     "lockedCard": null
    }
   },
-  "replay": [
-   {
-    "name": "exploreStarted",
-    "args": {}
-   },
-   {
-    "name": "exploreOrderDecided",
-    "args": {
-     "order": [
-      2310002,
-      2310001,
-      2310004,
-      2310003
-     ]
-    }
-   },
-   {
-    "name": "exploreTurnStarted",
-    "args": {
-     "player_id": 2310001,
-     "index": 1
-    }
-   }
-  ]
+  "replay": []
  },
  "gamedatas": {
   "round": 3,
@@ -102,9 +79,9 @@
    2310004
   ],
   "piles": {
-   "2": 0,
-   "4": 1,
-   "6": 0,
+   "2": 6,
+   "4": 7,
+   "6": 5,
    "8": 7
   },
   "rows": {

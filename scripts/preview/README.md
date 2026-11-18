@@ -33,6 +33,7 @@ npm run preview:shots -- --fixture 4p-prep-late --size 1920x1080 --theme dark
 | `4p-prep-late` | 4 人、3 ラウンド目の準備の後半。46 と付加カード、横向き、選択済み、ストップ済み |
 | `4p-explore` | 4 人、探査フェイズ。自分の手番（`ExploreChoose`）、獲得カード、お守り |
 | `3p-prep-mid` | 3 人、準備の途中（列 3/3/2/2） |
+| `4p-pile8-empty` | 4 人、探査フェイズ。コスト 8 の探査山札が 0 枚（最終ラウンドのバナー） |
 | `4p-end` | 4 人、ゲーム終了（`finalDecks`・`finalSummaries`） |
 
 ## BGA の画面との違い
@@ -46,5 +47,4 @@ npm run preview:shots -- --fixture 4p-prep-late --size 1920x1080 --theme dark
 - トップバー・ステータスバーは固定表示（sticky）にしていない。ボタンやパネルの寸法・フォント・色は目安で、BGA の実物と一致しない。
 - パネルの中身は `Game.js` が入れた要素だけ（BGA のアバター、時計、スコア欄などは無い）。
 - 翻訳（`_()`）は原文をそのまま返す。ログ、通知、手番の進行、サーバー側の処理は無い。`gamedatas.gamestate` は fixture から作る。
-- `exploreOrder` / `exploreIndex` は `setup` では復元されないため、fixture の `replay` で通知ハンドラを呼んで再現している。
 - 画像・ライブラリは手元の `src/img/` と CDN の最新（1.x）を使う。
