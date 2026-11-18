@@ -1,4 +1,4 @@
-// スプライト生成物の検査（仕様書 009 第 5.4 節）。生成はしない。
+// スプライト生成物・背景画像の検査（仕様書 009 第 5.4 節、013 第 7 節）。生成はしない。
 // 使い方: npm run check:sprites [-- --out <dir>] [--manifest <path>]
 import { readdir, readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
@@ -13,6 +13,8 @@ const MAX_FILE_BYTES = 2_000_000; // 1 ファイル 2 MB（A1。004 §2.9）
 const MAX_TOTAL_BYTES = 15_000_000; // 総量 15 MB
 const WARN_TOTAL_BYTES = 6_000_000; // 目標 6 MB
 const MAX_DIM = 4096;
+const BACKGROUND_FILE = 'background.webp';
+const WARN_BACKGROUND_BYTES = 300_000; // 背景は毎回読み込むので 300 KB 以下が目安
 const WARN_FILE_COUNT = 10; // img/README「fewer than 10 files」。Typically なので警告（009 §4.6）
 const NAME_RE = /^[A-Za-z0-9_]+\.webp$/;
 const IMAGE_EXT_RE = /\.(webp|png|jpe?g|gif|svg)$/i;
@@ -38,10 +40,11 @@ export async function checkSprites({ out, manifest }) {
   const warnings = [];
   const rows = [];
 
-  // 期待するファイル（第 4.1 節の 5 枚と icons.webp）
+  // 期待するファイル（第 4.1 節の 5 枚と icons.webp、background.webp）
   const expected = [];
   for (const t of Object.values(TIERS)) for (const s of Object.values(t.sheets)) expected.push(s.file);
   expected.push(ICON_FILE);
+  expected.push(BACKGROUND_FILE);
 
   let m = null;
   try {
@@ -53,7 +56,7 @@ export async function checkSprites({ out, manifest }) {
   // ファイルの存在・余計な画像・ファイル名
   const present = await listFiles(out);
   for (const f of expected) if (!present.includes(f)) errors.push(`ファイルがありません: ${f}`);
-  const generatedLike = (f) => /^cards_[^/]*\.webp$/.test(f) || f === ICON_FILE || /(^|\/)cards_/.test(f);
+  const generatedLike = (f) => /^cards_[^/]*\.webp$/.test(f) || f === ICON_FILE || f === BACKGROUND_FILE || /(^|\/)cards_/.test(f);
   for (const f of present) {
     if (expected.includes(f)) continue;
     if (!IMAGE_EXT_RE.test(f)) continue;
@@ -84,6 +87,7 @@ export async function checkSprites({ out, manifest }) {
     }
     if (size > MAX_FILE_BYTES) errors.push(`${f}: ${size} バイトが 1 ファイルの上限 ${MAX_FILE_BYTES} を超えています`);
     if (w > MAX_DIM || h > MAX_DIM) errors.push(`${f}: ${w}x${h} が ${MAX_DIM}px を超えています`);
+    if (f === BACKGROUND_FILE && size > WARN_BACKGROUND_BYTES) warnings.push(`${f}: ${size} バイトが目安 ${WARN_BACKGROUND_BYTES} を超えています`);
     rows.push({ f, w, h, size });
   }
   if (total > MAX_TOTAL_BYTES) errors.push(`総量 ${total} バイトが上限 ${MAX_TOTAL_BYTES} を超えています`);

@@ -54,7 +54,7 @@ for (const file of files) {
     if (parts.slice(0, -1).includes(dir)) fail(file, `src/ に開発用ディレクトリは置けません（${dir}/）`);
   }
   // 3. コミット禁止のスプライト生成物
-  if (file.startsWith('src/img/cards_')) {
+  if (file.startsWith('src/img/cards_') || file === 'src/img/icons.webp' || file === 'src/img/background.webp') {
     fail(file, 'スプライト生成物はコミットできません（.gitignore 対象）');
   }
   if (!safeName.test(file)) {

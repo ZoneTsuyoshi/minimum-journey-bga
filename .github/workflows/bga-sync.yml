@@ -11,6 +11,7 @@ on:
       - 'src/**'
       - 'data/cards/**'
       - 'data/icons/**'
+      - 'data/banner/**'
       - 'scripts/build-sprites.mjs'
       - 'scripts/lib/**'
       - 'scripts/bga-sync/**'
