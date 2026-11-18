@@ -1241,6 +1241,7 @@ class SimultaneousEffects {
 
 const BgaAnimations = await importEsmLib('bga-animations', '1.x');
 const BgaCards = await importEsmLib('bga-cards', '1.x');
+const BgaJumpTo = await importEsmLib('bga-jump-to', '1.x');
 
 /**
  * 画面に出すカード 1 枚の情報。サーバーの `{ id, cardNo, art }` に表示用の項目を足したもの。
@@ -1477,7 +1478,98 @@ function defaultRowQuota(playerCount) {
  * @property {any} prep LineStock
  * @property {any} acquired AllVisibleDeck
  * @property {any} charm LineStock
+ * @property {HTMLElement} facedownWrap 裏向きの山を包む要素（0 枚のとき隠す）
+ * @property {HTMLElement} charmWrap お守りを包む要素（所持者だけ表示）
+ * @property {HTMLElement} acquiredWrap 獲得カードを包む要素（1 枚以上のときだけ表示）
  */
+
+/*
+ * 画面構成の寸法（013 §3.2）。ここの値は src/minimumjourney.css と一致させる。CSS を変えたらここも直すこと（逆も同じ）。
+ *   MAT_CHROME   .mj-mat の padding 10px × 2 + border 1px × 2
+ *   SLOT_GAP     .mj-row と .mj-row-slots の gap
+ *   ROW_GAP      .mj-explore の行の gap
+ *   PLAYER_GAP   .mj-players の gap
+ *   TABLE_GAP    広い配置の .mj-table の gap（探査場とプレイヤーの間）
+ *   PLAYER_EXTRA .mj-player の幅 = カード幅 × 1.5 + この値（山札と裏向きの山の間の gap 6px + MAT_CHROME）
+ *   BOARD_PAD    .mj-board の左右の padding
+ *   BOARD_MAX    .mj-board の max-width
+ */
+const MAT_CHROME = 22;
+const SLOT_GAP = 6;
+const ROW_GAP = 12;
+const PLAYER_GAP = 12;
+const TABLE_GAP = 24;
+const PLAYER_EXTRA = 28;
+const BOARD_PAD = 8;
+const BOARD_MAX = 1600;
+/** カード幅の上限・下限（px） */
+const CARD_MAX = 120;
+const CARD_MIN_WIDE = 100;
+const CARD_MIN_STANDARD = 96;
+const CARD_MIN_NARROW = 48;
+
+/**
+ * 画面幅・高さ・人数・探査場の 1 段の最大スロット数から、配置とカード幅を決める（013 §3.2）。広い → 標準 → 狭いの順に、条件を満たす最初の配置を使う。
+ *
+ * @param {number} width 盤面の内側の幅（px）
+ * @param {number} height 見えている高さ（px）
+ * @param {number} players 人数
+ * @param {number} slots 探査場の 1 段の最大スロット数
+ * @returns {{ layout: 'wide' | 'standard' | 'narrow', cardWidth: number }}
+ */
+function computeLayout(width, height, players, slots) {
+    const exploreWidth = (/** @type {number} */ c) => (1 + slots) * c + slots * SLOT_GAP + MAT_CHROME;
+    const playersWidth = (/** @type {number} */ c, /** @type {number} */ k) => k * (1.5 * c + PLAYER_EXTRA) + (k - 1) * PLAYER_GAP;
+    // 探査場の高さ（未確認帯域と 4 段の 5 行）が見えている高さに収まる最大のカード幅
+    const heightLimit = Math.floor(((height - 4 * ROW_GAP - MAT_CHROME) * 300) / (5 * 419));
+    const wideMax = Math.min(CARD_MAX, Math.max(CARD_MIN_WIDE, heightLimit));
+    for (let c = wideMax; c >= CARD_MIN_WIDE; c--) {
+        if (exploreWidth(c) + TABLE_GAP + playersWidth(c, players) <= width) {
+            return { layout: 'wide', cardWidth: c };
+        }
+    }
+    for (let c = CARD_MAX; c >= CARD_MIN_STANDARD; c--) {
+        if (Math.max(exploreWidth(c), playersWidth(c, players)) <= width) {
+            return { layout: 'standard', cardWidth: c };
+        }
+    }
+    for (let c = CARD_MAX; c > CARD_MIN_NARROW; c--) {
+        if (Math.max(exploreWidth(c), playersWidth(c, Math.min(players, 2))) <= width) {
+            return { layout: 'narrow', cardWidth: c };
+        }
+    }
+    return { layout: 'narrow', cardWidth: CARD_MIN_NARROW };
+}
+
+/**
+ * 名前の色が暗い卓の背景（#151a2a 程度）で読みにくい（コントラスト比 4.5 未満）かどうか。
+ *
+ * @param {string} html getFormattedPlayerName の HTML
+ * @returns {boolean}
+ */
+function isDimColor(html) {
+    const m = /color:\s*#([0-9a-f]{6})/i.exec(html);
+    if (m === null) {
+        return false;
+    }
+    const channel = (/** @type {number} */ i) => {
+        const v = parseInt(/** @type {string} */ (m[1]).slice(i, i + 2), 16) / 255;
+        return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+    };
+    const lum = 0.2126 * channel(0) + 0.7152 * channel(2) + 0.0722 * channel(4);
+    return (lum + 0.05) / (0.012 + 0.05) < 4.5;
+}
+
+/**
+ * 翻訳した文の ${key} を値に置き換える。
+ *
+ * @param {string} text
+ * @param {Record<string, string | number>} values
+ * @returns {string}
+ */
+function fmt(text, values) {
+    return Object.entries(values).reduce((acc, [key, value]) => acc.replaceAll('${' + key + '}', String(value)), text);
+}
 
 /** 終了時のデッキ一覧のカード ID を、盤面のカードと重ならないようにするずらし幅 */
 const FINAL_DECK_ID_OFFSET = 1000000;
@@ -1541,6 +1633,10 @@ export class Game {
         this.highlighted = [];
         /** @type {number | null} 007 が保持した列のカード */
         this.lockedCardId = null;
+        this.playerCount = 0;
+        this.layoutKey = '';
+        /** 最終ラウンドのバナーを出し済みか */
+        this.lastTurnBannerShown = false;
 
         this.bga.states.register('PrepChoice', new PrepChoice(this, bga));
         this.bga.states.register('PrepChoiceLate', new PrepChoiceLate(this, bga));
@@ -1613,6 +1709,10 @@ export class Game {
         const me = int(this.bga.players.getCurrentPlayerId());
         this.prepOver = gamedatas.phase !== 'prep';
         this.gameEnded = gamedatas.phase === 'end' || (typeof g_archive_mode !== 'undefined' && g_archive_mode);
+        this.playerCount = playerOrder.length;
+        // 探査フェイズ中の再読み込みで、手番の表示と強調を復元する（ガイドライン F.2）
+        this.exploreOrder = (gamedatas.exploreOrder ?? []).map(int);
+        this.exploreIndex = int(gamedatas.exploreIndex ?? -1);
 
         // 領域の並び: 自分を先頭に、席順で続ける。観戦者は席順のまま全員を縮小表示（009 §7.2・§11）
         const myIndex = playerOrder.indexOf(me);
@@ -1621,13 +1721,16 @@ export class Game {
             : [...playerOrder.slice(myIndex), ...playerOrder.slice(0, myIndex)];
 
         this.bga.gameArea.getElement().insertAdjacentHTML('beforeend', `
-            <div id="mj-board" class="mj-board">
-                <div id="mj-choice" class="mj-choice mj-scope" hidden>
+            <div id="mj-board" class="mj-board" data-mj-layout="narrow">
+                <div id="mj-choice" class="mj-choice mj-mat mj-scope" hidden>
                     <span class="mj-label"></span>
                     <div id="mj-choice-cards" class="mj-choice-cards"></div>
                 </div>
-                <div id="mj-explore" class="mj-explore mj-scope"></div>
-                <div id="mj-players" class="mj-players"></div>
+                <div id="mj-table" class="mj-table">
+                    <div id="mj-explore" class="mj-explore mj-mat mj-scope" role="group" aria-label="${_('Exploration field')}"></div>
+                    <div id="mj-players" class="mj-players"></div>
+                </div>
+                <div id="mj-final" class="mj-final"></div>
             </div>
             <div id="mj-zoom" class="mj-zoom" hidden aria-hidden="true">
                 <div id="mj-zoom-img" class="mj-zoom-img"></div>
@@ -1637,11 +1740,12 @@ export class Game {
         // 拡大表示は body 直下へ移す。ゲーム領域の祖先に transform や zoom があると、position: fixed の基準がずれて端が切れる
         document.body.appendChild(/** @type {HTMLElement} */ (document.getElementById('mj-zoom')));
 
-        this.setupBoardWidth();
         this.setupExplore(gamedatas, playerOrder.length);
+        this.setupLayout();
         for (const playerId of ordered) {
             this.setupPlayerArea(playerId, gamedatas.players[playerId] ?? {});
         }
+        this.setupJumpTo(ordered);
         this.setupCharm(gamedatas.charm);
         for (const [pid, cards] of Object.entries(gamedatas.finalDecks ?? {})) {
             this.showFinalDeck(int(pid), /** @type {any[]} */ (cards), gamedatas.finalSummaries?.[pid]);
@@ -1658,29 +1762,121 @@ export class Game {
         }
         this.setupZoom();
         this.setupNotifications();
+        this.showLastTurnBannerOnLoad();
     }
 
     /**
-     * 盤面の幅（px）を <html> の CSS 変数 --mj-bw に入れる（移動中のカードは .mj-scope の外へ出るため）。カードの大きさ（--mj-w）は cqw ではなくこの値から決める。
-     * cqw は使う要素ごとに基準のコンテナを探すため、環境によって枠・カード・スプライトで値が食い違うことがある。
+     * 配置（広い・標準・狭い）とカード幅を決める（013 §3）。ゲーム領域の幅と、見えている高さが変わったら再計算する。
+     * カード幅は <html> の CSS 変数 --mj-cw に入れる（移動中のカードは盤面の外へ出るため。minimumjourney.css の :root が --mj-w に使う）。
      */
-    setupBoardWidth() {
+    setupLayout() {
+        const update = () => this.updateLayout();
+        window.addEventListener('resize', update);
+        if (typeof ResizeObserver !== 'undefined') {
+            new ResizeObserver(update).observe(this.bga.gameArea.getElement());
+        }
+        update();
+    }
+
+    /** 配置とカード幅を再計算する。探査場の 1 段の最大スロット数（011 で増減する）が変わったときも呼ぶ */
+    updateLayout() {
+        const area = this.bga.gameArea.getElement();
         const board = document.getElementById('mj-board');
-        if (board === null) {
+        if (board === null || area.clientWidth <= 0) {
             return;
         }
-        const update = () => {
-            const width = board.clientWidth;
-            if (width > 0) {
-                document.documentElement.style.setProperty('--mj-bw', `${width}px`);
-                // 4 列（992px 以上）が収まる最小の幅（1088px）より狭いときだけ、カードを縮めて 4 列を保つ（最小 108px）。009 §7.4
-                const pcWidth = width >= 992 && width < 1088 ? Math.floor((width - 128) / 8) : 120;
-                document.documentElement.style.setProperty('--mj-pcw', `${pcWidth}px`);
-            }
-        };
-        update();
-        if (typeof ResizeObserver !== 'undefined') {
-            new ResizeObserver(update).observe(board);
+        const width = Math.min(area.clientWidth, BOARD_MAX) - 2 * BOARD_PAD;
+        // ページ上端からゲーム領域までの高さ（トップバー・ステータスバーなど）を引いた、見えている高さ
+        const height = window.innerHeight - (area.getBoundingClientRect().top + window.scrollY);
+        const slots = Math.max(1, ...COSTS.map((cost) => this.rowStocks[cost]?.getSlotsIds().length ?? this.rowQuota[cost] ?? 0));
+        const { layout, cardWidth } = computeLayout(width, height, this.playerCount, slots);
+        const key = `${layout}-${cardWidth}`;
+        if (key === this.layoutKey) {
+            return;
+        }
+        this.layoutKey = key;
+        board.dataset.mjLayout = layout;
+        // ジャンプリンク（盤面の外にある）を広い配置で隠すために、<html> にも付ける
+        document.documentElement.dataset.mjLayout = layout;
+        document.documentElement.style.setProperty('--mj-cw', `${cardWidth}px`);
+    }
+
+    /**
+     * 「Exploration field」と各プレイヤーの領域へのジャンプリンク（bga-jump-to。013 §8）。広い配置では全体が収まるので CSS で隠す。
+     *
+     * @param {number[]} ordered 領域の並び順のプレイヤー ID
+     */
+    setupJumpTo(ordered) {
+        const entries = [new BgaJumpTo.Entry(_('Exploration field'), 'mj-explore', { color: '#9cc3ff' })];
+        for (const playerId of ordered) {
+            const info = this.gamedatas.players?.[playerId] ?? {};
+            const name = typeof info.name === 'string' ? info.name : this.plainName(playerId);
+            const color = typeof info.color === 'string' ? `#${info.color}` : '#9cc3ff';
+            entries.push(new BgaJumpTo.Entry(name, `mj-player-${playerId}`, {
+                color,
+                backgroundImage: `url('${this.bga.players.getPlayerAvatarUrl(playerId, 32)}')`,
+            }));
+        }
+        new BgaJumpTo.Manager({ entries, element: this.bga.gameArea.getElement() });
+    }
+
+    /**
+     * 名前の文字列（タグなし）。
+     *
+     * @param {number} playerId
+     * @returns {string}
+     */
+    plainName(playerId) {
+        const holder = document.createElement('div');
+        holder.innerHTML = this.bga.players.getFormattedPlayerName(playerId);
+        return holder.textContent ?? '';
+    }
+
+    /**
+     * 最終ラウンドのバナー（BGA 標準）。reason は通知 gameEndTriggered の reason（unknown / pile8）。
+     *
+     * @param {string} reason
+     */
+    showLastTurnBanner(reason) {
+        if (this.lastTurnBannerShown) {
+            return;
+        }
+        this.lastTurnBannerShown = true;
+        const message = reason === 'unknown'
+            ? _('This is the last round: the Unknown Region has been reached')
+            : _('This is the last round: the 8-cost exploration pile is empty');
+        this.bga.gameArea.addLastTurnBanner(message);
+    }
+
+    /** ページ読み込み時、ゲーム終了前でコスト 8 の山が尽きている／未確認帯域が場にないなら、バナーを出す */
+    showLastTurnBannerOnLoad() {
+        if (this.gameEnded) {
+            return;
+        }
+        if (this.pileCounts[8] === 0) {
+            this.showLastTurnBanner('pile8');
+        } else if (this.gamedatas.unknown === null || this.gamedatas.unknown === undefined) {
+            this.showLastTurnBanner('unknown');
+        }
+    }
+
+    /**
+     * 要素にアクセシブルな名前（と、必要ならツールチップ）を付ける。ツールチップは id のある要素だけ（addTooltip の制約）。
+     *
+     * @param {HTMLElement | null} element
+     * @param {string} text
+     * @param {boolean} [tooltip]
+     */
+    describe(element, text, tooltip = true) {
+        if (element === null) {
+            return;
+        }
+        if (element.tagName !== 'BUTTON') {
+            element.setAttribute('role', 'group');
+        }
+        element.setAttribute('aria-label', text);
+        if (tooltip && element.id !== '') {
+            this.bga.gameui.addTooltip(element.id, text, '');
         }
     }
 
@@ -1698,18 +1894,16 @@ export class Game {
             <div class="mj-row" data-cost="${cost}">
                 <div class="mj-pile-wrap">
                     <div id="mj-explore-deck-${cost}" class="mj-pile mj-explore-deck"></div>
-                    <span class="mj-cost-tag"><span class="mj-icon mj-icon-cost" role="img" aria-label="${_('Exploration cost')}"></span>${cost}</span>
+                    <span class="mj-cost-token" aria-hidden="true">${cost}</span>
                 </div>
                 <div id="mj-row-${cost}" class="mj-row-slots"></div>
             </div>`).join('');
         root.innerHTML = `
-            <h2 class="mj-heading">${_('Exploration field')}</h2>
             <div class="mj-unknown-wrap">
                 <div id="mj-unknown" class="mj-unknown"></div>
-                <span class="mj-cost-tag"><span class="mj-icon mj-icon-unknown" role="img" aria-label="${_('Unknown Region')}"></span>10</span>
             </div>
-            <p id="mj-end-warning" class="mj-warning" hidden>${_('The 8-cost pile is empty: the game ends at the end of this round')}</p>
             ${rowsHtml}`;
+        this.describe(document.getElementById('mj-unknown'), `${_('Unknown Region')}: ${_('Exploration cost')} 10`, false);
 
         const stockStyles = {
             selectableCardStyle: { class: 'mj-selectable' },
@@ -1762,16 +1956,15 @@ export class Game {
                 }
             }
         }
+        this.updateLayout();
     }
 
-    /** 枚数 0 の山を空枠にし、コスト 8 が尽きたら注意を出す（009 §8.2） */
+    /** 枚数 0 の山を空枠にし、名前とツールチップの枚数を更新する（009 §8.2、013 §9） */
     updatePileMarks() {
         for (const cost of COSTS) {
-            document.getElementById(`mj-explore-deck-${cost}`)?.classList.toggle('mj-empty', this.pileCounts[cost] === 0);
-        }
-        const warning = document.getElementById('mj-end-warning');
-        if (warning !== null) {
-            warning.hidden = this.pileCounts[8] !== 0;
+            const deck = document.getElementById(`mj-explore-deck-${cost}`);
+            deck?.classList.toggle('mj-empty', this.pileCounts[cost] === 0);
+            this.describe(deck, fmt(_('Exploration pile: cost ${cost}, ${count} cards left'), { cost, count: this.pileCounts[cost] ?? 0 }));
         }
     }
 
@@ -1784,31 +1977,25 @@ export class Game {
     setupPlayerArea(playerId, data) {
         const name = this.bga.players.getFormattedPlayerName(playerId);
         const container = /** @type {HTMLElement} */ (document.getElementById('mj-players'));
+        // 上から: 名前 → 山札・裏向きの山 → 準備場 → お守り → 獲得カード（013 §5.1）。空のものは場所を取らない
         container.insertAdjacentHTML('beforeend', `
-            <section id="mj-player-${playerId}" class="mj-player mj-scope" data-mj-pid="${playerId}">
-                <h3 class="mj-heading mj-player-head">
-                    <span class="mj-player-name">${name}</span>
-                    ${this.statsHtml(playerId)}
-                </h3>
-                <div class="mj-player-main">
-                    <div class="mj-pile-wrap">
+            <section id="mj-player-${playerId}" class="mj-player mj-mat mj-scope" data-mj-pid="${playerId}" role="group" aria-label="${escapeHtml(this.plainName(playerId))}">
+                <h3 class="mj-player-name${isDimColor(name) ? ' mj-name-dim' : ''}">${name}</h3>
+                <div class="mj-player-piles">
+                    <div class="mj-deck-wrap">
                         <div id="mj-deck-${playerId}" class="mj-pile mj-deck"></div>
-                        <span class="mj-label">${_('Deck')}</span>
                     </div>
-                    <div class="mj-pile-wrap">
+                    <div class="mj-facedown-wrap" hidden>
                         <div id="mj-facedown-${playerId}" class="mj-pile mj-facedown"></div>
-                        <span class="mj-label">${_('Face-down')}</span>
-                    </div>
-                    <div class="mj-prep-wrap">
-                        <div id="mj-prep-${playerId}" class="mj-prep"></div>
-                    </div>
-                    <div class="mj-pile-wrap">
-                        <div id="mj-charm-${playerId}" class="mj-charm"></div>
-                        <span class="mj-label">${_('Charm')}</span>
                     </div>
                 </div>
-                <div class="mj-acquired-wrap">
-                    <span class="mj-label">${_('Acquired this round')}</span>
+                <div class="mj-prep-wrap">
+                    <div id="mj-prep-${playerId}" class="mj-prep"></div>
+                </div>
+                <div class="mj-charm-wrap" hidden>
+                    <div id="mj-charm-${playerId}" class="mj-charm"></div>
+                </div>
+                <div class="mj-acquired-wrap" hidden>
                     <div id="mj-acquired-${playerId}" class="mj-acquired"></div>
                 </div>
             </section>`);
@@ -1829,6 +2016,9 @@ export class Game {
             prep: this.registerStock(new BgaCards.LineStock(this.cardsManager, el('mj-prep'), { direction: 'column', wrap: 'nowrap', gap: '0' })),
             acquired: this.registerStock(new BgaCards.AllVisibleDeck(this.cardsManager, el('mj-acquired'), { shift: '14px', direction: 'horizontal' })),
             charm: this.registerStock(new BgaCards.LineStock(this.cardsManager, el('mj-charm'), { gap: '0' })),
+            facedownWrap: /** @type {HTMLElement} */ (el('mj-facedown').parentElement),
+            charmWrap: /** @type {HTMLElement} */ (el('mj-charm').parentElement),
+            acquiredWrap: /** @type {HTMLElement} */ (el('mj-acquired').parentElement),
         };
         this.areas[playerId] = area;
 
@@ -1850,8 +2040,43 @@ export class Game {
             fame: data.fame === null || data.fame === undefined ? null : int(data.fame),
         };
 
+        // 数値はパネルだけに出す（013 §4）
         const panel = this.bga.playerPanels.getElement(playerId);
         panel.insertAdjacentHTML('beforeend', `<div class="mj-panel">${this.statsHtml(playerId)}</div>`);
+
+        this.describe(el('mj-facedown'), _('Face-down cards drawn when stopping: not counted, not revealed'));
+        this.describe(el('mj-charm'), _('Charm'), false);
+        this.describe(el('mj-acquired'), _('Cards acquired this round'), false);
+        this.describePiles(playerId);
+        this.syncVisibility(playerId);
+    }
+
+    /**
+     * 山札のアクセシブルな名前とツールチップ（枚数つき）。
+     *
+     * @param {number} playerId
+     */
+    describePiles(playerId) {
+        const s = this.stats[playerId];
+        if (s !== undefined) {
+            this.describe(document.getElementById(`mj-deck-${playerId}`), `${_('Your deck')} (${s.deckCount})`);
+        }
+    }
+
+    /**
+     * 空のものを隠す（裏向きの山・獲得カード・お守り）。カードを加える直前に呼んで、移動先を先に見えるようにする（013 §5.2）。
+     *
+     * @param {number} playerId
+     */
+    syncVisibility(playerId) {
+        const area = this.areas[playerId];
+        const s = this.stats[playerId];
+        if (area === undefined || s === undefined) {
+            return;
+        }
+        area.facedownWrap.hidden = s.facedownCount <= 0;
+        area.acquiredWrap.hidden = s.acquiredCount <= 0 && area.acquired.getCards().length === 0;
+        area.charmWrap.hidden = this.charmHolder !== playerId;
     }
 
     /**
@@ -1875,16 +2100,21 @@ export class Game {
      * @param {{ unknown: boolean, laniakea: number, virgo: number, milkyWay: number, solar: number, earth: number } | undefined} [summary] 同点処理の内訳
      */
     showFinalDeck(playerId, cards, summary) {
-        const root = document.getElementById(`mj-player-${playerId}`);
+        const root = document.getElementById('mj-final');
         if (root === null || document.getElementById(`mj-final-deck-${playerId}`) !== null) {
             return;
         }
+        // 卓の下の全幅の段に、プレイヤーごとにまとめる（013 §5.6）
+        const name = this.bga.players.getFormattedPlayerName(playerId);
         root.insertAdjacentHTML('beforeend', `
-            <div class="mj-final-deck-wrap">
-                <span class="mj-label">${_('Final deck')} <span class="mj-final-deck-count">(${cards.length})</span></span>
+            <section class="mj-final-player mj-mat mj-scope" role="group" aria-label="${escapeHtml(`${_('Final deck')}: ${this.plainName(playerId)}`)}">
+                <div class="mj-final-head">
+                    <h3 class="mj-player-name${isDimColor(name) ? ' mj-name-dim' : ''}">${name}</h3>
+                    <span class="mj-label">${_('Final deck')} <span class="mj-final-deck-count">(${cards.length})</span></span>
+                </div>
                 ${this.tieSummaryHtml(summary)}
                 <div id="mj-final-deck-${playerId}" class="mj-final-deck"></div>
-            </div>`);
+            </section>`);
         const stock = new BgaCards.LineStock(this.cardsManager, document.getElementById(`mj-final-deck-${playerId}`), { gap: '4px', wrap: 'wrap' });
         stock.addCards(cards.map((c) => this.toCard({ ...c, id: FINAL_DECK_ID_OFFSET + int(c.id) })));
     }
@@ -1923,7 +2153,8 @@ export class Game {
         if (wrap === null || wrap === undefined) {
             return;
         }
-        wrap.insertAdjacentHTML('beforeend', `<button type="button" id="mj-deck-view" class="mj-deck-view" title="${_('View my deck')}" aria-label="${_('View my deck')}"></button>`);
+        // 山札の右上に重ねるアイコンボタン（目の形）。枚数はツールチップとアクセシブルな名前に出す
+        wrap.insertAdjacentHTML('beforeend', `<button type="button" id="mj-deck-view" class="mj-deck-view"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M1.5 12S5.5 5 12 5s10.5 7 10.5 7-4 7-10.5 7S1.5 12 1.5 12z"/><circle cx="12" cy="12" r="3.2" fill="currentColor"/></svg></button>`);
         document.body.insertAdjacentHTML('beforeend', `
             <div id="mj-pile-modal" class="mj-pile-modal" hidden>
                 <div class="mj-pile-dialog mj-scope" role="dialog" aria-modal="true" aria-label="${_('My draw pile')}">
@@ -1971,9 +2202,7 @@ export class Game {
     refreshDrawPile() {
         const cards = this.myDrawPile ?? [];
         const button = document.getElementById('mj-deck-view');
-        if (button !== null) {
-            button.textContent = `${_('View')} (${cards.length})`;
-        }
+        this.describe(button, `${_('View my deck')} (${cards.length})`);
         const modal = this.drawPileModal;
         if (modal === null || modal.hidden) {
             return;
@@ -2005,11 +2234,13 @@ export class Game {
             return;
         }
         this.charmHolder = int(charm.holder);
+        this.syncVisibility(this.charmHolder);
         this.areas[this.charmHolder]?.charm.addCard(this.toCard(charm.card));
     }
 
     /**
-     * パネルと領域の見出しに入れる数値の HTML。同じ内容を 2 か所に出す（009 §8.3）。
+     * プレイヤーパネルに入れる数値の HTML（013 §4）。数値はパネルだけに出し、領域の見出しには出さない。
+     * 項目: 探査出力・準備枚数・状態（✓ / ■ Stopped / Drew alone / #N）・名声（オプション時）。
      * 更新は data-mj-pid と data-mj-stat で探して書き換える。
      *
      * @param {number} playerId
@@ -2020,15 +2251,15 @@ export class Game {
             `<span class="mj-stat" data-mj-pid="${playerId}" data-mj-stat="${key}" title="${title}"${hidden ? ' hidden' : ''}>${inner}</span>`;
         const icon = (/** @type {string} */ name, /** @type {string} */ label) =>
             `<span class="mj-icon mj-icon-${name}" role="img" aria-label="${label}"></span>`;
+        // 小さなカード形のアイコン（準備枚数）
+        const cardIcon = `<svg class="mj-card-icon" viewBox="0 0 12 17" width="12" height="17" role="img" aria-label="${_('Prepared cards')}"><rect x="1" y="1" width="10" height="15" rx="1.8" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M3.5 12.5h5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>`;
         return `<span class="mj-stats">`
-            + stat('prepCount', _('Prepared cards'), `<span class="mj-stat-label">${_('Prep')}</span><b data-mj-val></b>`)
             + stat('output', _('Current exploration output'), `${icon('power', _('Exploration output'))}<b data-mj-val></b>`)
-            + stat('deckCount', _('Cards in deck'), `<span class="mj-stat-label">${_('Deck')}</span><b data-mj-val></b>`)
-            + stat('charm', _('Holds the charm'), `${icon('charm', _('Charm'))}`, true)
-            + stat('fame', _('Total fame'), `${icon('fame', _('Fame'))}<b data-mj-val></b>`, true)
+            + stat('prepCount', _('Prepared cards'), `${cardIcon}<b data-mj-val></b>`)
             + stat('chosen', _('Has chosen'), `<span aria-hidden="true">✓</span> ${_('Chosen')}`, true)
             + stat('prepDone', _('Preparation finished'), `<span aria-hidden="true" data-mj-mark>■</span> <span data-mj-text></span>`, true)
-            + stat('turn', _('Exploration turn order'), `<span class="mj-stat-label">${_('Turn')}</span><b data-mj-val></b>`, true)
+            + stat('turn', _('Exploration turn order'), `<b data-mj-val></b>`, true)
+            + stat('fame', _('Total fame'), `${icon('fame', _('Fame'))}<b data-mj-val></b>`, true)
             + `</span>`;
     }
 
@@ -2056,12 +2287,10 @@ export class Game {
         const view = {
             prepCount: [true, String(s.prepCount)],
             output: [true, (s.output ?? s.outputNow) + (s.output !== null && s.isHalved ? ' (÷2)' : '')],
-            deckCount: [true, String(s.deckCount)],
-            charm: [this.charmHolder === playerId, ''],
             fame: [showFame, String(s.fame ?? '')],
             chosen: [this.chosen.has(playerId), ''],
             prepDone: [!this.prepOver && (s.prepFinished || s.isHalved), s.prepFinished ? _('Stopped') : _('Drew alone')],
-            turn: [turnIndex >= 0, String(turnIndex + 1)],
+            turn: [turnIndex >= 0, `#${turnIndex + 1}`],
         };
         for (const node of document.querySelectorAll(`[data-mj-pid="${playerId}"][data-mj-stat]`)) {
             const element = /** @type {HTMLElement} */ (node);
@@ -2589,6 +2818,9 @@ export class Game {
         if (s === undefined || area === undefined) {
             return;
         }
+        // 移動先を先に表示してから、カード（枚数）を加える
+        this.syncVisibility(playerId);
+        this.describePiles(playerId);
         if (area.deck.getCardNumber() !== s.deckCount) {
             area.deck.setCardNumber(s.deckCount);
         }
@@ -2778,6 +3010,7 @@ export class Game {
         }
         if (!stock.getSlotsIds().includes(slot)) {
             stock.addSlotsIds([slot]); // 011 で規定枚数を超えるとき
+            this.updateLayout();
         }
         this.pileCounts[cost] = Math.max(0, (this.pileCounts[cost] ?? 0) - 1);
         this.exploreDecks[cost].setCardNumber(this.pileCounts[cost]);
@@ -2827,11 +3060,10 @@ export class Game {
         const to = int(args.player_id);
         const from = this.charmHolder;
         this.charmHolder = to;
+        this.syncVisibility(to);
         await this.areas[to]?.charm.addCard(this.toCard(args.card));
-        for (const id of [from, to]) {
-            if (id !== null) {
-                this.refreshStats(id);
-            }
+        if (from !== null && from !== to) {
+            this.syncVisibility(from);
         }
     }
 
@@ -2965,5 +3197,8 @@ export class Game {
 
     async notif_beaconPlaced() {}
 
-    async notif_gameEndTriggered() {}
+    /** ゲーム終了条件の成立（N35 より前）。最終ラウンドのバナーを出す */
+    async notif_gameEndTriggered(/** @type {{ reason?: string }} */ args) {
+        this.showLastTurnBanner(args.reason ?? 'pile8');
+    }
 }
