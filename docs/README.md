@@ -12,6 +12,7 @@ MINIMUM JOURNEY の BGA 実装に関する開発用ドキュメントの索引�
 | [development/task-workflow.md](development/task-workflow.md) | タスクの進め方とサブエージェントへの委託方法 |
 | [publishing/game-description.md](publishing/game-description.md) | 英語のゲーム紹介文（BGG・BGA の説明文） |
 | [publishing/bga-license.md](publishing/bga-license.md) | BGA のライセンス申請（作者が権利者として許諾する）の手順とフォームへの記入例 |
+| [publishing/rules-summary.md](publishing/rules-summary.md) | BGA のルール概要（wiki の Gamehelp）の英語・日本語の文面と掲載手順 |
 | [development/cicd.md](development/cicd.md) | CI（lint）と BGA Studio への自動同期の方針 |
 
 ## 一次情報
