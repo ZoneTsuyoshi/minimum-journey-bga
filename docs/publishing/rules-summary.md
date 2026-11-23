@@ -108,7 +108,7 @@ You may also pass. "On Exploring" effects happen at the start of your turn, and 
 
 2. '''Everyone reshuffles.''' Gather your prepared cards, face-down cards, acquired cards and draw pile, and shuffle them into a new draw pile.
 
-3. '''Refill the rows''' from their exploration piles up to their set size (as many as are left).
+3. '''Refill the rows.''' The remaining cards in each row slide to the left, then each row is refilled from its exploration pile up to its set size (as many as are left).
 
 == End of the game ==
 
@@ -233,7 +233,7 @@ __NOTOC__
 
 2. '''全員が混ぜ直します。''' 準備場のカード、裏向きのカード、獲得したカード、山札をすべて混ぜて、新しい山札にします。
 
-3. '''列を補充します。''' 各列を、規定の枚数になるまで探査山札から補充します（足りなければあるだけ）。
+3. '''列を補充します。''' 各列の残ったカードを左に詰めてから、規定の枚数になるまで探査山札から補充します（足りなければあるだけ）。
 
 == ゲームの終了 ==
 
