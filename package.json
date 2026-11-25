@@ -24,13 +24,13 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@eslint/json": "^2.1.1",
-    "eslint": "^10.13.0",
-    "globals": "^17.13.0",
-    "markdownlint-cli2": "^0.23.3",
+    "eslint": "^10.15.0",
+    "globals": "^17.14.0",
+    "markdownlint-cli2": "^0.24.2",
     "playwright-core": "^1.65.1",
     "sharp": "0.35.5",
-    "stylelint": "^17.16.0",
-    "stylelint-config-standard": "^40.0.0",
+    "stylelint": "^18.1.0",
+    "stylelint-config-standard": "^41.1.0",
     "typescript": "^7.0.2"
   },
   "type": "module"
