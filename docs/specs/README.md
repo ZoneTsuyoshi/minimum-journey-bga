@@ -23,5 +23,6 @@
 | 011 | 探査力変動効果の適用順 | Implemented | T-011 |
 | 012 | チュートリアルの台本 | Approved | T-012 |
 | 013 | Public Alpha 審査の UI 指摘への対応 | Approved | T-013 |
+| 014 | Public Alpha 再申請前の UX 点検（ツールチップ・浮いた操作部・入れ子のスクロール） | Draft | T-014 |
 
 各仕様書は別ブランチ（`docs/spec-NNN-<slug>`）で作成し、PR のマージで `main` に入る。
